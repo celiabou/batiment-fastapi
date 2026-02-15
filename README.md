@@ -21,3 +21,4 @@ Ouvre: http://localhost:8000
 - `seo.py`: remplacer `SITE["url"]`, `SITE["phone"]`, `SITE["email"]`
 - `content/services.json` et `content/cities.json`
 
+# batiment-fastapi

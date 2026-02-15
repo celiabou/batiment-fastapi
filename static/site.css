@@ -1,0 +1,20 @@
+body { font-family: system-ui, Arial; margin:0; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+.hdr { border-bottom: 1px solid #eee; }
+.brand { font-weight: 700; text-decoration: none; color: #000; }
+.nav a { margin-left: 14px; text-decoration: none; color:#111; font-size:14px; }
+.hero { border:1px solid #eee; border-radius:18px; padding:28px; }
+.btn { display:inline-block; border:1px solid #111; padding:10px 14px; border-radius:12px; text-decoration:none; color:#111; font-size:14px; margin-right:10px; }
+.grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:18px; }
+.card { border:1px solid #eee; border-radius:16px; padding:16px; text-decoration:none; color:#111; }
+.box { border:1px solid #eee; border-radius:16px; padding:16px; margin-top:16px; }
+.form { display:grid; gap:10px; max-width:560px; }
+.form input, .form textarea { border:1px solid #ddd; border-radius:12px; padding:10px 12px; font-size:14px; }
+#chatBtn { position:fixed; right:16px; bottom:16px; border:1px solid #111; background:#fff; border-radius:999px; padding:12px 14px; cursor:pointer; box-shadow: 0 8px 30px rgba(0,0,0,.08); }
+#chatBox { position:fixed; right:16px; bottom:72px; width:340px; background:#fff; border:1px solid #eee; border-radius:18px; box-shadow: 0 10px 40px rgba(0,0,0,.12); display:none; }
+#chatHead { padding:10px 12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+#chatMsgs { max-height:320px; overflow:auto; padding:10px 12px; }
+.msg { border:1px solid #eee; border-radius:14px; padding:8px 10px; margin:8px 0; font-size:13px; white-space:pre-wrap; }
+.user { text-align:right; }
+#chatFoot { border-top:1px solid #eee; display:flex; gap:8px; padding:10px 12px; }
+#chatInput { flex:1; border:1px solid #ddd; border-radius:12px; padding:8px 10px; font-size:13px; }

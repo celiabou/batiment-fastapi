@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<form method="post" action="/api/lead">
+<input name="name" placeholder="Nom">
+<input name="phone" placeholder="Téléphone">
+<input name="email" placeholder="Email">
+<textarea name="message">Demande de devis</textarea>
+<button>Envoyer</button>
+</form>
+{% endblock %}

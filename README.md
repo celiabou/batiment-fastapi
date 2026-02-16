@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # batiment_py
 
 Site FastAPI + Jinja2 pour estimation travaux, pages locales SEO, et collecte de leads.
@@ -22,3 +23,6 @@ Ouvre: http://localhost:8000
 - `content/services.json` et `content/cities.json`
 
 # batiment-fastapi
+=======
+# batiment-fastapi
+>>>>>>> fe60270d9ab4ebd751918ef54f4abdc6d0b5d8fe

@@ -1,10 +1,69 @@
 {% extends "base.html" %}
 {% block content %}
-<form method="post" action="/api/lead">
-<input name="name" placeholder="Nom">
-<input name="phone" placeholder="Téléphone">
-<input name="email" placeholder="Email">
-<textarea name="message">Demande de devis</textarea>
-<button>Envoyer</button>
-</form>
+<section class="page-hero">
+  <p class="kicker">Contact</p>
+  <h1>Demande de devis</h1>
+  <p class="lead">Laissez vos coordonnees et le cadre du projet. Un conseiller vous rappelle rapidement.</p>
+</section>
+
+<section class="section section-shell">
+  <form class="form pro-form" method="post" action="/api/lead">
+    <input type="hidden" name="visitor_id" id="contactVisitorId">
+    <input type="hidden" name="visitor_landing" id="contactVisitorLanding">
+    <input type="hidden" name="visitor_referrer" id="contactVisitorReferrer">
+    <input type="hidden" name="visitor_utm" id="contactVisitorUtm">
+    <label>Nom
+      <input name="name" placeholder="Prenom Nom" required>
+    </label>
+    <label>Telephone
+      <input name="phone" placeholder="06 12 34 56 78" required>
+    </label>
+    <label>Email
+      <input type="email" name="email" placeholder="vous@email.fr" required>
+    </label>
+    <label>Message
+      <textarea name="message" rows="5" placeholder="Type de travaux, surface, ville...">Demande de devis</textarea>
+    </label>
+    <button class="btn btn-solid" type="submit">Envoyer la demande</button>
+  </form>
+</section>
+
+<section id="agenda-conseiller" class="section section-shell agenda-shell">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Conseiller</p>
+      <h2>Prendre RDV dans l'agenda</h2>
+      <p class="section-sub">Choisissez un creneau pour parler avec un conseiller renovation. Si vous n'avez pas encore laisse vos coordonnees, vous pourrez le faire dans le widget.</p>
+    </div>
+  </div>
+  <div class="agenda-cta-row">
+    <button id="openChatAgenda" class="btn btn-solid" type="button">Prendre RDV avec un conseiller</button>
+    {% if AGENDA_URL %}
+    <a class="btn" href="{{ AGENDA_URL }}" target="_blank" rel="noopener">Ouvrir l'agenda complet</a>
+    {% endif %}
+  </div>
+</section>
+
+<script>
+  (function () {
+    const openBtn = document.getElementById("openChatAgenda");
+    if (!openBtn) return;
+    openBtn.addEventListener("click", function () {
+      window.dispatchEvent(new CustomEvent("open-chat-agenda"));
+    });
+  })();
+
+  (function () {
+    if (!window.RB_TRACKING || typeof window.RB_TRACKING.getContext !== "function") return;
+    const ctx = window.RB_TRACKING.getContext() || {};
+    const visitorIdEl = document.getElementById("contactVisitorId");
+    const landingEl = document.getElementById("contactVisitorLanding");
+    const referrerEl = document.getElementById("contactVisitorReferrer");
+    const utmEl = document.getElementById("contactVisitorUtm");
+    if (visitorIdEl) visitorIdEl.value = ctx.visitor_id || "";
+    if (landingEl) landingEl.value = ctx.visitor_landing || "";
+    if (referrerEl) referrerEl.value = ctx.visitor_referrer || "";
+    if (utmEl) utmEl.value = JSON.stringify(ctx.visitor_utm || {});
+  })();
+</script>
 {% endblock %}

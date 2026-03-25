@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="150" viewBox="0 0 520 150" role="img" aria-labelledby="title">
+  <title>Point.P</title>
+  <rect x="4" y="4" width="512" height="142" rx="22" fill="#fff7f4" stroke="#f2d2c9" stroke-width="8"/>
+  <rect x="16" y="30" width="86" height="90" rx="16" fill="#e45c2d"/>
+  <circle cx="59" cy="75" r="21" fill="#fff"/>
+  <circle cx="59" cy="75" r="11" fill="#e45c2d"/>
+  <text x="122" y="90" fill="#8f311a" font-family="Instrument Sans, Arial, sans-serif" font-size="44" font-weight="800">Point.P</text>
+</svg>

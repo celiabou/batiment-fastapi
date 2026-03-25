@@ -1,0 +1,10 @@
+.DS_Store
+.env
+.venv/
+__pycache__/
+*.pyc
+leads.sqlite
+
+# User uploads/renders
+/static/architecture/uploads/
+/static/architecture/renders/

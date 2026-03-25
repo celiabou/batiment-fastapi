@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="150" viewBox="0 0 520 150" role="img" aria-labelledby="title">
+  <title>Schneider Electric</title>
+  <rect x="4" y="4" width="512" height="142" rx="22" fill="#f4fff7" stroke="#c9e9d3" stroke-width="8"/>
+  <rect x="20" y="32" width="82" height="86" rx="16" fill="#24a148"/>
+  <text x="61" y="87" fill="#ffffff" font-family="Instrument Sans, Arial, sans-serif" font-size="38" font-weight="800" text-anchor="middle">SE</text>
+  <text x="124" y="72" fill="#1f5c34" font-family="Instrument Sans, Arial, sans-serif" font-size="34" font-weight="800">Schneider</text>
+  <text x="124" y="108" fill="#24a148" font-family="Instrument Sans, Arial, sans-serif" font-size="30" font-weight="700">Electric</text>
+</svg>

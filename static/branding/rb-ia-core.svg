@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="72" viewBox="0 0 180 72" role="img" aria-labelledby="title desc">
+  <title id="title">RB IA Core</title>
+  <desc id="desc">Logo RB Renovation Batiment avec IA au coeur de l'expertise batiment</desc>
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1f3b5e"/>
+      <stop offset="100%" stop-color="#0f6ca5"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f39a3a"/>
+      <stop offset="100%" stop-color="#d8662b"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="3" y="3" width="174" height="66" rx="16" fill="#f8fbff" stroke="#d1ddea" stroke-width="6"/>
+
+  <rect x="12" y="12" width="60" height="48" rx="12" fill="url(#g1)"/>
+  <text x="24" y="42" fill="#ffffff" font-family="Instrument Sans, Arial, sans-serif" font-size="25" font-weight="800">RB</text>
+
+  <rect x="78" y="12" width="40" height="48" rx="10" fill="url(#g2)"/>
+  <text x="89" y="42" fill="#ffffff" font-family="Instrument Sans, Arial, sans-serif" font-size="21" font-weight="800">IA</text>
+
+  <text x="126" y="30" fill="#1f3650" font-family="Instrument Sans, Arial, sans-serif" font-size="9" font-weight="800">CORE</text>
+  <text x="126" y="44" fill="#4b6077" font-family="Instrument Sans, Arial, sans-serif" font-size="8" font-weight="700">BATIMENT</text>
+</svg>

@@ -1,5 +1,504 @@
 {% extends "base.html" %}
+{% block title %}Renovation Maison Appartement | Devis Gratuit + Demo IA 3D{% endblock %}
+
 {% block content %}
-<h1>Devis travaux en 1 minute</h1>
-<p>Utilisez le bouton en bas à droite.</p>
+<section class="brokkr-hero full-bleed">
+  <div class="brokkr-hero-media">
+    <img src="https://images.pexels.com/photos/1454806/pexels-photo-1454806.jpeg?auto=compress&cs=tinysrgb&w=1800" alt="Renovation interieure haut de gamme">
+    <div class="brokkr-hero-overlay"></div>
+  </div>
+
+  <div class="brokkr-hero-panel">
+    <div class="brokkr-hero-ribbon">
+      <span>Entreprise generale du batiment TCE</span>
+      <span>Accompagnement cle en main</span>
+      <span>Travaux sans stress</span>
+    </div>
+    <p class="kicker">Entreprise de renovation tous corps d'etat</p>
+    <h1>Travaux de renovation a Paris et Ile-de-France</h1>
+    <p class="lead">Entreprise generale du batiment TCE. Renovation d'appartement et maison cle en main, avec devis gratuit, pilotage chantier complet et prestation offerte via renovation et demo par IA 3D sur demande apres devis.</p>
+    <div class="cta-row">
+      <a class="btn btn-solid" href="/contact">J'estime mes travaux</a>
+      <a class="btn" href="/contact#agenda-conseiller">Prendre RDV avec un conseiller</a>
+      <a class="btn" href="/#architecture-ia">Voir la demo IA 3D</a>
+    </div>
+    <div class="brokkr-badges">
+      <span>Appartement</span>
+      <span>Maison</span>
+      <span>Salle de bain</span>
+      <span>Cuisine</span>
+      <span>Bureaux</span>
+      <span>Copropriete</span>
+    </div>
+    <div class="brokkr-kpi-grid">
+      <article class="brokkr-kpi">
+        <strong>4.9/5</strong>
+        <span>Avis clients</span>
+      </article>
+      <article class="brokkr-kpi">
+        <strong>&lt; 24h</strong>
+        <span>Rappel conseiller</span>
+      </article>
+      <article class="brokkr-kpi">
+        <strong>{{ idf_departments }} departements</strong>
+        <span>Zone couverte</span>
+      </article>
+    </div>
+  </div>
+
+  <aside class="brokkr-hero-side">
+    <h3>Conseiller disponible tout de suite</h3>
+    <p class="section-sub">Prenez un creneau dans l'agenda puis lancez votre devis en ligne. Vous restez accompagne de bout en bout.</p>
+    <ol class="ai3d-steps">
+      <li>Brief rapide de votre projet.</li>
+      <li>Estimation budget + delai.</li>
+      <li>Demarrage chantier avec pilote unique.</li>
+      <li>Prestation offerte IA 3D sur demande apres devis.</li>
+    </ol>
+    <div class="cta-row">
+      <a class="btn btn-solid" href="/contact#agenda-conseiller">Prendre RDV</a>
+      <a class="btn" href="/#services">Voir nos prestations</a>
+    </div>
+  </aside>
+</section>
+
+<section class="brokkr-marquee full-bleed">
+  <div class="wrap brokkr-marquee-row">
+    <span>Renovation appartement</span>
+    <span>Renovation maison</span>
+    <span>Renovation salle de bain</span>
+    <span>Amenagement bureaux</span>
+    <span>Devis gratuit</span>
+    <span>Prestation offerte IA 3D apres devis</span>
+  </div>
+</section>
+
+<section id="ia-expertise" class="section section-shell ia-expertise-shell">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Positionnement RB IA</p>
+      <h2>Pas une simple entreprise qui utilise l'IA</h2>
+      <p class="section-sub">Chez RB, l'IA est au coeur de l'expertise batiment: vision claire du chantier, problematiques soulevees et solution interne immediate.</p>
+    </div>
+  </div>
+  <div class="ia-expertise-grid">
+    <article class="ia-expertise-card">
+      <h3>Vision claire du chantier</h3>
+      <p>Lecture technique rapide des contraintes terrain, des lots TCE et des points de risque avant demarrage.</p>
+    </article>
+    <article class="ia-expertise-card">
+      <h3>Problemes souleves, solution interne</h3>
+      <p>Chaque blocage detecte est traite avec une solution interne operationnelle, sans pilotage a l'ancienne ni perte de temps.</p>
+    </article>
+    <article class="ia-expertise-card">
+      <h3>Batiment moderne, methode differente</h3>
+      <p>Notre facon de travailler est orientee data, projection IA 3D et execution terrain synchronisee du devis a la livraison.</p>
+    </article>
+  </div>
+  <div class="cta-row">
+    <a class="btn btn-solid" href="/contact">Demarrer un projet moderne</a>
+    <a class="btn" href="/#architecture-ia">Voir la demonstration IA 3D</a>
+  </div>
+</section>
+
+<section class="section section-shell brokkr-audience">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Vous etes ?</p>
+      <h2>Un parcours adapte a votre profil</h2>
+      <p class="section-sub">Particulier ou professionnel: nous adaptons pilotage, planning et mode de suivi.</p>
+    </div>
+  </div>
+  <div class="brokkr-audience-grid">
+    <article class="brokkr-audience-card">
+      <h3>Particulier</h3>
+      <p>Renovation complete, salle de bain, cuisine, extension, redistribution des pieces.</p>
+      <a class="link-arrow" href="/contact">Demander mon devis</a>
+    </article>
+    <article class="brokkr-audience-card">
+      <h3>Professionnel</h3>
+      <p>Bureaux et locaux professionnels avec planning cible et coordination terrain.</p>
+      <a class="link-arrow" href="/contact#agenda-conseiller">Parler a un charge d'affaires</a>
+    </article>
+  </div>
+</section>
+
+<section id="services" class="section section-shell bro-services">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Nos services</p>
+      <h2>Decouvrez tous nos chantiers de renovation</h2>
+      <p class="section-sub">Categories claires, exemples concrets et prise de contact rapide.</p>
+    </div>
+    <a class="btn" href="/#services">Voir toutes nos renovations</a>
+  </div>
+  <div class="brokkr-service-catalog">
+    <a class="brokkr-service-visual" href="/services/renovation-interieure">
+      <img src="https://images.pexels.com/photos/6585765/pexels-photo-6585765.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Renovation complete">
+      <div class="brokkr-service-body">
+        <h3>Renovation complete</h3>
+        <p>Prise en charge TCE de la demolition aux finitions.</p>
+      </div>
+    </a>
+    <a class="brokkr-service-visual" href="/services/renovation-interieure">
+      <img src="https://images.pexels.com/photos/6585615/pexels-photo-6585615.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Renover ma cuisine">
+      <div class="brokkr-service-body">
+        <h3>Renover ma cuisine</h3>
+        <p>Implantation, plomberie, electricite et pose complete.</p>
+      </div>
+    </a>
+    <a class="brokkr-service-visual" href="/services/plomberie">
+      <img src="https://images.pexels.com/photos/8134848/pexels-photo-8134848.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Renover ma salle de bain">
+      <div class="brokkr-service-body">
+        <h3>Renover ma salle de bain</h3>
+        <p>Douche, baignoire, carrelage et mobilier optimise.</p>
+      </div>
+    </a>
+    <a class="brokkr-service-visual" href="/services/electricite">
+      <img src="https://images.pexels.com/photos/8961251/pexels-photo-8961251.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Copropriete">
+      <div class="brokkr-service-body">
+        <h3>Copropriete</h3>
+        <p>Parties communes, halls, cages d'escalier et mise aux normes.</p>
+      </div>
+    </a>
+    <a class="brokkr-service-visual" href="/services/renovation-interieure">
+      <img src="https://images.pexels.com/photos/6474475/pexels-photo-6474475.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Amenagement bureaux professionnels">
+      <div class="brokkr-service-body">
+        <h3>Amenagement bureaux professionnels</h3>
+        <p>Planning serre, coordination des lots et livraison prete a exploiter.</p>
+      </div>
+    </a>
+  </div>
+</section>
+
+<section id="nos-chantiers" class="section section-shell brokkr-work">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Nos chantiers</p>
+      <h2>Realisations recentes</h2>
+      <p class="section-sub">Exemples de projets menes en Ile-de-France sur differents budgets et surfaces.</p>
+    </div>
+    <a class="btn" href="/contact">Demarrer mon projet</a>
+  </div>
+  <div class="brokkr-chantier-grid">
+    <article class="brokkr-chantier-card">
+      <img src="https://images.pexels.com/photos/8134848/pexels-photo-8134848.jpeg?auto=compress&cs=tinysrgb&w=1400" alt="Renovation salle de bain paris">
+      <div class="brokkr-chantier-body">
+        <p class="brokkr-date">31 janvier 2026</p>
+        <h3>Renovation salle de bain Paris</h3>
+        <p>Reprise complete plomberie, carrelage grand format et mobilier sur mesure.</p>
+      </div>
+    </article>
+    <article class="brokkr-chantier-card">
+      <img src="https://images.pexels.com/photos/6474475/pexels-photo-6474475.jpeg?auto=compress&cs=tinysrgb&w=1400" alt="Renovation bureaux paris">
+      <div class="brokkr-chantier-body">
+        <p class="brokkr-date">31 janvier 2026</p>
+        <h3>Renovation bureaux Paris</h3>
+        <p>Restructuration des espaces de travail avec acoustique et eclairage optimises.</p>
+      </div>
+    </article>
+    <article class="brokkr-chantier-card">
+      <img src="https://images.pexels.com/photos/6585765/pexels-photo-6585765.jpeg?auto=compress&cs=tinysrgb&w=1400" alt="Renovation appartement familial">
+      <div class="brokkr-chantier-body">
+        <p class="brokkr-date">31 janvier 2026</p>
+        <h3>Renovation appartement familial</h3>
+        <p>Redistribution des volumes, cuisine ouverte et finitions premium.</p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section id="avant-apres" class="section section-shell before-after-shell">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Avant / Apres</p>
+      <h2>Transformation reelle de nos chantiers</h2>
+      <p class="section-sub">Visualisez des resultats concrets avant de lancer votre projet.</p>
+    </div>
+  </div>
+  <div class="before-after-tabs" role="tablist" aria-label="Onglets avant apres">
+    <button class="before-after-tab is-active" type="button" data-category="all" aria-selected="true">Tout</button>
+    <button class="before-after-tab" type="button" data-category="salle-bain" aria-selected="false">Salle de bain</button>
+    <button class="before-after-tab" type="button" data-category="cuisine" aria-selected="false">Cuisine</button>
+    <button class="before-after-tab" type="button" data-category="sejour" aria-selected="false">Sejour</button>
+  </div>
+  <div id="beforeAfterGrid" class="before-after-grid">
+    <article class="before-after-card" data-category="salle-bain">
+      <div class="before-after-images">
+        <figure>
+          <img src="/static/before-after/sdb-avant.jpg" alt="Avant renovation salle de bain">
+          <figcaption>Avant</figcaption>
+        </figure>
+        <figure>
+          <img src="/static/before-after/sdb-apres.jpg" alt="Apres renovation salle de bain">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <h3>Salle de bain</h3>
+      <p>Optimisation complete des volumes et des finitions.</p>
+    </article>
+    <article class="before-after-card" data-category="cuisine">
+      <div class="before-after-images">
+        <figure>
+          <img src="/static/before-after/cuisine-avant.jpg" alt="Avant renovation cuisine">
+          <figcaption>Avant</figcaption>
+        </figure>
+        <figure>
+          <img src="/static/before-after/cuisine-apres.jpg" alt="Apres renovation cuisine">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <h3>Cuisine</h3>
+      <p>Nouveau plan de travail, rangements et circulation repensee.</p>
+    </article>
+    <article class="before-after-card" data-category="sejour">
+      <div class="before-after-images">
+        <figure>
+          <img src="/static/before-after/sejour-avant.jpg" alt="Avant renovation sejour">
+          <figcaption>Avant</figcaption>
+        </figure>
+        <figure>
+          <img src="/static/before-after/sejour-apres.jpg" alt="Apres renovation sejour">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <h3>Sejour</h3>
+      <p>Ambiance lumineuse, materiaux nobles et confort quotidien.</p>
+    </article>
+  </div>
+  <p class="before-after-note">Photos issues de la fiche PagesJaunes (Renova Home): <a href="https://www.pagesjaunes.fr/pros/61564010#1771321727;587575-rt98g_321727490115575941" target="_blank" rel="noopener">voir la source</a>.</p>
+</section>
+
+<section id="nos-metiers" class="section section-shell">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Nos metiers</p>
+      <h2>Tous corps d'etat du batiment</h2>
+      <p class="section-sub">Un interlocuteur unique coordonne chaque metier sur site.</p>
+    </div>
+  </div>
+  <div class="bro-metier-grid">
+    <article class="bro-metier-card">
+      <h3>Platrerie</h3>
+      <p>Reprises structurelles et cloisons techniques.</p>
+    </article>
+    <article class="bro-metier-card">
+      <h3>Peinture</h3>
+      <p>Finitions mur/plafond et harmonisation couleurs.</p>
+    </article>
+    <article class="bro-metier-card">
+      <h3>Menuiserie</h3>
+      <p>Portes, placards, agencements sur mesure.</p>
+    </article>
+    <article class="bro-metier-card">
+      <h3>Plomberie</h3>
+      <p>Reseaux, sanitaires, cuisine et salle de bain.</p>
+    </article>
+    <article class="bro-metier-card">
+      <h3>Revetement sols</h3>
+      <p>Parquet, carrelage, surfaces techniques.</p>
+    </article>
+    <article class="bro-metier-card">
+      <h3>Electricite</h3>
+      <p>Mise aux normes et modernisation des circuits.</p>
+    </article>
+    <article class="bro-metier-card">
+      <h3>Conception 3D</h3>
+      <p>Projection visuelle pour valider les choix.</p>
+    </article>
+    <article class="bro-metier-card">
+      <h3>Curage demolition</h3>
+      <p>Preparation chantier en securite.</p>
+    </article>
+  </div>
+</section>
+
+<section class="section workflow-shell">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Notre methode</p>
+      <h2>Les 4 etapes de votre renovation</h2>
+      <p class="section-sub">Un process clair pour maitriser cout, delai et qualite.</p>
+    </div>
+  </div>
+  <div class="bro-step-grid">
+    <article class="workflow-card">
+      <span class="workflow-num">01</span>
+      <h3>Brief initial</h3>
+      <p>Vous decrivez votre besoin et vos contraintes.</p>
+    </article>
+    <article class="workflow-card">
+      <span class="workflow-num">02</span>
+      <h3>Visite et devis</h3>
+      <p>Nous etablissons un chiffrage detaille et realiste.</p>
+    </article>
+    <article class="workflow-card">
+      <span class="workflow-num">03</span>
+      <h3>Execution chantier</h3>
+      <p>Coordination TCE avec suivi qualite hebdomadaire.</p>
+    </article>
+    <article class="workflow-card">
+      <span class="workflow-num">04</span>
+      <h3>Livraison</h3>
+      <p>Reception, verification finale et accompagnement.</p>
+    </article>
+  </div>
+</section>
+
+<section id="ressources" class="section section-shell">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Ressources</p>
+      <h2>Guides et conseils renovation</h2>
+    </div>
+    <a class="btn" href="/#ressources">Voir plus</a>
+  </div>
+  <div class="brokkr-news-grid">
+    <article class="brokkr-news-card">
+      <img src="https://images.pexels.com/photos/6707616/pexels-photo-6707616.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Guide prix renovation appartement">
+      <div class="brokkr-news-body">
+        <p class="brokkr-date">31 janvier 2026</p>
+        <h3>Prix renovation appartement Paris</h3>
+        <p>Ordres de grandeur, postes de cout et points de vigilance.</p>
+      </div>
+    </article>
+    <article class="brokkr-news-card">
+      <img src="https://images.pexels.com/photos/8134848/pexels-photo-8134848.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Renovation salle de bain paris">
+      <div class="brokkr-news-body">
+        <p class="brokkr-date">31 janvier 2026</p>
+        <h3>Comment reussir une salle de bain</h3>
+        <p>Budget, materiaux et erreurs a eviter pour un resultat durable.</p>
+      </div>
+    </article>
+    <article class="brokkr-news-card">
+      <img src="https://images.pexels.com/photos/6585750/pexels-photo-6585750.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Amenagement cuisine paris">
+      <div class="brokkr-news-body">
+        <p class="brokkr-date">31 janvier 2026</p>
+        <h3>Amenagement cuisine a Paris</h3>
+        <p>Circulation, implantation et finitions durables.</p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="section section-shell bro-faq">
+  <div class="section-head">
+    <div>
+      <p class="kicker">FAQ</p>
+      <h2>Vos questions, nos reponses</h2>
+    </div>
+  </div>
+  <details open>
+    <summary>Intervenez-vous pour les professionnels ?</summary>
+    <p>Oui, nous intervenons pour appartements, maisons, bureaux et coproprietes.</p>
+  </details>
+  <details>
+    <summary>Quels sont vos delais moyens ?</summary>
+    <p>Apres validation du devis, le demarrage intervient en general sous 4 a 6 semaines.</p>
+  </details>
+  <details>
+    <summary>Dans quelle zone geographique intervenez-vous ?</summary>
+    <p>Paris et toute l'Ile-de-France, avec extension possible selon le type de projet.</p>
+  </details>
+  <details>
+    <summary>Comment fonctionne la prestation offerte IA 3D ?</summary>
+    <p>Le client pose d'abord un devis gratuit, puis demande la prestation offerte d'agencement/deco IA 3D.</p>
+  </details>
+</section>
+
+<section class="section section-shell bro-reviews">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Avis clients</p>
+      <h2>Feedbacks clients recents</h2>
+    </div>
+  </div>
+  <div class="bro-news-grid">
+    <article class="bro-review-card">
+      <strong>4.9/5</strong>
+      <p>"Accompagnement tres pro du devis a la livraison, aucun stress."</p>
+      <span>Mme L. - Appartement, Paris 15</span>
+    </article>
+    <article class="bro-review-card">
+      <strong>4.8/5</strong>
+      <p>"Equipe reactive, planning respecte et communication claire chaque semaine."</p>
+      <span>M. R. - Maison, Yvelines</span>
+    </article>
+    <article class="bro-review-card">
+      <strong>5.0/5</strong>
+      <p>"Le rendu IA 3D nous a aide a valider rapidement les choix d'agencement."</p>
+      <span>Famille D. - Hauts-de-Seine</span>
+    </article>
+  </div>
+</section>
+
+<section class="section section-shell brokkr-partners">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Clients & partenariats</p>
+      <h2>Les marques avec qui nous travaillons</h2>
+      <p class="section-sub">Partenariat mentionne avec Saint Maclou et collaboration avec des acteurs reconnus du batiment.</p>
+    </div>
+  </div>
+  <div class="partner-marquee">
+    <div class="partner-track">
+      <figure class="partner-logo partner-logo-highlight"><img src="/static/partners/saint-maclou.svg" alt="Saint Maclou"></figure>
+      <figure class="partner-logo"><img src="/static/partners/leroy-merlin-pro.svg" alt="Leroy Merlin Pro"></figure>
+      <figure class="partner-logo"><img src="/static/partners/saint-gobain.svg" alt="Saint-Gobain"></figure>
+      <figure class="partner-logo"><img src="/static/partners/lapeyre.svg" alt="Lapeyre"></figure>
+      <figure class="partner-logo"><img src="/static/partners/grohe.svg" alt="Grohe"></figure>
+      <figure class="partner-logo"><img src="/static/partners/schneider-electric.svg" alt="Schneider Electric"></figure>
+      <figure class="partner-logo"><img src="/static/partners/porcelanosa.svg" alt="Porcelanosa"></figure>
+      <figure class="partner-logo"><img src="/static/partners/point-p.svg" alt="Point.P"></figure>
+      <figure class="partner-logo partner-logo-highlight"><img src="/static/partners/saint-maclou.svg" alt="Saint Maclou"></figure>
+      <figure class="partner-logo"><img src="/static/partners/leroy-merlin-pro.svg" alt="Leroy Merlin Pro"></figure>
+      <figure class="partner-logo"><img src="/static/partners/saint-gobain.svg" alt="Saint-Gobain"></figure>
+      <figure class="partner-logo"><img src="/static/partners/lapeyre.svg" alt="Lapeyre"></figure>
+      <figure class="partner-logo"><img src="/static/partners/grohe.svg" alt="Grohe"></figure>
+      <figure class="partner-logo"><img src="/static/partners/schneider-electric.svg" alt="Schneider Electric"></figure>
+      <figure class="partner-logo"><img src="/static/partners/porcelanosa.svg" alt="Porcelanosa"></figure>
+      <figure class="partner-logo"><img src="/static/partners/point-p.svg" alt="Point.P"></figure>
+    </div>
+  </div>
+</section>
+
+<section class="section cta-banner">
+  <div>
+    <p class="kicker">Demande rapide</p>
+    <h2>Devis gratuit + prestation offerte via renovation et demo par IA 3D</h2>
+    <p class="section-sub">Tout est integre dans le meme site: estimation, agenda conseiller et demonstration IA 3D.</p>
+  </div>
+  <div class="cta-row">
+    <a class="btn btn-solid" href="/contact">Demander un rappel</a>
+    <a class="btn" href="/#architecture-ia">Voir la section IA 3D</a>
+  </div>
+</section>
+
+{% include "partials/architecture_ai_section.html" %}
+
+<script>
+  (function () {
+    const tabs = document.querySelectorAll(".before-after-tab");
+    const cards = document.querySelectorAll(".before-after-card");
+    if (!tabs.length || !cards.length) return;
+
+    function activate(category) {
+      tabs.forEach((tab) => {
+        const isActive = tab.dataset.category === category;
+        tab.classList.toggle("is-active", isActive);
+        tab.setAttribute("aria-selected", isActive ? "true" : "false");
+      });
+      cards.forEach((card) => {
+        const show = category === "all" || card.dataset.category === category;
+        card.hidden = !show;
+      });
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", function () {
+        activate(tab.dataset.category || "all");
+      });
+    });
+  })();
+</script>
 {% endblock %}

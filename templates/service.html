@@ -1,4 +1,33 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ service.name }}</h1>
+{% if service %}
+<section class="page-hero">
+  <p class="kicker">Prestation</p>
+  <h1>{{ service.name }}</h1>
+  <p class="lead">Intervention claire, organisee, avec devis valide avant travaux.</p>
+</section>
+
+<section class="section section-shell">
+  <div class="box pro-box">
+    <p>Nous realisons {{ service.name|lower }} pour particuliers et professionnels avec un chiffrage clair avant intervention.</p>
+    <ul class="bullet-list">
+      <li>Visite technique ou qualification a distance</li>
+      <li>Estimation budgetaire immediate</li>
+      <li>Planification rapide des travaux</li>
+    </ul>
+    <div class="cta-row">
+      <a class="btn btn-solid" href="/contact">Demander un devis</a>
+      <a class="btn" href="/services">Retour aux services</a>
+    </div>
+  </div>
+</section>
+{% else %}
+<section class="page-hero">
+  <h1>Service introuvable</h1>
+  <p class="section-sub">Ce service n'est plus disponible dans le catalogue public.</p>
+</section>
+<section class="section">
+  <a class="btn btn-solid" href="/services">Voir tous les services</a>
+</section>
+{% endif %}
 {% endblock %}

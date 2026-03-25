@@ -1,19 +1,89 @@
 <!doctype html>
-<html>
+<html lang="fr">
 <head>
   <meta charset="utf-8">
-  <link rel="stylesheet" href="/static/site.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Devis Travaux Express{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700;800&family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/site.css?v=20260222-7">
 </head>
 <body>
-<nav>
-  <a href="/">Accueil</a>
-  <a href="/services">Services</a>
-  <a href="/zones">Zones</a>
-  <a href="/contact">Contact</a>
-</nav>
+  <div class="bg-aura bg-aura-1"></div>
+  <div class="bg-aura bg-aura-2"></div>
+  <div class="bg-grid"></div>
 
-{% block content %}{% endblock %}
+  <div class="topline">
+    <div class="wrap topline-row">
+      <span>Renovation maison & appartement en Ile-de-France</span>
+      <span>Pas une simple entreprise: IA au coeur de l'expertise batiment</span>
+    </div>
+  </div>
+  <header class="hdr">
+    <div class="wrap nav-row header-shell">
+      <a class="brand" href="/">
+        <img class="brand-logo" src="/static/branding/rb-ia-core.svg" alt="RB Renovation Batiment IA">
+        <span class="brand-text">
+          <strong>Renovation Batiment</strong>
+          <small>ia au coeur de l'expertise batiment</small>
+        </span>
+      </a>
+      <nav class="nav nav-main">
+        <a class="nav-link-main" href="/">Accueil</a>
+        <details class="nav-drop">
+          <summary>Vous etes ?</summary>
+          <div class="nav-drop-menu">
+            <a href="/#services">Particulier</a>
+            <a href="/#services">Professionnel</a>
+          </div>
+        </details>
+        <a class="nav-link-main" href="/#nos-chantiers">Nos chantiers</a>
+        <a class="nav-link-main" href="/#ia-expertise">IA expertise</a>
+        <a class="nav-link-main" href="/#avant-apres">Avant / Apres</a>
+        <details class="nav-drop">
+          <summary>Ressources</summary>
+          <div class="nav-drop-menu">
+            <a href="/#nos-metiers">Nos metiers</a>
+            <a href="/zones">Zones d'intervention</a>
+            <a href="/contact#agenda-conseiller">Contact</a>
+          </div>
+        </details>
+        <a class="nav-link-main" href="/#architecture-ia">Architecture IA 3D</a>
+      </nav>
+      <div class="nav-right">
+        <a class="phone-cta" href="tel:+33622127169">Appelez-nous au +33 6 22 12 71 69</a>
+        <a class="nav-cta" href="/contact">J'estime mes travaux</a>
+      </div>
+    </div>
+  </header>
 
-<script src="/static/chat.js"></script>
+  <main class="wrap page">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-main">
+      <div class="footer-brand">
+        <strong>Renovation Batiment</strong>
+        <p>Accompagnement complet: devis, projection 3D et prestation offerte via renovation et demo par IA 3D.</p>
+      </div>
+      <div class="footer-links">
+        <a href="/services">Services</a>
+        <a href="/zones">Zones</a>
+        <a href="/contact">Contact</a>
+      </div>
+      <div class="footer-meta">
+        <span>Intervention rapide en Ile-de-France</span>
+        <span>Assistance devis 24h/24</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    window.APP_CONFIG = {{ {"agenda_url": AGENDA_URL}|tojson }};
+  </script>
+  <script src="/static/visitor_tracking.js?v=20260222-1"></script>
+  <script src="/static/chat.js?v=20260222-15"></script>
 </body>
 </html>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="150" viewBox="0 0 520 150" role="img" aria-labelledby="title">
+  <title>Grohe</title>
+  <rect x="4" y="4" width="512" height="142" rx="22" fill="#f4f9ff" stroke="#c9d9ee" stroke-width="8"/>
+  <path d="M18 60h88M18 75h88M18 90h88" stroke="#1f5aa6" stroke-width="8" stroke-linecap="round"/>
+  <text x="132" y="90" fill="#1f5aa6" font-family="Instrument Sans, Arial, sans-serif" font-size="46" font-weight="800">GROHE</text>
+</svg>

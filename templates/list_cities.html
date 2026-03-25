@@ -1,7 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Zones</h1>
-{% for c in cities %}
-<a href="/zones/{{ c }}">{{ c }}</a><br>
-{% endfor %}
+<section class="page-hero">
+  <p class="kicker">Couverture locale</p>
+  <h1>Zones d'intervention en Ile-de-France</h1>
+  <p class="lead">Couverture par secteur: Paris, petite couronne et grande couronne.</p>
+</section>
+
+<section class="section section-shell">
+  <div class="box pro-box">
+    <p>Nous couvrons l'ensemble de l'Ile-de-France. Cette liste affiche <strong>{{ total_sector_cities }}</strong> villes phares, organisees par secteur.</p>
+  </div>
+
+  <div class="sector-grid">
+    {% for sector in sectors %}
+    <article class="sector-card">
+      <header class="sector-head">
+        <h3>{{ sector.name }} ({{ sector.code }})</h3>
+        <span class="sector-count">{{ sector.cities|length }} villes</span>
+      </header>
+      <div class="sector-list">
+        {% for city in sector.cities %}
+        <a class="sector-link" href="{{ request.url_for('city_page', city=city) }}">{{ city }}</a>
+        {% endfor %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
 {% endblock %}

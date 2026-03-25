@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="150" viewBox="0 0 520 150" role="img" aria-labelledby="title">
+  <title>Leroy Merlin Pro</title>
+  <rect x="4" y="4" width="512" height="142" rx="22" fill="#f7fbf8" stroke="#cde4d2" stroke-width="8"/>
+  <polygon points="64,36 112,84 64,132 16,84" fill="#2f7d42"/>
+  <text x="132" y="78" fill="#1f3f2a" font-family="Instrument Sans, Arial, sans-serif" font-size="34" font-weight="800">Leroy Merlin</text>
+  <text x="132" y="112" fill="#2f7d42" font-family="Instrument Sans, Arial, sans-serif" font-size="26" font-weight="700">PRO</text>
+</svg>

@@ -1,0 +1,53 @@
+{
+  "querying": {
+    "lots": [
+      "peinture",
+      "plomberie",
+      "electricite",
+      "maconnerie",
+      "sols"
+    ],
+    "intents": [
+      "appel d'offres",
+      "besoin travaux",
+      "annonce chantier",
+      "recherche entreprise",
+      "sous-traitance"
+    ],
+    "platform_domains": [
+      "boamp.fr",
+      "marchesonline.com",
+      "francemarches.com",
+      "batiweb.com",
+      "leboncoin.fr"
+    ],
+    "social_domains": [
+      "linkedin.com",
+      "facebook.com",
+      "x.com",
+      "instagram.com"
+    ],
+    "max_queries_per_scope": 24
+  },
+  "sources": {
+    "google_news_enabled": true,
+    "google_news_per_query": 6,
+    "reddit_enabled": true,
+    "reddit_per_query": 3,
+    "serpapi_enabled": true,
+    "serpapi_per_query": 5,
+    "http_timeout_seconds": 10
+  },
+  "scoring": {
+    "min_score": 35
+  },
+  "geo": {
+    "default_department_codes": [
+      "75",
+      "92",
+      "93",
+      "94"
+    ],
+    "cities_per_department": 3
+  }
+}

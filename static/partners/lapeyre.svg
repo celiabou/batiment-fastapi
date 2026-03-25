@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="150" viewBox="0 0 520 150" role="img" aria-labelledby="title">
+  <title>Lapeyre</title>
+  <rect x="4" y="4" width="512" height="142" rx="22" fill="#fff8f4" stroke="#f1d6c7" stroke-width="8"/>
+  <circle cx="54" cy="75" r="24" fill="#d8703f"/>
+  <rect x="86" y="52" width="24" height="46" rx="8" fill="#d8703f"/>
+  <text x="132" y="88" fill="#7d3a1e" font-family="Instrument Sans, Arial, sans-serif" font-size="40" font-weight="800">Lapeyre</text>
+</svg>

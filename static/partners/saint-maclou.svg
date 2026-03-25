@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="150" viewBox="0 0 520 150" role="img" aria-labelledby="title">
+  <title>Saint Maclou</title>
+  <rect x="4" y="4" width="512" height="142" rx="22" fill="#f6f8fc" stroke="#d5deea" stroke-width="8"/>
+  <rect x="36" y="34" width="46" height="82" rx="10" fill="#244b8a"/>
+  <rect x="90" y="34" width="20" height="82" rx="8" fill="#ef8f2f"/>
+  <text x="130" y="84" fill="#1f2f45" font-family="Instrument Sans, Arial, sans-serif" font-size="38" font-weight="800">Saint Maclou</text>
+</svg>

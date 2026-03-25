@@ -1,7 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Services</h1>
-{% for s in services %}
-<a href="/services/{{ s.slug }}">{{ s.name }}</a><br>
-{% endfor %}
+<section class="page-hero">
+  <p class="kicker">Catalogue</p>
+  <h1>Nos services de renovation</h1>
+  <p class="lead">Selectionnez une prestation pour voir le niveau d'intervention, le cadre budgetaire et la methode chantier.</p>
+</section>
+
+<section class="section section-shell">
+  <div class="service-grid-pro">
+    {% for s in services %}
+    <a class="service-tile" href="/services/{{ s.slug }}">
+      <h3>{{ s.name }}</h3>
+      <p>Diagnostic rapide, estimation indicative et prise de rendez-vous.</p>
+      <span class="link-arrow">Voir le service</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
 {% endblock %}

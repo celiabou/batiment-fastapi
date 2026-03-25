@@ -1,4 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Travaux à {{ city }}</h1>
+<section class="page-hero">
+  <p class="kicker">Zone locale</p>
+  <h1>Travaux a {{ city }}</h1>
+</section>
+
+<section class="section section-shell">
+  <div class="box pro-box">
+    {% if sector %}
+    <p><strong>Secteur:</strong> {{ sector.name }} ({{ sector.code }})</p>
+    {% endif %}
+    <p>Nous intervenons a {{ city }} pour renovation, plomberie, electricite, peinture et carrelage.</p>
+    <div class="cta-row">
+      <a class="btn btn-solid" href="/contact">Demander un devis a {{ city }}</a>
+      <a class="btn" href="/zones">Voir toutes les zones</a>
+    </div>
+  </div>
+</section>
 {% endblock %}

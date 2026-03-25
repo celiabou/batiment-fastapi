@@ -22,13 +22,13 @@ def startup():
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    return templates.TemplateResponse("home.html", {"request": request})
+    return templates.TemplateResponse(request, "home.html")
 
 
 @app.get("/services", response_class=HTMLResponse)
 def list_services(request: Request):
     return templates.TemplateResponse(
-        "list_services.html", {"request": request, "services": services}
+        request, "list_services.html", {"services": services}
     )
 
 
@@ -36,23 +36,23 @@ def list_services(request: Request):
 def service_page(request: Request, slug: str):
     service = next((s for s in services if s["slug"] == slug), None)
     return templates.TemplateResponse(
-        "service.html", {"request": request, "service": service}
+        request, "service.html", {"service": service}
     )
 
 
 @app.get("/zones", response_class=HTMLResponse)
 def list_cities(request: Request):
-    return templates.TemplateResponse("list_cities.html", {"request": request, "cities": cities})
+    return templates.TemplateResponse(request, "list_cities.html", {"cities": cities})
 
 
 @app.get("/zones/{city}", response_class=HTMLResponse)
 def city_page(request: Request, city: str):
-    return templates.TemplateResponse("city.html", {"request": request, "city": city})
+    return templates.TemplateResponse(request, "city.html", {"city": city})
 
 
 @app.get("/contact", response_class=HTMLResponse)
 def contact(request: Request):
-    return templates.TemplateResponse("contact.html", {"request": request})
+    return templates.TemplateResponse(request, "contact.html")
 
 
 @app.post("/api/lead")

@@ -101,6 +101,14 @@ def _utc_file_stamp() -> str:
     return _utc_now().strftime("%Y%m%d%H%M%S")
 
 
+def _as_utc(dt_value: datetime | None) -> datetime | None:
+    if dt_value is None:
+        return None
+    if dt_value.tzinfo is None:
+        return dt_value.replace(tzinfo=UTC)
+    return dt_value
+
+
 def _hash_password(raw_password: str) -> str:
     salt = secrets.token_bytes(16)
     derived = hashlib.pbkdf2_hmac("sha256", raw_password.encode("utf-8"), salt, 200_000)
@@ -147,7 +155,8 @@ def _consume_password_reset(db, token: str):
         return None
     if reset.used_at is not None:
         return None
-    if reset.expires_at <= _utc_now():
+    expires_at = _as_utc(reset.expires_at)
+    if expires_at and expires_at <= _utc_now():
         return None
     reset.used_at = _utc_now()
     db.commit()
@@ -168,7 +177,8 @@ def _get_current_user(request: Request):
         )
         if not session:
             return None
-        if session.expires_at <= _utc_now():
+        expires_at = _as_utc(session.expires_at)
+        if expires_at and expires_at <= _utc_now():
             db.delete(session)
             db.commit()
             return None

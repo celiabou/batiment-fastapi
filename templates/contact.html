@@ -2,8 +2,8 @@
 {% block content %}
 <section class="page-hero">
   <p class="kicker">Contact</p>
-  <h1>Demande de devis</h1>
-  <p class="lead">Laissez vos coordonnees et le cadre du projet. Un conseiller vous rappelle rapidement.</p>
+  <h1>Contact</h1>
+  <p class="lead">Ce formulaire est reserve aux autres sujets. Pour un devis, utilisez l’onglet Estimation du projet.</p>
 </section>
 
 <section class="section section-shell">
@@ -22,37 +22,13 @@
       <input type="email" name="email" placeholder="vous@email.fr" required>
     </label>
     <label>Message
-      <textarea name="message" rows="5" placeholder="Type de travaux, surface, ville...">Demande de devis</textarea>
+      <textarea name="message" rows="5" placeholder="Votre sujet, besoin ou question..."></textarea>
     </label>
-    <button class="btn btn-solid" type="submit">Envoyer la demande</button>
+    <button class="btn btn-solid" type="submit">Envoyer le message</button>
   </form>
 </section>
 
-<section id="agenda-conseiller" class="section section-shell agenda-shell">
-  <div class="section-head">
-    <div>
-      <p class="kicker">Conseiller</p>
-      <h2>Prendre RDV dans l'agenda</h2>
-      <p class="section-sub">Choisissez un creneau pour parler avec un conseiller renovation. Si vous n'avez pas encore laisse vos coordonnees, vous pourrez le faire dans le widget.</p>
-    </div>
-  </div>
-  <div class="agenda-cta-row">
-    <button id="openChatAgenda" class="btn btn-solid" type="button">Prendre RDV avec un conseiller</button>
-    {% if AGENDA_URL %}
-    <a class="btn" href="{{ AGENDA_URL }}" target="_blank" rel="noopener">Ouvrir l'agenda complet</a>
-    {% endif %}
-  </div>
-</section>
-
 <script>
-  (function () {
-    const openBtn = document.getElementById("openChatAgenda");
-    if (!openBtn) return;
-    openBtn.addEventListener("click", function () {
-      window.dispatchEvent(new CustomEvent("open-chat-agenda"));
-    });
-  })();
-
   (function () {
     if (!window.RB_TRACKING || typeof window.RB_TRACKING.getContext !== "function") return;
     const ctx = window.RB_TRACKING.getContext() || {};

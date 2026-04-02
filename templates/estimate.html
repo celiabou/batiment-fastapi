@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Estimez votre projet | Renovation Batiment{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <p class="kicker">Estimation</p>
+  <h1>Estimez votre projet</h1>
+  <p class="lead">Décrivez votre besoin et obtenez une première estimation de la main-d'œuvre</p>
+</section>
+
+<section class="ai3d-layout">
+  <form id="aiQuoteForm" class="form ai3d-form" enctype="multipart/form-data">
+    <h3>Estimez votre projet</h3>
+    <p class="section-sub">Décrivez votre besoin pour obtenir une estimation indicative de la main-d'œuvre.</p>
+    <div class="ai3d-form-grid">
+      <label>Type de bien
+        <select name="project_type" required>
+          <option value="maison">Maison</option>
+          <option value="appartement">Appartement</option>
+          <option value="immeuble">Immeuble</option>
+          <option value="facade">Facade</option>
+        </select>
+      </label>
+
+      <label>Type de travaux
+        <select name="scope" required>
+          <option value="renovation_complete">Renovation complete</option>
+          <option value="renovation_partielle">Renovation partielle</option>
+          <option value="rafraichissement">Rafraichissement</option>
+          <option value="restructuration_lourde">Restructuration lourde</option>
+        </select>
+      </label>
+
+      <label>Style cible
+        <select name="style" required>
+          <option value="moderne">Moderne</option>
+          <option value="contemporain">Contemporain</option>
+          <option value="haussmannien">Haussmannien</option>
+          <option value="minimaliste">Minimaliste</option>
+          <option value="industriel">Industriel</option>
+          <option value="scandinave">Scandinave</option>
+        </select>
+      </label>
+
+      <label>Niveau de finition
+        <select name="finishing_level">
+          <option value="standard">Standard</option>
+          <option value="premium">Premium</option>
+          <option value="haut_de_gamme">Haut de gamme</option>
+          <option value="sur_mesure">Sur mesure</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="ai3d-form-grid ai3d-form-grid-4">
+      <label>Poste de travaux (grille)
+        <select name="work_item_key" class="js-work-item">
+          <option value="">Selectionner</option>
+          <option value="demolition" data-unit="m2">Demolition interieure (m2)</option>
+          <option value="terrassement" data-unit="m3">Terrassement (m3)</option>
+          <option value="fondations" data-unit="m2">Fondations (m2)</option>
+          <option value="dalle_beton" data-unit="m2">Dalle beton (m2)</option>
+          <option value="ouverture_mur_porteur" data-unit="forfait">Ouverture mur porteur (forfait)</option>
+          <option value="ragrage" data-unit="m2">Ragreage (m2)</option>
+          <option value="renovation_complete" data-unit="m2">Renovation complete (m2)</option>
+          <option value="renovation_legere" data-unit="m2">Renovation legere (m2)</option>
+          <option value="renovation_haut_de_gamme" data-unit="m2">Renovation haut de gamme (m2)</option>
+          <option value="electricite_complete" data-unit="m2">Installation complete (m2)</option>
+          <option value="electricite_normes" data-unit="m2">Mise aux normes (m2)</option>
+          <option value="prise_electrique" data-unit="unite">Prise electrique (unite)</option>
+          <option value="tableau_elec" data-unit="forfait">Tableau electrique (forfait)</option>
+          <option value="plomberie_complete" data-unit="m2">Plomberie complete (m2)</option>
+          <option value="salle_de_bain_complete" data-unit="forfait">Salle de bain complete (forfait)</option>
+          <option value="cuisine_raccordement" data-unit="forfait">Cuisine (raccordement) (forfait)</option>
+          <option value="peinture_murs" data-unit="m2">Peinture murs (m2)</option>
+          <option value="peinture_plafond" data-unit="m2">Peinture plafond (m2)</option>
+          <option value="enduit_preparation" data-unit="m2">Enduit / preparation murs (m2)</option>
+          <option value="carrelage" data-unit="m2">Carrelage (m2)</option>
+          <option value="parquet" data-unit="m2">Parquet (m2)</option>
+          <option value="sol_souple" data-unit="m2">Sol souple (m2)</option>
+          <option value="moquette" data-unit="m2">Moquette (m2)</option>
+          <option value="renovation_toiture" data-unit="m2">Renovation toiture (m2)</option>
+          <option value="isolation_toiture" data-unit="m2">Isolation toiture (m2)</option>
+          <option value="renovation_balcon" data-unit="m2">Renovation balcon (m2)</option>
+          <option value="renovation_terrasse" data-unit="m2">Renovation terrasse (m2)</option>
+          <option value="amenagement_terrasse" data-unit="forfait">Amenagement terrasse (forfait)</option>
+          <option value="optimisation_exterieur" data-unit="forfait">Optimisation espace exterieur (forfait)</option>
+        </select>
+      </label>
+
+      <label>Quantite
+        <div class="unit-field">
+          <input name="work_quantity" class="js-work-qty" type="number" min="0" step="0.1" placeholder="Ex: 80">
+          <span class="unit-tag js-work-unit">--</span>
+        </div>
+      </label>
+    </div>
+
+    <div class="ai3d-form-grid ai3d-form-grid-4">
+      <label>Ville
+        <input name="city" placeholder="Ex: Maurepas">
+      </label>
+
+      <label>Surface (m2)
+        <input name="surface" placeholder="Ex: 120">
+      </label>
+
+      <label>Nombre de pieces
+        <input name="rooms" placeholder="Ex: 5">
+      </label>
+
+      <label>Budget estime (EUR)
+        <input name="budget" placeholder="Ex: 95000">
+      </label>
+
+      <label>Echeance souhaitee
+        <select name="timeline">
+          <option value="6_mois">Sous 6 mois</option>
+          <option value="3_mois">Sous 3 mois</option>
+          <option value="urgent">Urgent</option>
+          <option value="flexible">Flexible</option>
+        </select>
+      </label>
+    </div>
+
+    <label>Details du projet
+      <textarea name="notes" rows="4" placeholder="Objectif, contraintes techniques, materiaux souhaites, niveau de finition..."></textarea>
+    </label>
+
+    <label>Photos du bien (appartement / maison / studio)
+      <input type="file" name="project_photos" accept="image/*" multiple>
+    </label>
+
+    <label>Videos du bien (prises nettes)
+      <input type="file" name="project_videos" accept="video/*" multiple>
+    </label>
+
+    <div class="ai3d-contact-row">
+      <label>Nom
+        <input name="name" placeholder="Prenom Nom">
+      </label>
+      <label>Telephone
+        <input name="phone" placeholder="06 12 34 56 78">
+      </label>
+      <label>Email
+        <input type="email" name="email" placeholder="vous@email.fr" required>
+      </label>
+    </div>
+
+    <p class="form-disclaimer">Les montants affichés correspondent à une estimation indicative de la main-d'œuvre uniquement, hors fournitures et matériaux.</p>
+    <button id="aiQuoteSubmit" class="btn btn-solid" type="submit">Obtenir mon estimation</button>
+    <p class="form-disclaimer form-disclaimer-long">Les estimations proposées sur cette page sont fournies à titre indicatif et concernent la main-d'œuvre uniquement. Les fournitures, matériaux, équipements et contraintes spécifiques du chantier ne sont pas inclus dans ce calcul initial. Un devis précis et personnalisé pourra être établi après échange avec un expert.</p>
+  </form>
+
+  <aside class="ai3d-side">
+    <div class="box">
+      <h3>Ce que vous recevez</h3>
+      <ol class="ai3d-steps">
+        <li>Fourchette budgetaire et delai indicatif.</li>
+        <li>Points techniques principaux identifies.</li>
+        <li>Preparation de l'echange avec un expert.</li>
+      </ol>
+    </div>
+  </aside>
+</section>
+
+<section class="section">
+  <h2>Votre estimation</h2>
+  <p id="aiQuoteStatus" class="section-sub">En attente d'estimation.</p>
+  <div class="ai3d-smart-grid">
+    <article class="ai3d-smart-card">
+      <p class="kicker">Estimation indicative de la main-d'œuvre</p>
+      <h3 id="smartQuoteRange">En attente d'estimation</h3>
+      <p class="ai3d-disclaimer">Main-d'œuvre uniquement</p>
+      <p class="ai3d-disclaimer">Hors matériaux et fournitures</p>
+      <p id="smartQuoteMeta" class="section-sub">Remplissez le formulaire pour obtenir une estimation.</p>
+      <p class="ai3d-disclaimer">Cette estimation est donnée à titre indicatif. Un devis détaillé nécessite une étude personnalisée.</p>
+      <p id="smartQuoteBudget" class="ai3d-budget-hint">Budget non analyse.</p>
+      <div id="smartQuoteBreakdown" class="ai3d-breakdown"></div>
+      <ul id="smartQuoteAssumptions" class="ai3d-assumptions"></ul>
+      <p id="aiQuoteDeliveryStatus" class="ai3d-budget-hint">Aucun email envoye pour l'instant.</p>
+      <a class="btn btn-solid ai3d-cta" href="/contact#agenda-conseiller">Prendre rendez-vous pour un devis précis</a>
+    </article>
+  </div>
+</section>
+
+<script src="{{ url_for('static', path='architecture_ai.js') }}?v=20260401-1"></script>
+{% endblock %}

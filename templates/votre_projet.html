@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Votre projet | Renovation Batiment{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <p class="kicker">Votre projet</p>
+  <h1>Un parcours clair, adapte a votre situation</h1>
+  <p class="lead">Particulier ou professionnel, nous structurons votre renovation pour aller a l'essentiel.</p>
+</section>
+
+<section class="section section-shell brokkr-audience">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Choisissez votre profil</p>
+      <h2>Des solutions selon votre besoin</h2>
+      <p class="section-sub">Chaque parcours est pense pour qualifier le projet et faire gagner du temps.</p>
+    </div>
+  </div>
+  <div class="brokkr-audience-grid">
+    <article class="brokkr-audience-card">
+      <h3>Particulier</h3>
+      <p>Appartement, maison, salle de bain, cuisine, extension, redistribution des pieces.</p>
+      <a class="link-arrow" href="/votre-projet/particulier">Voir le parcours</a>
+    </article>
+    <article class="brokkr-audience-card">
+      <h3>Professionnel</h3>
+      <p>Bureaux, commerces, locaux professionnels, coproprietes et espaces communs.</p>
+      <a class="link-arrow" href="/votre-projet/professionnel">Voir le parcours</a>
+    </article>
+  </div>
+  <div class="cta-row">
+    <a class="btn btn-solid" href="/estimez-votre-projet">J'estime mes travaux</a>
+  </div>
+</section>
+
+<section class="section workflow-shell">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Notre methode</p>
+      <h2>Les 4 etapes pour un chantier maitrise</h2>
+      <p class="section-sub">Un cadre simple pour cadrer budget, delais et qualite.</p>
+    </div>
+  </div>
+  <div class="bro-step-grid">
+    <article class="workflow-card">
+      <span class="workflow-num">01</span>
+      <h3>Estimation</h3>
+      <p>Vous decrivez votre besoin et vos contraintes principales.</p>
+    </article>
+    <article class="workflow-card">
+      <span class="workflow-num">02</span>
+      <h3>Analyse technique</h3>
+      <p>Releve, validation des lots et points de vigilance.</p>
+    </article>
+    <article class="workflow-card">
+      <span class="workflow-num">03</span>
+      <h3>Pilotage chantier</h3>
+      <p>Coordination TCE et suivi qualite hebdomadaire.</p>
+    </article>
+    <article class="workflow-card">
+      <span class="workflow-num">04</span>
+      <h3>Livraison</h3>
+      <p>Reception, verification finale et accompagnement.</p>
+    </article>
+  </div>
+</section>
+{% endblock %}

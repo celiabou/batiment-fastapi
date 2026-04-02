@@ -53,6 +53,7 @@
   let handoffPromptShown = false;
   let awaitingHandoffConfirmation = false;
   let agendaPromptShown = false;
+  let finalNoticeShown = false;
   let selectedAgendaSlot = null;
 
   const btn = document.createElement("button");
@@ -81,10 +82,10 @@
           <p class="chat-agenda-role">${IA_AGENT_TITLE}</p>
         </div>
       </div>
-      <p class="chat-agenda-intro">Prendre RDV en 10 secondes, top chrono !</p>
+      <p class="chat-agenda-intro">Prendre rendez-vous en 10 secondes, top chrono !</p>
       <div id="chatAgendaSlots" class="chat-agenda-slots"></div>
       <div class="chat-agenda-actions">
-        <button id="chatAgendaBook" class="chat-agenda-book" type="button">Prendre RDV</button>
+        <button id="chatAgendaBook" class="chat-agenda-book" type="button">Prendre rendez-vous</button>
         <button id="chatAgendaEstimate" class="chat-head-btn" type="button">Estimer mes travaux</button>
       </div>
       <a id="chatAgendaExternal" class="chat-agenda-link" target="_blank" rel="noopener" hidden>Ouvrir l'agenda complet</a>
@@ -181,9 +182,17 @@
         : "Je garde le fil de votre projet. ";
       pushMessage(
         "assistant",
-        `${contextLine}Choisissez un creneau puis cliquez sur Prendre RDV. Je transmets le contexte technique au conducteur de projet.`
+        `${contextLine}Choisissez un creneau puis cliquez sur Prendre rendez-vous. Je transmets le contexte technique au conducteur de projet.`
       );
       agendaPromptShown = true;
+      render();
+    }
+    if (!finalNoticeShown) {
+      pushMessage(
+        "assistant",
+        "Pour un devis précis, un échange avec un expert est nécessaire."
+      );
+      finalNoticeShown = true;
       render();
     }
   }
@@ -415,14 +424,14 @@
 
   async function bookAgenda() {
     if (!selectedAgendaSlot) {
-      pushMessage("assistant", "Selectionnez un creneau avant de valider le RDV.");
+      pushMessage("assistant", "Selectionnez un creneau avant de valider le rendez-vous.");
       render();
       return;
     }
 
     const ok = await sendHandoff(
       `rdv agenda ${selectedAgendaSlot.iso}`,
-      `C'est valide. RDV demande pour ${selectedAgendaSlot.label}. Je transmets votre contexte chantier au conducteur de projet pour un appel utile, point par point.`
+      `C'est valide. Rendez-vous demande pour ${selectedAgendaSlot.label}. Je transmets votre contexte chantier au conducteur de projet pour un appel utile, point par point.`
     );
 
     if (ok && AGENDA_URL) {
@@ -489,12 +498,9 @@
     await maybeSendLead();
 
     if (data && data.hybrid && data.hybrid.suggest_handoff && !handoffSent && !handoffPromptShown) {
-      pushMessage(
-        "assistant",
-        "Souhaitez-vous etre rappele par un conseiller humain maintenant ? Cliquez sur le bouton Conseiller humain."
-      );
       handoffPromptShown = true;
-      awaitingHandoffConfirmation = true;
+      awaitingHandoffConfirmation = false;
+      openAgendaPanel();
     }
 
     render();

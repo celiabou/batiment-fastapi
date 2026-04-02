@@ -1,65 +1,40 @@
 {% extends "base.html" %}
-{% block title %}Renovation Maison Appartement | Devis Gratuit + Demo IA 3D{% endblock %}
+{% block title %}Renovation Maison Appartement | Devis Gratuit{% endblock %}
 
 {% block content %}
-<section class="brokkr-hero full-bleed">
-  <div class="brokkr-hero-media">
-    <img src="https://images.pexels.com/photos/1454806/pexels-photo-1454806.jpeg?auto=compress&cs=tinysrgb&w=1800" alt="Renovation interieure haut de gamme">
-    <div class="brokkr-hero-overlay"></div>
-  </div>
-
-  <div class="brokkr-hero-panel">
-    <div class="brokkr-hero-ribbon">
-      <span>Entreprise generale du batiment TCE</span>
-      <span>Accompagnement cle en main</span>
-      <span>Travaux sans stress</span>
-    </div>
-    <p class="kicker">Entreprise de renovation tous corps d'etat</p>
-    <h1>Travaux de renovation a Paris et Ile-de-France</h1>
-    <p class="lead">Entreprise generale du batiment TCE. Renovation d'appartement et maison cle en main, avec devis gratuit, pilotage chantier complet et prestation offerte via renovation et demo par IA 3D sur demande apres devis.</p>
+<section class="home-hero-photo full-bleed">
+  <div class="home-hero-overlay"></div>
+  <div class="wrap home-hero-content">
+    <p class="kicker">Renovation haut de gamme</p>
+    <h1>Bien plus qu’une entreprise de rénovation</h1>
+    <p class="lead">Une nouvelle approche du bâtiment, entre expertise terrain et innovation.</p>
+    <p class="lead">EUROBAT SERVICES réinvente la manière d’aborder les projets de rénovation.</p>
+    <p class="lead">Là où les approches traditionnelles montrent leurs limites, nous apportons une vision plus moderne, plus structurée et tournée vers la performance.</p>
+    <p class="lead">Chaque projet est pensé comme un parcours clair, maîtrisé et optimisé, afin de vous permettre d’avancer sereinement, sans zones d’incertitude.</p>
+    <p class="lead">De la compréhension de votre besoin jusqu’au suivi du chantier, nous vous accompagnons avec méthode pour vous aider à prendre les bonnes décisions au bon moment.</p>
+    <p class="lead">Notre engagement : vous offrir une expérience plus fluide, plus lisible et plus efficace, pour transformer votre projet en réussite.</p>
     <div class="cta-row">
-      <a class="btn btn-solid" href="/contact">J'estime mes travaux</a>
-      <a class="btn" href="/contact#agenda-conseiller">Prendre RDV avec un conseiller</a>
-      <a class="btn" href="/#architecture-ia">Voir la demo IA 3D</a>
-    </div>
-    <div class="brokkr-badges">
-      <span>Appartement</span>
-      <span>Maison</span>
-      <span>Salle de bain</span>
-      <span>Cuisine</span>
-      <span>Bureaux</span>
-      <span>Copropriete</span>
-    </div>
-    <div class="brokkr-kpi-grid">
-      <article class="brokkr-kpi">
-        <strong>4.9/5</strong>
-        <span>Avis clients</span>
-      </article>
-      <article class="brokkr-kpi">
-        <strong>&lt; 24h</strong>
-        <span>Rappel conseiller</span>
-      </article>
-      <article class="brokkr-kpi">
-        <strong>{{ idf_departments }} departements</strong>
-        <span>Zone couverte</span>
-      </article>
+      <a class="btn btn-solid" href="/estimez-votre-projet">J'estime mes travaux</a>
     </div>
   </div>
+</section>
 
-  <aside class="brokkr-hero-side">
-    <h3>Conseiller disponible tout de suite</h3>
-    <p class="section-sub">Prenez un creneau dans l'agenda puis lancez votre devis en ligne. Vous restez accompagne de bout en bout.</p>
-    <ol class="ai3d-steps">
-      <li>Brief rapide de votre projet.</li>
-      <li>Estimation budget + delai.</li>
-      <li>Demarrage chantier avec pilote unique.</li>
-      <li>Prestation offerte IA 3D sur demande apres devis.</li>
-    </ol>
-    <div class="cta-row">
-      <a class="btn btn-solid" href="/contact#agenda-conseiller">Prendre RDV</a>
-      <a class="btn" href="/#services">Voir nos prestations</a>
+<section class="section section-shell">
+  <div class="section-head">
+    <div>
+      <h2>Besoin d’une rénovation par pièce ou d’une rénovation complète ?</h2>
     </div>
-  </aside>
+  </div>
+  <div class="section-sub">
+    <p>Lorsque vous cherchez une entreprise de rénovation, vous pouvez avoir besoin d’un devis de travaux pour une pièce unique comme votre cuisine ou salle de bain.</p>
+    <p>Ou bien vouloir refaire une installation électrique, remplacer des fenêtres, isoler les combles de votre maison, refaire un parquet…</p>
+    <p>Vous souhaitez tout simplement nous demander un devis pour des travaux de rénovation complète de votre appartement ou maison.</p>
+    <p>Nous vous fournissons une étude détaillée avec l’ensemble des postes de chantier.</p>
+    <p>Rénov-A Paris assure l’ensemble des travaux de peinture, électricité, plomberie, isolation thermique, maçonnerie, menuiseries, revêtements de sols.</p>
+  </div>
+  <div class="cta-row">
+    <a class="btn btn-solid" href="/estimez-votre-projet">J'estime mes travaux</a>
+  </div>
 </section>
 
 <section class="brokkr-marquee full-bleed">
@@ -69,35 +44,34 @@
     <span>Renovation salle de bain</span>
     <span>Amenagement bureaux</span>
     <span>Devis gratuit</span>
-    <span>Prestation offerte IA 3D apres devis</span>
   </div>
 </section>
 
-<section id="ia-expertise" class="section section-shell ia-expertise-shell">
+<section id="accompagnement" class="section section-shell ia-expertise-shell">
   <div class="section-head">
     <div>
-      <p class="kicker">Positionnement RB IA</p>
-      <h2>Pas une simple entreprise qui utilise l'IA</h2>
-      <p class="section-sub">Chez RB, l'IA est au coeur de l'expertise batiment: vision claire du chantier, problematiques soulevees et solution interne immediate.</p>
+      <p class="kicker">Notre accompagnement</p>
+      <h2>Un pilotage clair, du devis a la livraison</h2>
+      <p class="section-sub">Vision terrain, coordination des corps d'etat et suivi concret semaine apres semaine.</p>
     </div>
   </div>
   <div class="ia-expertise-grid">
     <article class="ia-expertise-card">
       <h3>Vision claire du chantier</h3>
-      <p>Lecture technique rapide des contraintes terrain, des lots TCE et des points de risque avant demarrage.</p>
+      <p>Lecture rapide des contraintes terrain, des lots TCE et des points de risque avant demarrage.</p>
     </article>
     <article class="ia-expertise-card">
-      <h3>Problemes souleves, solution interne</h3>
-      <p>Chaque blocage detecte est traite avec une solution interne operationnelle, sans pilotage a l'ancienne ni perte de temps.</p>
+      <h3>Points sensibles anticipes</h3>
+      <p>Chaque blocage potentiel est traite avec une solution operationnelle, sans perte de temps.</p>
     </article>
     <article class="ia-expertise-card">
-      <h3>Batiment moderne, methode differente</h3>
-      <p>Notre facon de travailler est orientee data, projection IA 3D et execution terrain synchronisee du devis a la livraison.</p>
+      <h3>Suivi transparent</h3>
+      <p>Execution terrain synchronisee du devis a la livraison, avec un interlocuteur unique.</p>
     </article>
   </div>
   <div class="cta-row">
-    <a class="btn btn-solid" href="/contact">Demarrer un projet moderne</a>
-    <a class="btn" href="/#architecture-ia">Voir la demonstration IA 3D</a>
+    <a class="btn btn-solid" href="/estimez-votre-projet">J'estime mes travaux</a>
+    <a class="btn" href="/simulation-3d">Voir une simulation 3D</a>
   </div>
 </section>
 
@@ -110,12 +84,12 @@
     </div>
   </div>
   <div class="brokkr-audience-grid">
-    <article class="brokkr-audience-card">
+    <article id="particulier" class="brokkr-audience-card">
       <h3>Particulier</h3>
       <p>Renovation complete, salle de bain, cuisine, extension, redistribution des pieces.</p>
-      <a class="link-arrow" href="/contact">Demander mon devis</a>
+      <a class="link-arrow" href="/estimez-votre-projet">Demander mon estimation</a>
     </article>
-    <article class="brokkr-audience-card">
+    <article id="professionnel" class="brokkr-audience-card">
       <h3>Professionnel</h3>
       <p>Bureaux et locaux professionnels avec planning cible et coordination terrain.</p>
       <a class="link-arrow" href="/contact#agenda-conseiller">Parler a un charge d'affaires</a>
@@ -211,7 +185,7 @@
 <section id="avant-apres" class="section section-shell before-after-shell">
   <div class="section-head">
     <div>
-      <p class="kicker">Avant / Apres</p>
+      <p class="kicker">Avant / Après</p>
       <h2>Transformation reelle de nos chantiers</h2>
       <p class="section-sub">Visualisez des resultats concrets avant de lancer votre projet.</p>
     </div>
@@ -401,8 +375,8 @@
     <p>Paris et toute l'Ile-de-France, avec extension possible selon le type de projet.</p>
   </details>
   <details>
-    <summary>Comment fonctionne la prestation offerte IA 3D ?</summary>
-    <p>Le client pose d'abord un devis gratuit, puis demande la prestation offerte d'agencement/deco IA 3D.</p>
+    <summary>Comment fonctionne la simulation 3D ?</summary>
+    <p>Elle se fait sur demande du client, apres l'estimation et l'echange technique. Prestation en plus, payante.</p>
   </details>
 </section>
 
@@ -413,22 +387,39 @@
       <h2>Feedbacks clients recents</h2>
     </div>
   </div>
-  <div class="bro-news-grid">
-    <article class="bro-review-card">
-      <strong>4.9/5</strong>
-      <p>"Accompagnement tres pro du devis a la livraison, aucun stress."</p>
-      <span>Mme L. - Appartement, Paris 15</span>
-    </article>
-    <article class="bro-review-card">
-      <strong>4.8/5</strong>
-      <p>"Equipe reactive, planning respecte et communication claire chaque semaine."</p>
-      <span>M. R. - Maison, Yvelines</span>
-    </article>
-    <article class="bro-review-card">
-      <strong>5.0/5</strong>
-      <p>"Le rendu IA 3D nous a aide a valider rapidement les choix d'agencement."</p>
-      <span>Famille D. - Hauts-de-Seine</span>
-    </article>
+  <div class="review-marquee" aria-label="Avis clients qui defilent">
+    <div class="review-track">
+      <article class="bro-review-card">
+        <strong>4.9/5</strong>
+        <p>"Merci à Eva, conseillère et experte en rénovation, à l’écoute, sympa."</p>
+        <span>Client - Appartement, Paris 15</span>
+      </article>
+      <article class="bro-review-card">
+        <strong>4.8/5</strong>
+        <p>"Conducteur de projet Amine, professionnelle et très clair dans le suivi."</p>
+        <span>Client - Maison, Yvelines</span>
+      </article>
+      <article class="bro-review-card">
+        <strong>5.0/5</strong>
+        <p>"Bâtiment approche, équipe sérieuse et rassurante du début à la fin."</p>
+        <span>Client - Hauts-de-Seine</span>
+      </article>
+      <article class="bro-review-card">
+        <strong>4.9/5</strong>
+        <p>"Merci à Eva, conseillère et experte en rénovation, à l’écoute, sympa."</p>
+        <span>Client - Appartement, Paris 15</span>
+      </article>
+      <article class="bro-review-card">
+        <strong>4.8/5</strong>
+        <p>"Conducteur de projet Amine, professionnelle et très clair dans le suivi."</p>
+        <span>Client - Maison, Yvelines</span>
+      </article>
+      <article class="bro-review-card">
+        <strong>5.0/5</strong>
+        <p>"Bâtiment approche, équipe sérieuse et rassurante du début à la fin."</p>
+        <span>Client - Hauts-de-Seine</span>
+      </article>
+    </div>
   </div>
 </section>
 
@@ -465,16 +456,16 @@
 <section class="section cta-banner">
   <div>
     <p class="kicker">Demande rapide</p>
-    <h2>Devis gratuit + prestation offerte via renovation et demo par IA 3D</h2>
-    <p class="section-sub">Tout est integre dans le meme site: estimation, agenda conseiller et demonstration IA 3D.</p>
+    <h2>Devis gratuit et estimation rapide</h2>
+    <p class="section-sub">Tout est integre dans le meme site: estimation et agenda conseiller.</p>
   </div>
   <div class="cta-row">
     <a class="btn btn-solid" href="/contact">Demander un rappel</a>
-    <a class="btn" href="/#architecture-ia">Voir la section IA 3D</a>
+    <a class="btn" href="/estimation-projet">Estimation du projet</a>
   </div>
 </section>
 
-{% include "partials/architecture_ai_section.html" %}
+
 
 <script>
   (function () {

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700;800&family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/site.css?v=20260222-7">
+  <link rel="stylesheet" href="/static/site.css?v=20260402-32">
 </head>
 <body>
   <div class="bg-aura bg-aura-1"></div>
@@ -17,43 +17,46 @@
   <div class="topline">
     <div class="wrap topline-row">
       <span>Renovation maison & appartement en Ile-de-France</span>
-      <span>Pas une simple entreprise: IA au coeur de l'expertise batiment</span>
+      <span>Estimation rapide et accompagnement clair</span>
     </div>
   </div>
-  <header class="hdr">
-    <div class="wrap nav-row header-shell">
-      <a class="brand" href="/">
-        <img class="brand-logo" src="/static/branding/rb-ia-core.svg" alt="RB Renovation Batiment IA">
+  <header class="hdr hdr-photo">
+    <div class="header-shell">
+      <div class="wrap nav-row">
+        <a class="brand" href="/">
+        <img class="brand-logo" src="/static/branding/eurobat-services.png" alt="Eurobat Services">
         <span class="brand-text">
           <strong>Renovation Batiment</strong>
-          <small>ia au coeur de l'expertise batiment</small>
+          <small>L'innovation au coeur de la renovation batiment</small>
         </span>
-      </a>
-      <nav class="nav nav-main">
-        <a class="nav-link-main" href="/">Accueil</a>
-        <details class="nav-drop">
-          <summary>Vous etes ?</summary>
-          <div class="nav-drop-menu">
-            <a href="/#services">Particulier</a>
-            <a href="/#services">Professionnel</a>
-          </div>
-        </details>
-        <a class="nav-link-main" href="/#nos-chantiers">Nos chantiers</a>
-        <a class="nav-link-main" href="/#ia-expertise">IA expertise</a>
-        <a class="nav-link-main" href="/#avant-apres">Avant / Apres</a>
-        <details class="nav-drop">
-          <summary>Ressources</summary>
-          <div class="nav-drop-menu">
-            <a href="/#nos-metiers">Nos metiers</a>
-            <a href="/zones">Zones d'intervention</a>
-            <a href="/contact#agenda-conseiller">Contact</a>
-          </div>
-        </details>
-        <a class="nav-link-main" href="/#architecture-ia">Architecture IA 3D</a>
-      </nav>
-      <div class="nav-right">
-        <a class="phone-cta" href="tel:+33622127169">Appelez-nous au +33 6 22 12 71 69</a>
-        <a class="nav-cta" href="/contact">J'estime mes travaux</a>
+        </a>
+        <nav class="nav nav-main">
+          <a class="nav-link-main" href="/">Accueil</a>
+          <details class="nav-drop">
+            <summary>Votre projet</summary>
+            <div class="nav-drop-menu">
+              <a href="/votre-projet">Vue d'ensemble</a>
+              <a href="/votre-projet/particulier">Particulier</a>
+              <a href="/votre-projet/professionnel">Professionnel</a>
+            </div>
+          </details>
+          <a class="nav-link-main" href="/nos-chantiers">Nos chantiers</a>
+          <a class="nav-link-main" href="/avant-apres">Avant / Après</a>
+          <details class="nav-drop">
+            <summary>Ressources</summary>
+            <div class="nav-drop-menu">
+              <a href="/ressources">Vue d'ensemble</a>
+              <a href="/nos-metiers">Nos métiers</a>
+              <a href="/zones">Zones d’intervention</a>
+              <a href="/contact">Contact</a>
+            </div>
+          </details>
+          <a class="nav-link-main" href="/estimation-projet">Estimation du projet</a>
+        </nav>
+        <div class="nav-right">
+          <a class="phone-cta" href="tel:+33605941623">Appeler maintenant +33 6 05 94 16 23</a>
+          <a class="nav-cta" href="/estimez-votre-projet">J'estime mes travaux</a>
+        </div>
       </div>
     </div>
   </header>
@@ -66,7 +69,7 @@
     <div class="wrap footer-main">
       <div class="footer-brand">
         <strong>Renovation Batiment</strong>
-        <p>Accompagnement complet: devis, projection 3D et prestation offerte via renovation et demo par IA 3D.</p>
+        <p>Accompagnement complet: pre-devis, devis final gratuit apres echange expert et visite technique.</p>
       </div>
       <div class="footer-links">
         <a href="/services">Services</a>
@@ -84,6 +87,6 @@
     window.APP_CONFIG = {{ {"agenda_url": AGENDA_URL}|tojson }};
   </script>
   <script src="/static/visitor_tracking.js?v=20260222-1"></script>
-  <script src="/static/chat.js?v=20260222-15"></script>
+  <script src="/static/chat.js?v=20260401-1"></script>
 </body>
 </html>

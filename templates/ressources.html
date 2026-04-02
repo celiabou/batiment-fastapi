@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Ressources | Renovation Batiment{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <p class="kicker">Ressources</p>
+  <h1>Guides et informations utiles</h1>
+  <p class="lead">Tout ce qu'il faut pour cadrer votre projet de renovation.</p>
+</section>
+
+<section class="section section-shell">
+  <div class="brokkr-audience-grid">
+    <article class="brokkr-audience-card">
+      <h3>Nos metiers</h3>
+      <p>Vue d'ensemble des corps d'etat mobilises pour votre chantier.</p>
+      <a class="link-arrow" href="/nos-metiers">Voir les metiers</a>
+    </article>
+    <article class="brokkr-audience-card">
+      <h3>Zones d'intervention</h3>
+      <p>Villes couvertes en Ile-de-France et perimetre d'action.</p>
+      <a class="link-arrow" href="/zones">Voir les zones</a>
+    </article>
+    <article class="brokkr-audience-card">
+      <h3>Contact</h3>
+      <p>Une question ou un besoin rapide? Contactez-nous directement.</p>
+      <a class="link-arrow" href="/contact">Nous contacter</a>
+    </article>
+  </div>
+</section>
+{% endblock %}

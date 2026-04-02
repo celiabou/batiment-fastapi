@@ -33,7 +33,8 @@
   const quoteForm = document.getElementById("aiQuoteForm");
   /** @type {HTMLFormElement|null} */
   const renderForm = document.getElementById("aiRenderForm");
-  if (!quoteForm || !renderForm) return;
+  if (!quoteForm) return;
+  const hasRenderForm = Boolean(renderForm);
 
   /** @type {HTMLButtonElement|null} */
   const quoteSubmitBtn = document.getElementById("aiQuoteSubmit");
@@ -65,6 +66,10 @@
   /** @type {HTMLInputElement|null} */
   const renderHandoffManual = document.getElementById("aiRenderHandoffManual");
   const backToQuoteBtn = document.getElementById("ai3dBackToQuoteForm");
+
+  const workItemSelects = Array.from(document.querySelectorAll(".js-work-item"));
+  const workQtyInputs = Array.from(document.querySelectorAll(".js-work-qty"));
+  const workUnitTags = Array.from(document.querySelectorAll(".js-work-unit"));
 
   let quoteSubmitted = false;
   let quoteSubmitting = false;
@@ -306,6 +311,7 @@
   }
 
   function copyQuoteToRenderPrefill() {
+    if (!renderForm) return;
     const fields = ["project_type", "scope", "style", "timeline", "city", "surface", "rooms", "budget", "name", "phone", "email", "notes"];
     fields.forEach((key) => {
       const source = quoteForm.elements.namedItem(key);
@@ -322,14 +328,37 @@
   }
 
   function refreshRenderEligibility() {
+    if (!hasRenderForm) return;
     if (!renderSubmitBtn) return;
     const canRequest = quoteSubmitted || Boolean(currentRenderDossierId());
     renderSubmitBtn.disabled = renderSubmitting || !canRequest;
     if (canRequest) {
       setText(renderStatusEl, "Rendu 3D prêt sur demande. Téléversez plusieurs photos puis lancez.");
     } else {
-      setText(renderStatusEl, "Posez d'abord le devis intelligent, puis demandez le rendu 3D.");
+      setText(renderStatusEl, "Posez d'abord l'estimation, puis demandez le rendu 3D.");
     }
+  }
+
+  function syncWorkItemUnits() {
+    workItemSelects.forEach((selectEl, idx) => {
+      const selected = selectEl.options[selectEl.selectedIndex];
+      const unit = selected ? selected.getAttribute("data-unit") || "--" : "--";
+      const unitTag = workUnitTags[idx];
+      const qtyInput = workQtyInputs[idx];
+      if (unitTag) unitTag.textContent = unit;
+      if (qtyInput) {
+        qtyInput.disabled = unit === "forfait" || unit === "--";
+        qtyInput.required = unit !== "forfait" && unit !== "--";
+        if (unit === "forfait") {
+          qtyInput.value = "";
+          qtyInput.placeholder = "N/A";
+        } else if (unit === "--") {
+          qtyInput.placeholder = "Ex: 80";
+        } else {
+          qtyInput.placeholder = unit === "unite" ? "Ex: 4" : "Ex: 80";
+        }
+      }
+    });
   }
 
   async function submitQuote(event) {
@@ -337,7 +366,7 @@
     if (quoteSubmitting) return;
     quoteSubmitting = true;
     if (quoteSubmitBtn) quoteSubmitBtn.disabled = true;
-    setText(quoteStatusEl, "Envoi du devis intelligent en cours...");
+    setText(quoteStatusEl, "Envoi de l'estimation en cours...");
 
     try {
       const formData = new FormData(quoteForm);
@@ -350,7 +379,7 @@
       const data = await readJsonSafely(res);
 
       if (!res.ok || !data || !data.ok) {
-        const err = data.error || "Erreur lors de la génération du devis.";
+        const err = data.error || "Erreur lors de la generation de l'estimation.";
         const details = Array.isArray(data.details) && data.details.length
           ? ` Details: ${data.details.join(" | ")}`
           : "";
@@ -380,10 +409,12 @@
         `Devis envoyé au client (${quoteDelivery.client_email || "email client"}) + copie interne.`
       );
 
-      setText(quoteStatusEl, data.message || "Devis intelligent envoyé.");
-      setText(renderTitleEl, currentHandoffId ? `Dossier #${currentHandoffId} prêt` : "Dossier devis prêt");
-      setText(renderSummaryEl, "Le devis est posé. Vous pouvez maintenant demander le rendu 3D avec plusieurs photos.");
-      refreshRenderEligibility();
+      setText(quoteStatusEl, data.message || "Estimation envoyee.");
+      if (hasRenderForm) {
+        setText(renderTitleEl, currentHandoffId ? `Dossier #${currentHandoffId} pret` : "Dossier devis pret");
+        setText(renderSummaryEl, "Le devis est pose. Vous pouvez maintenant demander le rendu 3D avec plusieurs photos.");
+        refreshRenderEligibility();
+      }
     } catch (err) {
       const isNetworkError = err && err.name === "TypeError";
       if (isNetworkError) {
@@ -392,7 +423,7 @@
           "Connexion impossible au serveur local. Vérifiez que le serveur est démarré puis réessayez."
         );
       } else {
-        setText(quoteStatusEl, `Erreur réseau devis. (${(err && err.message) || "inconnue"})`);
+        setText(quoteStatusEl, `Erreur reseau estimation. (${(err && err.message) || "inconnue"})`);
       }
     } finally {
       quoteSubmitting = false;
@@ -401,6 +432,7 @@
   }
 
   async function submitRender(event) {
+    if (!renderForm) return;
     event.preventDefault();
     if (renderSubmitting) return;
 
@@ -412,7 +444,7 @@
 
     const dossierId = currentRenderDossierId();
     if (!quoteSubmitted && !dossierId) {
-      setText(renderStatusEl, "Posez d'abord un devis, ou indiquez un numéro de dossier devis.");
+      setText(renderStatusEl, "Posez d'abord une estimation, ou indiquez un numero de dossier devis.");
       return;
     }
 
@@ -490,7 +522,9 @@
   }
 
   quoteForm.addEventListener("submit", submitQuote);
-  renderForm.addEventListener("submit", submitRender);
+  if (renderForm) {
+    renderForm.addEventListener("submit", submitRender);
+  }
 
   if (renderPhotosInput) {
     renderPhotosInput.addEventListener("change", renderPhotoPreview);
@@ -506,7 +540,12 @@
     });
   }
 
-  setText(quoteDeliveryStatusEl, "Aucun email envoyé pour l'instant.");
-  setText(renderDeliveryStatusEl, "Aucun rendu 3D envoyé pour l'instant.");
+  workItemSelects.forEach((selectEl) => {
+    selectEl.addEventListener("change", syncWorkItemUnits);
+  });
+
+  setText(quoteDeliveryStatusEl, "Aucun email envoye pour l'instant.");
+  setText(renderDeliveryStatusEl, "Aucun rendu 3D envoye pour l'instant.");
+  syncWorkItemUnits();
   refreshRenderEligibility();
 })();

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Avant / Après | Renovation Batiment{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <p class="kicker">Avant / Après</p>
+  <h1>Transformations reelles de nos chantiers</h1>
+  <p class="lead">Visualisez des resultats concrets avant de lancer votre projet.</p>
+</section>
+
+<section class="section section-shell before-after-shell">
+  <div class="before-after-tabs" role="tablist" aria-label="Onglets avant apres">
+    <button class="before-after-tab is-active" type="button" data-category="all" aria-selected="true">Tout</button>
+    <button class="before-after-tab" type="button" data-category="salle-bain" aria-selected="false">Salle de bain</button>
+    <button class="before-after-tab" type="button" data-category="cuisine" aria-selected="false">Cuisine</button>
+    <button class="before-after-tab" type="button" data-category="sejour" aria-selected="false">Sejour</button>
+  </div>
+  <div id="beforeAfterGrid" class="before-after-grid">
+    <article class="before-after-card" data-category="salle-bain">
+      <div class="before-after-images">
+        <figure>
+          <img src="/static/before-after/sdb-avant.jpg" alt="Avant renovation salle de bain">
+          <figcaption>Avant</figcaption>
+        </figure>
+        <figure>
+          <img src="/static/before-after/sdb-apres.jpg" alt="Apres renovation salle de bain">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <h3>Salle de bain</h3>
+      <p>Optimisation complete des volumes et des finitions.</p>
+    </article>
+    <article class="before-after-card" data-category="cuisine">
+      <div class="before-after-images">
+        <figure>
+          <img src="/static/before-after/cuisine-avant.jpg" alt="Avant renovation cuisine">
+          <figcaption>Avant</figcaption>
+        </figure>
+        <figure>
+          <img src="/static/before-after/cuisine-apres.jpg" alt="Apres renovation cuisine">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <h3>Cuisine</h3>
+      <p>Nouveau plan de travail, rangements et circulation repensee.</p>
+    </article>
+    <article class="before-after-card" data-category="sejour">
+      <div class="before-after-images">
+        <figure>
+          <img src="/static/before-after/sejour-avant.jpg" alt="Avant renovation sejour">
+          <figcaption>Avant</figcaption>
+        </figure>
+        <figure>
+          <img src="/static/before-after/sejour-apres.jpg" alt="Apres renovation sejour">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <h3>Sejour</h3>
+      <p>Ambiance lumineuse, materiaux nobles et confort quotidien.</p>
+    </article>
+  </div>
+</section>
+
+<script>
+  (function () {
+    const tabs = document.querySelectorAll(".before-after-tab");
+    const cards = document.querySelectorAll(".before-after-card");
+    if (!tabs.length || !cards.length) return;
+
+    function activate(category) {
+      tabs.forEach((tab) => {
+        const isActive = tab.dataset.category === category;
+        tab.classList.toggle("is-active", isActive);
+        tab.setAttribute("aria-selected", isActive ? "true" : "false");
+      });
+      cards.forEach((card) => {
+        const show = category === "all" || card.dataset.category === category;
+        card.hidden = !show;
+      });
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", function () {
+        activate(tab.dataset.category || "all");
+      });
+    });
+  })();
+</script>
+{% endblock %}

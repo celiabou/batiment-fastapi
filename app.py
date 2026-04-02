@@ -26,7 +26,7 @@ from database import SessionLocal, engine
 from db import init_db, insert_lead
 from intelligence.router import router as intelligence_router
 from models import Base, HandoffRequest, Lead
-from pricing import estimate_from_text
+from pricing import estimate_from_item_key, estimate_from_scope, estimate_from_text, get_tariff_item, has_required_quantity
 from saas_ai.router import router as saas_ai_router
 
 def _load_local_env_file(env_path: Path) -> None:
@@ -66,9 +66,11 @@ STATIC_DIR = BASE_DIR / "static"
 CONTENT_DIR = BASE_DIR / "content"
 ARCHITECTURE_UPLOAD_DIR = STATIC_DIR / "architecture" / "uploads"
 ARCHITECTURE_RENDER_DIR = STATIC_DIR / "architecture" / "renders"
+ESTIMATE_UPLOAD_DIR = STATIC_DIR / "estimate" / "uploads"
 AGENDA_URL = os.getenv("AGENDA_URL", "").strip()
 INTERNAL_REPORT_EMAIL = os.getenv("INTERNAL_REPORT_EMAIL", "celia.b@keythinkers.fr").strip()
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
+LABOR_ONLY_MENTION = "Main-d'œuvre uniquement, hors matériaux et fournitures."
 VISITOR_COOKIE_NAME = "rb_vid"
 VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 180
 TRACKING_PARAM_KEYS = (
@@ -853,10 +855,18 @@ def _build_professional_chat_reply(
     project_frame_line = f"Cadrage actuel: {', '.join(project_frame_bits)}." if project_frame_bits else None
 
     estimate_line = None
+    estimate_disclaimer_line = None
+    estimate_followup_line = None
     if estimate and estimate.get("min") and estimate.get("max"):
         estimate_line = (
             f"Premiere fourchette: {_human_eur(estimate['min'])} - {_human_eur(estimate['max'])} "
             "(a confirmer apres visite technique et releve)."
+        )
+        estimate_disclaimer_line = (
+            "Cette estimation concerne la main-d'œuvre uniquement, hors matériaux, équipements et contraintes spécifiques du chantier."
+        )
+        estimate_followup_line = (
+            "Pour obtenir un devis précis et adapté à votre projet, un échange avec un expert est nécessaire. Je peux planifier un appel."
         )
 
     lines: list[str] = [intro, empathy_line]
@@ -864,12 +874,22 @@ def _build_professional_chat_reply(
         lines.append(context_line)
     if estimate_line:
         lines.append(estimate_line)
+    if estimate_disclaimer_line:
+        lines.append(estimate_disclaimer_line)
+    if estimate_followup_line:
+        lines.append(estimate_followup_line)
     lines.extend([diagnostic_line, norms_line, conductor_line])
     if project_frame_line:
         lines.append(project_frame_line)
 
     if core_missing:
-        lines.append(f"Pour verrouiller le devis, il me manque encore: {', '.join(core_missing[:3])}.")
+        lines.append(
+            f"Pour faire un pre-devis fiable, il me manque: {', '.join(core_missing[:3])}."
+        )
+        lines.append(
+            "Sans ces infos, je ne peux donner qu'une estimation approximative. "
+            "Le devis final se fait apres appel avec le chef de projet et visite technique."
+        )
     elif detail_missing:
         lines.append(f"Pour affiner la strategie chantier: {', '.join(detail_missing[:2])}.")
 
@@ -924,7 +944,9 @@ def _build_contextual_short_reply(
         if missing:
             return (
                 f"{context_line} {mood_line} "
-                f"Pour avancer, il me manque: {', '.join(missing[:3])}. "
+                f"Pour faire un pre-devis fiable, il me manque: {', '.join(missing[:3])}. "
+                "Sans ces infos, je ne peux donner qu'une estimation approximative. "
+                "Le devis final se fait apres appel avec le chef de projet et visite technique. "
                 "Ajoutez aussi votre telephone ou email pour que je lance la suite."
             )
         return (
@@ -935,14 +957,17 @@ def _build_contextual_short_reply(
     if missing:
         return (
             f"{context_line} Merci, j'ai bien vos coordonnees. "
-            f"Pour finaliser proprement, il me manque: {', '.join(missing[:3])}."
+            f"Pour faire un pre-devis fiable, il me manque: {', '.join(missing[:3])}. "
+            "Sans ces infos, je ne peux donner qu'une estimation approximative. "
+            "Le devis final se fait apres appel avec le chef de projet et visite technique."
         )
 
     if estimate and estimate.get("min") and estimate.get("max"):
         return (
             f"{context_line} "
             f"Premiere fourchette: {_human_eur(estimate['min'])} - {_human_eur(estimate['max'])}. "
-            "Prochaine etape: visite technique, releve et devis detaille."
+            "Cette estimation concerne la main-d'œuvre uniquement, hors matériaux, équipements et contraintes spécifiques du chantier. "
+            "Pour obtenir un devis précis et adapté à votre projet, un échange avec un expert est nécessaire. Je peux planifier un appel."
         )
 
     return (
@@ -956,6 +981,13 @@ def _safe_suffix(filename: str) -> str:
     if suffix in {".jpg", ".jpeg", ".png", ".webp"}:
         return suffix
     return ".jpg"
+
+
+def _safe_video_suffix(filename: str) -> str:
+    suffix = Path(filename or "").suffix.lower()
+    if suffix in {".mp4", ".mov", ".webm"}:
+        return suffix
+    return ".mp4"
 
 
 def _public_static_url(path: Path) -> str:
@@ -1159,7 +1191,8 @@ def _generate_chat_reply_with_openai(
     system_prompt = (
         f"Tu es {agent_name}, {agent_role}. "
         "Tu es un vrai professionnel terrain du batiment (renovation moderne TCE) et conducteur de projet, pas un assistant generique. "
-        "Reponds uniquement en francais, avec un ton humain, naturel, professionnel et rassurant. "
+        "Reponds dans la langue du client (francais ou anglais selon la derniere demande). "
+        "Ton style est humain, naturel, professionnel et rassurant. "
         "Tu gardes aussi une casquette humaine: empathie, ecoute, et reformulation utile quand le client est stressé ou hesitant. "
         "Ecris comme un vrai conseiller qui comprend le client, pas comme un robot. "
         "Evite les formulations froides ou mecaniques. "
@@ -1168,12 +1201,14 @@ def _generate_chat_reply_with_openai(
         "Structure en 4 a 8 lignes courtes. "
         "Integre systematiquement: 1) un angle diagnostic chantier, 2) un point normes/qualite, 3) une suite operationnelle. "
         "Si infos manquantes, demande uniquement les donnees critiques pour chiffrer serieusement. "
-        "Ne promets jamais un prix ferme sans visite technique ni releve precis."
+        "Ne promets jamais un prix ferme sans visite technique ni releve precis. "
+        "Si une estimation est fournie, rappelle toujours qu'elle concerne la main-d'oeuvre uniquement."
     )
 
     context_prompt = (
         "Contexte metier:\n"
         f"- estimation_initiale: {estimate_text}\n"
+        f"- mention_obligatoire: {LABOR_ONLY_MENTION}\n"
         f"- contact_detecte: {'oui' if contact_detected else 'non'}\n"
         f"- premier_tour: {'oui' if is_first_turn else 'non'}\n"
         f"- type_travaux: {work_type or 'inconnu'}\n"
@@ -1187,10 +1222,10 @@ def _generate_chat_reply_with_openai(
     )
 
     payload = {
-        "model": os.getenv("OPENAI_CHAT_MODEL", "gpt-4.1-mini"),
-        "temperature": 0.25,
-        "max_tokens": 280,
-        "messages": [
+        "model": os.getenv("OPENAI_CHAT_MODEL", "gpt-5"),
+        "temperature": 0.2,
+        "max_output_tokens": 280,
+        "input": [
             {"role": "system", "content": system_prompt},
             {"role": "system", "content": context_prompt},
             *conversation,
@@ -1198,7 +1233,7 @@ def _generate_chat_reply_with_openai(
     }
 
     req = urlrequest.Request(
-        "https://api.openai.com/v1/chat/completions",
+        "https://api.openai.com/v1/responses",
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -1210,13 +1245,20 @@ def _generate_chat_reply_with_openai(
     try:
         with urlrequest.urlopen(req, timeout=25) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-        reply = (
-            (data.get("choices") or [{}])[0]
-            .get("message", {})
-            .get("content", "")
-            .strip()
-        )
-        return reply or None
+        if isinstance(data.get("output_text"), str):
+            reply_text = data.get("output_text", "").strip()
+        else:
+            reply_text = ""
+            for item in data.get("output") or []:
+                if (item or {}).get("type") != "message":
+                    continue
+                for chunk in (item or {}).get("content") or []:
+                    if (chunk or {}).get("type") != "output_text":
+                        continue
+                    piece = str((chunk or {}).get("text", "")).strip()
+                    if piece:
+                        reply_text = f"{reply_text}\n{piece}".strip()
+        return reply_text or None
     except (
         urllib_error.URLError,
         TimeoutError,
@@ -1249,11 +1291,31 @@ def _is_professional_reply(reply: str) -> bool:
             "reseaux",
             "implantation",
             "structure",
+            "assessment",
+            "site",
+            "structural",
+            "systems",
+            "plumbing",
+            "electrical",
+            "survey",
         )
     )
     has_normes = any(
         key in t
-        for key in ("norme", "nfc", "dtu", "qualite", "conforme", "etancheite", "securite")
+        for key in (
+            "norme",
+            "nfc",
+            "dtu",
+            "qualite",
+            "conforme",
+            "etancheite",
+            "securite",
+            "code",
+            "compliance",
+            "standard",
+            "safety",
+            "regulation",
+        )
     )
     has_next_step = any(
         key in t
@@ -1270,6 +1332,16 @@ def _is_professional_reply(reply: str) -> bool:
             "j'ai besoin",
             "envoyez",
             "transmettez",
+            "next step",
+            "next steps",
+            "schedule",
+            "appointment",
+            "site visit",
+            "survey",
+            "estimate",
+            "quote",
+            "i need",
+            "please send",
         )
     )
 
@@ -1481,6 +1553,48 @@ def _attach_tracking_to_conversation(conversation: object, tracking: dict) -> st
     return json.dumps({"tracking": tracking}, ensure_ascii=False)
 
 
+def _lead_summary_text(payload: dict) -> str:
+    estimate_min = payload.get("estimate_min")
+    estimate_max = payload.get("estimate_max")
+    if not estimate_min and not estimate_max:
+        return ""
+
+    summary_lines = [
+        f"Estimation: {estimate_min or 'A confirmer'} - {estimate_max or 'A confirmer'}",
+        f"Mention: {LABOR_ONLY_MENTION}",
+    ]
+
+    if payload.get("work_type"):
+        summary_lines.append(f"Type de projet: {payload.get('work_type')}")
+    if payload.get("surface"):
+        summary_lines.append(f"Surface: {payload.get('surface')}")
+    if payload.get("city"):
+        summary_lines.append(f"Ville: {payload.get('city')}")
+
+    return "\n".join(summary_lines)
+
+
+def _inject_lead_summary(conversation: object, payload: dict) -> object:
+    summary_text = _lead_summary_text(payload)
+    if not summary_text:
+        return conversation
+
+    if isinstance(conversation, dict):
+        merged = dict(conversation)
+        merged["estimate_summary"] = summary_text
+        merged["estimate_disclaimer"] = LABOR_ONLY_MENTION
+        return merged
+
+    if isinstance(conversation, str):
+        raw = conversation.strip()
+        block = f"[estimation]\n{summary_text}"
+        if raw:
+            return f"{raw}\n\n{block}"
+        return block
+
+    return {"estimate_summary": summary_text, "estimate_disclaimer": LABOR_ONLY_MENTION}
+
+
 def _smtp_settings() -> dict:
     default_from_email = (INTERNAL_REPORT_EMAIL or "celia.b@keythinkers.fr").strip()
     host = os.getenv("SMTP_HOST", "smtp.office365.com").strip()
@@ -1599,6 +1713,7 @@ def _compose_client_quote_email(
         f"- Style: {(style or 'moderne').capitalize()}",
         f"- Ville: {city or 'A confirmer'}",
         f"- Budget estime: {(quote or {}).get('low_label', 'A confirmer')} - {(quote or {}).get('high_label', 'A confirmer')}",
+        f"- Mention: {LABOR_ONLY_MENTION}",
         f"- Delai indicatif: {duration_label}",
         f"- Confiance estimation: {int(round(float((quote or {}).get('confidence', 0)) * 100))}%",
         "",
@@ -1769,6 +1884,7 @@ def _compose_internal_report_email(
     precall_report: dict,
     source_photos: list[str],
     renders: list[str],
+    source_videos: list[str] | None = None,
     mode: str,
     tracking_context: dict,
     client_quote_subject: str,
@@ -1806,6 +1922,7 @@ def _compose_internal_report_email(
         "",
         "Devis intelligent",
         f"- Fourchette: {(quote or {}).get('low_label', 'A confirmer')} - {(quote or {}).get('high_label', 'A confirmer')}",
+        f"- Mention: {LABOR_ONLY_MENTION}",
         f"- Delai: {(quote or {}).get('duration_weeks', {}).get('min', '?')} a {(quote or {}).get('duration_weeks', {}).get('max', '?')} semaines",
         f"- Confiance: {int(round(float((quote or {}).get('confidence', 0)) * 100))}%",
         f"- Budget fit: {(quote or {}).get('budget_fit', {}).get('message', 'A confirmer')}",
@@ -1833,6 +1950,9 @@ def _compose_internal_report_email(
         "",
         "Photos sources",
         *[f"- {PUBLIC_BASE_URL}{p}" for p in (source_photos or [])],
+        "",
+        "Videos sources",
+        *[f"- {PUBLIC_BASE_URL}{v}" for v in (source_videos or [])],
         "",
         "Rendus",
         *[f"- {PUBLIC_BASE_URL}{p}" for p in (renders or [])],
@@ -1904,11 +2024,15 @@ def _build_smart_quote(
     budget: str,
     city: str,
     notes: str,
+    finishing_level: str = "",
+    work_item_key: str = "",
+    work_quantity: str = "",
 ) -> dict:
     scope_key = scope if scope in SMART_SCOPE_CONFIG else "renovation_complete"
     style_key = style if style in STYLE_MULTIPLIER else "moderne"
     project_key = project_type if project_type in PROJECT_TYPE_MULTIPLIER else "maison"
     timeline_key = timeline if timeline in TIMELINE_COST_MULTIPLIER else "6_mois"
+    finishing_key = finishing_level if finishing_level in {"standard", "premium", "haut_de_gamme", "sur_mesure"} else ""
 
     config = SMART_SCOPE_CONFIG[scope_key]
     surface_value = _parse_number(surface) or PROJECT_DEFAULT_SURFACE[project_key]
@@ -1918,6 +2042,7 @@ def _build_smart_quote(
     room_count = max(0, min(60, room_count))
     budget_value = _parse_number(budget)
     complexity = _estimate_complexity(notes)
+    quantity_value = _parse_number(work_quantity)
 
     room_factor = 1.0
     if room_count:
@@ -1925,24 +2050,51 @@ def _build_smart_quote(
     if room_count == 1 and surface_value > 60:
         room_factor += 0.05
 
-    low_raw = (
-        surface_value
-        * config["low_m2"]
-        * PROJECT_TYPE_MULTIPLIER[project_key]
-        * STYLE_MULTIPLIER[style_key]
-        * TIMELINE_COST_MULTIPLIER[timeline_key]
-        * complexity
-        * room_factor
-    )
-    high_raw = (
-        surface_value
-        * config["high_m2"]
-        * PROJECT_TYPE_MULTIPLIER[project_key]
-        * STYLE_MULTIPLIER[style_key]
-        * TIMELINE_COST_MULTIPLIER[timeline_key]
-        * complexity
-        * room_factor
-    )
+    pricing_source = "smart_scope"
+    base_from_grid = estimate_from_scope(scope_key, project_key, surface_value, finishing_key)
+    if work_item_key:
+        base_from_grid = estimate_from_item_key(work_item_key, quantity_value)
+        if base_from_grid:
+            pricing_source = "tariff_item"
+
+    if base_from_grid:
+        if pricing_source == "smart_scope":
+            pricing_source = "tariff_grid"
+        low_raw = (
+            base_from_grid["low"]
+            * PROJECT_TYPE_MULTIPLIER[project_key]
+            * STYLE_MULTIPLIER[style_key]
+            * TIMELINE_COST_MULTIPLIER[timeline_key]
+            * complexity
+            * room_factor
+        )
+        high_raw = (
+            base_from_grid["high"]
+            * PROJECT_TYPE_MULTIPLIER[project_key]
+            * STYLE_MULTIPLIER[style_key]
+            * TIMELINE_COST_MULTIPLIER[timeline_key]
+            * complexity
+            * room_factor
+        )
+    else:
+        low_raw = (
+            surface_value
+            * config["low_m2"]
+            * PROJECT_TYPE_MULTIPLIER[project_key]
+            * STYLE_MULTIPLIER[style_key]
+            * TIMELINE_COST_MULTIPLIER[timeline_key]
+            * complexity
+            * room_factor
+        )
+        high_raw = (
+            surface_value
+            * config["high_m2"]
+            * PROJECT_TYPE_MULTIPLIER[project_key]
+            * STYLE_MULTIPLIER[style_key]
+            * TIMELINE_COST_MULTIPLIER[timeline_key]
+            * complexity
+            * room_factor
+        )
 
     if high_raw <= low_raw:
         high_raw = low_raw * 1.2
@@ -2033,6 +2185,10 @@ def _build_smart_quote(
         f"Style vise: {style_key}.",
         "Hors contraintes administratives exceptionnelles et diagnostics destructifs.",
     ]
+    if pricing_source == "tariff_grid":
+        assumptions.append("Base grille tarifaire Eurobat (main-d'oeuvre).")
+    if pricing_source == "tariff_item":
+        assumptions.append("Calcul base sur poste specifique de la grille tarifaire.")
     if not surface:
         assumptions.append(
             f"Surface par defaut appliquee ({int(surface_value)} m2) selon type de bien."
@@ -2279,6 +2435,7 @@ def _build_precall_report(
             "surface": f"{int(round(surface_value))} m2" if surface_value else "A confirmer",
             "budget": _format_eur(int(round(budget_value))) if budget_value else "A confirmer",
             "contact_ready": "Oui" if has_contact else "Non",
+            "estimate_disclaimer": LABOR_ONLY_MENTION,
         },
         "advantages": advantages[:6],
         "inconvenients": inconvenients[:6],
@@ -2291,6 +2448,7 @@ def _build_precall_report(
 async def lifespan(_: FastAPI):
     ARCHITECTURE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     ARCHITECTURE_RENDER_DIR.mkdir(parents=True, exist_ok=True)
+    ESTIMATE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     init_db()
     Base.metadata.create_all(bind=engine)
     yield
@@ -2386,7 +2544,57 @@ def city_page(request: Request, city: str):
 
 @app.get("/architecture-ia")
 def architecture_ai_page():
-    return RedirectResponse("/#architecture-ia", status_code=307)
+    return RedirectResponse("/estimation-projet", status_code=307)
+
+
+@app.get("/simulation-3d", response_class=HTMLResponse)
+def simulation_3d_page(request: Request):
+    return RedirectResponse("/estimation-projet", status_code=307)
+
+
+@app.get("/votre-projet", response_class=HTMLResponse)
+def votre_projet(request: Request):
+    return templates.TemplateResponse(request, "votre_projet.html")
+
+
+@app.get("/votre-projet/particulier", response_class=HTMLResponse)
+def votre_projet_particulier(request: Request):
+    return templates.TemplateResponse(request, "votre_projet_particulier.html")
+
+
+@app.get("/votre-projet/professionnel", response_class=HTMLResponse)
+def votre_projet_professionnel(request: Request):
+    return templates.TemplateResponse(request, "votre_projet_professionnel.html")
+
+
+@app.get("/nos-chantiers", response_class=HTMLResponse)
+def nos_chantiers(request: Request):
+    return templates.TemplateResponse(request, "nos_chantiers.html")
+
+
+@app.get("/avant-apres", response_class=HTMLResponse)
+def avant_apres(request: Request):
+    return templates.TemplateResponse(request, "avant_apres.html")
+
+
+@app.get("/ressources", response_class=HTMLResponse)
+def ressources(request: Request):
+    return templates.TemplateResponse(request, "ressources.html")
+
+
+@app.get("/nos-metiers", response_class=HTMLResponse)
+def nos_metiers(request: Request):
+    return templates.TemplateResponse(request, "nos_metiers.html")
+
+
+@app.get("/estimez-votre-projet", response_class=HTMLResponse)
+def estimate_page(request: Request):
+    return RedirectResponse("/estimation-projet", status_code=307)
+
+
+@app.get("/estimation-projet", response_class=HTMLResponse)
+def estimate_project_page(request: Request):
+    return templates.TemplateResponse(request, "estimation_projet.html")
 
 
 @app.get("/contact", response_class=HTMLResponse)
@@ -2440,10 +2648,6 @@ async def chat(request: Request):
     is_first_turn = len(user_messages) <= 1
     context = _extract_chat_context(user_messages)
 
-    est = estimate_from_text(last)
-    if est.get("confidence", 0) <= 0.5 and full_text:
-        est = estimate_from_text(full_text)
-
     contact_detected = has_contact_info(full_text)
     contact_just_provided = has_contact_info(last) and not has_contact_info(previous_text)
     work_type = context.get("work_type")
@@ -2452,6 +2656,11 @@ async def chat(request: Request):
     budget_hint = context.get("budget_hint")
     timeline_hint = context.get("timeline_hint")
     client_mood = context.get("client_mood", "neutral")
+    tariff_item = get_tariff_item(last) or get_tariff_item(full_text)
+
+    est = estimate_from_text(last, default_surface=surface_m2)
+    if est.get("confidence", 0) <= 0.5 and full_text:
+        est = estimate_from_text(full_text, default_surface=surface_m2)
     missing_fields: list[str] = []
     if not work_type:
         missing_fields.append("type de travaux")
@@ -2463,6 +2672,16 @@ async def chat(request: Request):
         missing_fields.append("budget cible")
     if not timeline_hint:
         missing_fields.append("echeance souhaitee")
+    if tariff_item and not has_required_quantity(full_text, tariff_item):
+        unit = tariff_item.get("unit")
+        if unit == "m2":
+            missing_fields.append("surface en m2")
+        elif unit == "m3":
+            missing_fields.append("volume en m3")
+        elif unit == "unite":
+            missing_fields.append("nombre d'unites")
+        elif unit == "ml":
+            missing_fields.append("metres lineaires")
 
     estimate = None
     if est.get("confidence", 0) > 0.5:
@@ -2606,6 +2825,9 @@ async def devis_intelligent(
     style: str = Form(...),
     scope: str = Form("renovation_complete"),
     timeline: str = Form("6_mois"),
+    finishing_level: str = Form(""),
+    work_item_key: str = Form(""),
+    work_quantity: str = Form(""),
     city: str = Form(""),
     surface: str = Form(""),
     rooms: str = Form(""),
@@ -2614,6 +2836,8 @@ async def devis_intelligent(
     name: str = Form(""),
     phone: str = Form(""),
     email: str = Form(""),
+    project_photos: list[UploadFile] = File([]),
+    project_videos: list[UploadFile] = File([]),
     visitor_id: str = Form(""),
     visitor_landing: str = Form(""),
     visitor_referrer: str = Form(""),
@@ -2685,7 +2909,34 @@ async def devis_intelligent(
         budget=budget,
         city=city,
         notes=notes,
+        finishing_level=finishing_level,
+        work_item_key=work_item_key,
+        work_quantity=work_quantity,
     )
+
+    photo_urls: list[str] = []
+    for upload in project_photos or []:
+        if not upload or not upload.filename:
+            continue
+        suffix = _safe_suffix(upload.filename)
+        filename = f"estimate_photo_{_utc_file_stamp()}_{uuid.uuid4().hex[:8]}{suffix}"
+        dst = ESTIMATE_UPLOAD_DIR / filename
+        content = await upload.read()
+        if content:
+            dst.write_bytes(content)
+            photo_urls.append(_public_static_url(dst))
+
+    video_urls: list[str] = []
+    for upload in project_videos or []:
+        if not upload or not upload.filename:
+            continue
+        suffix = _safe_video_suffix(upload.filename)
+        filename = f"estimate_video_{_utc_file_stamp()}_{uuid.uuid4().hex[:8]}{suffix}"
+        dst = ESTIMATE_UPLOAD_DIR / filename
+        content = await upload.read()
+        if content:
+            dst.write_bytes(content)
+            video_urls.append(_public_static_url(dst))
 
     has_contact = bool((phone or "").strip() or client_email)
     precall_report = _build_precall_report(
@@ -2732,11 +2983,17 @@ async def devis_intelligent(
                         "style": style_key,
                         "scope": scope_key,
                         "timeline": timeline_key,
+                        "finishing_level": finishing_level,
+                        "work_item_key": work_item_key,
+                        "work_quantity": work_quantity,
                         "city": city,
                         "surface": surface,
                         "rooms": rooms,
                         "budget": budget,
                         "quote": quote,
+                        "estimate_disclaimer": LABOR_ONLY_MENTION,
+                        "source_photos": photo_urls,
+                        "source_videos": video_urls,
                         "precall_report": precall_report,
                         "render_request_status": "awaiting_request",
                         "tracking": tracking_context,
@@ -2781,7 +3038,8 @@ async def devis_intelligent(
         quote=quote,
         interior_request_status="pending_render_request",
         precall_report=precall_report,
-        source_photos=[],
+        source_photos=photo_urls,
+        source_videos=video_urls,
         renders=[],
         mode="devis_only",
         tracking_context=tracking_context,
@@ -3026,6 +3284,9 @@ async def render_3d_on_demand(
             budget=resolved_budget,
             city=resolved_city,
             notes=resolved_notes,
+            finishing_level=str((handoff_payload or {}).get("finishing_level", "")),
+            work_item_key=str((handoff_payload or {}).get("work_item_key", "")),
+            work_quantity=str((handoff_payload or {}).get("work_quantity", "")),
         )
 
         prompt = _compose_architecture_prompt(
@@ -3097,6 +3358,7 @@ async def render_3d_on_demand(
                     "budget": resolved_budget,
                     "notes": resolved_notes,
                     "quote": quote,
+                    "estimate_disclaimer": LABOR_ONLY_MENTION,
                     "precall_report": precall_report,
                     "source_photos": photo_urls,
                     "renders": render_urls,
@@ -3145,6 +3407,7 @@ async def render_3d_on_demand(
                         "budget": resolved_budget,
                         "notes": resolved_notes,
                         "quote": quote,
+                        "estimate_disclaimer": LABOR_ONLY_MENTION,
                         "precall_report": precall_report,
                         "source_photos": photo_urls,
                         "renders": render_urls,
@@ -3192,6 +3455,7 @@ async def render_3d_on_demand(
             interior_request_status="requested",
             precall_report=precall_report,
             source_photos=photo_urls,
+            source_videos=None,
             renders=render_urls,
             mode="ai",
             tracking_context=tracking_context,
@@ -3396,6 +3660,9 @@ async def architecture_3d(
         budget=budget,
         city=city,
         notes=notes,
+        finishing_level="",
+        work_item_key="",
+        work_quantity="",
     )
     interior_offer = _build_interior_offer(
         project_type=project_type,
@@ -3496,6 +3763,7 @@ async def architecture_3d(
                         "want_free_interior": wants_free_pack,
                         "interior_request_status": interior_request_status,
                         "quote": quote,
+                        "estimate_disclaimer": LABOR_ONLY_MENTION,
                         "interior_offer": interior_offer,
                         "precall_report": precall_report,
                         "source_photos": photo_urls,
@@ -3544,6 +3812,7 @@ async def architecture_3d(
         interior_request_status=interior_request_status,
         precall_report=precall_report,
         source_photos=photo_urls,
+        source_videos=None,
         renders=render_urls,
         mode=mode,
         tracking_context=tracking_context,
@@ -3608,6 +3877,13 @@ async def architecture_3d(
 @app.post("/api/leads")
 def create_lead(request: Request, payload: dict = Body(...)):
     tracking_context = _extract_tracking_context(request, payload)
+    raw_message = payload.get("raw_message")
+    lead_summary = _lead_summary_text(payload)
+    if lead_summary:
+        if raw_message:
+            raw_message = f"{raw_message}\n\n[estimation]\n{lead_summary}"
+        else:
+            raw_message = f"[estimation]\n{lead_summary}"
     db = SessionLocal()
     try:
         lead_record = Lead(
@@ -3621,7 +3897,7 @@ def create_lead(request: Request, payload: dict = Body(...)):
             estimate_min=payload.get("estimate_min"),
             estimate_max=payload.get("estimate_max"),
             ip_address=(request.client.host if request.client else None),
-            raw_message=_attach_tracking_to_raw(payload.get("raw_message"), tracking_context),
+            raw_message=_attach_tracking_to_raw(raw_message, tracking_context),
         )
         db.add(lead_record)
         db.commit()
@@ -3634,6 +3910,7 @@ def create_lead(request: Request, payload: dict = Body(...)):
 @app.post("/api/handoff")
 def create_handoff(request: Request, payload: dict = Body(...)):
     tracking_context = _extract_tracking_context(request, payload)
+    conversation_payload = _inject_lead_summary(payload.get("conversation"), payload)
     db = SessionLocal()
     try:
         handoff = HandoffRequest(
@@ -3651,7 +3928,7 @@ def create_handoff(request: Request, payload: dict = Body(...)):
             estimate_max=payload.get("estimate_max"),
             reason=payload.get("reason") or "demande conseiller humain",
             ip_address=(request.client.host if request.client else None),
-            conversation=_attach_tracking_to_conversation(payload.get("conversation"), tracking_context),
+            conversation=_attach_tracking_to_conversation(conversation_payload, tracking_context),
         )
         db.add(handoff)
         db.commit()

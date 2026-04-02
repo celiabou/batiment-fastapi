@@ -199,6 +199,12 @@ a {
   color: #ffffff;
 }
 
+.hdr-photo .nav-drop[open] > summary,
+.hdr-photo .nav-drop > summary:hover,
+.hdr-photo .nav-drop > summary:focus-visible {
+  background: transparent;
+}
+
 .header-shell,
 .nav-row {
   min-height: 34px;

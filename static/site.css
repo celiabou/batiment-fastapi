@@ -372,6 +372,16 @@ a {
   border-color: rgba(16, 24, 40, 0.35);
 }
 
+.nav-ghost-solid {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
+.nav-ghost-solid:hover {
+  filter: brightness(0.95);
+}
+
 .nav-logout {
   margin: 0;
 }
@@ -411,6 +421,12 @@ a {
   color: #f8fafc;
   border-color: rgba(255, 255, 255, 0.55);
   background: transparent;
+}
+
+.hdr-photo .nav-ghost-solid {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
 }
 
 .page {

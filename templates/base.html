@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700;800&family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/site.css?v=20260402-36">
+  <link rel="stylesheet" href="/static/site.css?v=20260402-37">
 </head>
 <body>
   <div class="bg-aura bg-aura-1"></div>
@@ -66,15 +66,53 @@
             </summary>
             <div class="account-menu">
               {% if current_user %}
-                <a href="/dashboard">Mon espace</a>
+                <a class="account-row" href="/dashboard">
+                  <span class="account-row-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M4 11.5l8-6 8 6v7a1 1 0 0 1-1 1h-5v-5H10v5H5a1 1 0 0 1-1-1v-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+                    </svg>
+                  </span>
+                  <span>Mon espace</span>
+                </a>
                 <form class="nav-logout" method="post" action="/logout">
-                  <button type="submit">Deconnexion</button>
+                  <button class="account-row" type="submit">
+                    <span class="account-row-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M10 6h4a4 4 0 0 1 4 4v4a4 4 0 0 1-4 4h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+                        <path d="M14 12H4m0 0 3-3m-3 3 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+                      </svg>
+                    </span>
+                    <span>Deconnexion</span>
+                  </button>
                 </form>
               {% else %}
-                <a href="/login">Connexion client</a>
-                <a href="/signup">Creer un compte</a>
+                <a class="account-row" href="/login">
+                  <span class="account-row-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.6"></circle>
+                      <path d="M4.5 20c1.8-3.6 13.2-3.6 15 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+                    </svg>
+                  </span>
+                  <span>Connexion client</span>
+                </a>
+                <a class="account-row" href="/signup">
+                  <span class="account-row-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+                    </svg>
+                  </span>
+                  <span>Creer un compte</span>
+                </a>
                 <div class="account-divider"></div>
-                <a href="/estimation-projet">Debuter mon projet</a>
+                <a class="account-row" href="/estimation-projet">
+                  <span class="account-row-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M8 5h8l2 2v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+                      <path d="M9 12h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+                    </svg>
+                  </span>
+                  <span>Debuter mon projet</span>
+                </a>
               {% endif %}
             </div>
           </details>

@@ -51,6 +51,7 @@
   const quoteBudgetEl = document.getElementById("smartQuoteBudget");
   const quoteBreakdownEl = document.getElementById("smartQuoteBreakdown");
   const quoteAssumptionsEl = document.getElementById("smartQuoteAssumptions");
+  const quoteAccountEl = document.getElementById("smartQuoteAccount");
 
   const renderTitleEl = document.getElementById("smartRenderTitle");
   const renderSummaryEl = document.getElementById("smartRenderSummary");
@@ -408,6 +409,19 @@
         quoteDelivery,
         `Devis envoyé au client (${quoteDelivery.client_email || "email client"}) + copie interne.`
       );
+
+      if (quoteAccountEl) {
+        if (data.account_required_for_final) {
+          quoteAccountEl.textContent = "Compte obligatoire pour recevoir le devis final.";
+          quoteAccountEl.className = "ai3d-budget-hint ai3d-budget-under_budget";
+        } else if (data.project_saved) {
+          quoteAccountEl.textContent = "Votre dossier a été sauvegardé dans votre espace client.";
+          quoteAccountEl.className = "ai3d-budget-hint ai3d-budget-aligned";
+        } else {
+          quoteAccountEl.textContent = "Connectez-vous pour recevoir le devis final.";
+          quoteAccountEl.className = "ai3d-budget-hint";
+        }
+      }
 
       setText(quoteStatusEl, data.message || "Estimation envoyee.");
       if (hasRenderForm) {

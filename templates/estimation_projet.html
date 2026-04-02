@@ -2,6 +2,7 @@
 {% block title %}Estimation du projet | Renovation Batiment{% endblock %}
 
 {% block content %}
+{% set current_user = get_current_user(request) %}
 <section class="page-hero">
   <p class="kicker">Estimation</p>
   <h1>Estimation du projet</h1>
@@ -149,6 +150,17 @@
 
     <p class="form-disclaimer">Les montants affiches correspondent a une estimation indicative de la main-d'oeuvre uniquement, hors fournitures et materiaux.</p>
     <button id="aiQuoteSubmit" class="btn btn-solid" type="submit">Obtenir mon pre-devis</button>
+    {% if not current_user %}
+      <div class="form-disclaimer form-disclaimer-long">
+        Pour recevoir le devis final, la creation d'un compte client est obligatoire.
+        <a href="/signup?next=/dashboard">Creer mon compte</a> ou
+        <a href="/login?next=/dashboard">me connecter</a>.
+      </div>
+    {% else %}
+      <div class="form-disclaimer form-disclaimer-long">
+        Votre estimation sera sauvegardee automatiquement dans votre espace client.
+      </div>
+    {% endif %}
     <p class="form-disclaimer form-disclaimer-long">Les estimations proposees sur cette page sont fournies a titre indicatif et concernent la main-d'oeuvre uniquement. Les fournitures, materiaux, equipements et contraintes specifiques du chantier ne sont pas inclus dans ce calcul initial. Un devis precis et personnalise pourra etre etabli apres echange avec un expert.</p>
   </form>
 
@@ -176,13 +188,18 @@
       <p id="smartQuoteMeta" class="section-sub">Remplissez le formulaire pour obtenir une estimation.</p>
       <p class="ai3d-disclaimer">Cette estimation est donnee a titre indicatif. Un devis detaille necessite une etude personnalisee.</p>
       <p id="smartQuoteBudget" class="ai3d-budget-hint">Budget non analyse.</p>
+      <p id="smartQuoteAccount" class="ai3d-budget-hint">Connectez-vous pour recevoir le devis final.</p>
       <div id="smartQuoteBreakdown" class="ai3d-breakdown"></div>
       <ul id="smartQuoteAssumptions" class="ai3d-assumptions"></ul>
       <p id="aiQuoteDeliveryStatus" class="ai3d-budget-hint">Aucun email envoye pour l'instant.</p>
-      <a class="btn btn-solid ai3d-cta" href="/contact#agenda-conseiller">Prendre rendez-vous pour un devis precis</a>
+      {% if current_user %}
+        <a class="btn btn-solid ai3d-cta" href="/dashboard">Acceder a mon devis final</a>
+      {% else %}
+        <a class="btn btn-solid ai3d-cta" href="/signup?next=/dashboard">Creer mon compte pour le devis final</a>
+      {% endif %}
     </article>
   </div>
 </section>
 
-<script src="{{ url_for('static', path='architecture_ai.js') }}?v=20260401-1"></script>
+<script src="{{ url_for('static', path='architecture_ai.js') }}?v=20260402-1"></script>
 {% endblock %}

@@ -2721,6 +2721,70 @@ def login_page(request: Request, next: str = ""):
     )
 
 
+@app.get("/signup", response_class=HTMLResponse)
+def signup_page(request: Request, next: str = ""):
+    current_user = _get_current_user(request)
+    if current_user:
+        return RedirectResponse("/dashboard", status_code=303)
+    return templates.TemplateResponse(
+        request,
+        "signup.html",
+        {"next": next},
+    )
+
+
+@app.post("/signup")
+def signup_submit(
+    request: Request,
+    name: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(""),
+    password: str = Form(...),
+    next: str = Form(""),
+):
+    normalized_email = email.strip().lower()
+    db = SessionLocal()
+    try:
+        existing = db.query(UserAccount).filter(UserAccount.email == normalized_email).first()
+        if existing:
+            return templates.TemplateResponse(
+                request,
+                "signup.html",
+                {
+                    "error": "Un compte existe deja avec cet email.",
+                    "next": next,
+                },
+                status_code=400,
+            )
+        client = UserAccount(
+            email=normalized_email,
+            password_hash=_hash_password(password),
+            role="client",
+            name=name.strip(),
+            phone=phone.strip(),
+            status="actif",
+        )
+        db.add(client)
+        db.commit()
+        db.refresh(client)
+        token = _create_session(db, client.id)
+    finally:
+        db.close()
+
+    redirect_target = next or "/dashboard"
+    response = RedirectResponse(redirect_target, status_code=303)
+    response.set_cookie(
+        SESSION_COOKIE_NAME,
+        token,
+        max_age=SESSION_TTL_DAYS * 24 * 60 * 60,
+        httponly=True,
+        samesite="lax",
+        secure=(request.url.scheme == "https"),
+        path="/",
+    )
+    return response
+
+
 @app.post("/login")
 def login_submit(
     request: Request,
@@ -2818,6 +2882,49 @@ def dashboard(request: Request):
             "documents_by_project": documents_by_project,
         },
     )
+
+
+@app.post("/api/devis-final")
+def request_final_quote(
+    request: Request,
+    project_id: int = Form(...),
+    message: str = Form(""),
+):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard", status_code=303)
+
+    db = SessionLocal()
+    try:
+        project = (
+            db.query(ClientProject)
+            .filter(ClientProject.id == project_id, ClientProject.client_id == user["id"])
+            .first()
+        )
+        if not project:
+            return RedirectResponse("/dashboard?error=project_missing", status_code=303)
+
+        project.status = "Devis final demande"
+        project.updated_at = _utc_now()
+        db.commit()
+    finally:
+        db.close()
+
+    smtp_cfg = _smtp_settings()
+    if _smtp_ready(smtp_cfg):
+        internal_recipient = (INTERNAL_REPORT_EMAIL or smtp_cfg.get("from_email") or "").strip()
+        if internal_recipient:
+            subject = "Demande devis final client"
+            body = (
+                f"Client: {user.get('name') or user.get('email')}\n"
+                f"Email: {user.get('email')}\n"
+                f"Projet: {project.title}\n"
+                f"Statut: {project.status}\n"
+                f"Message: {message or 'Aucun message.'}\n"
+            )
+            _send_email_message(to_email=internal_recipient, subject=subject, text_body=body)
+
+    return RedirectResponse("/dashboard?success=devis_final", status_code=303)
 
 
 @app.get("/admin", response_class=HTMLResponse)
@@ -3189,6 +3296,7 @@ async def devis_intelligent(
     visitor_referrer: str = Form(""),
     visitor_utm: str = Form(""),
 ):
+    current_user = _get_current_user(request)
     project_key = project_type if project_type in PROJECT_TYPE_LABELS else "maison"
     style_key = style if style in STYLE_MULTIPLIER else "moderne"
     scope_key = scope if scope in SMART_SCOPE_CONFIG else "renovation_complete"
@@ -3259,6 +3367,35 @@ async def devis_intelligent(
         work_item_key=work_item_key,
         work_quantity=work_quantity,
     )
+
+    project_saved = False
+    saved_project_id = None
+    if current_user:
+        db = SessionLocal()
+        try:
+            project_title = f"Renovation {PROJECT_TYPE_LABELS.get(project_key, 'Projet')}"
+            summary_parts = [
+                f"Type: {PROJECT_TYPE_LABELS.get(project_key, project_key)}",
+                f"Scope: {SMART_SCOPE_LABELS.get(scope_key, scope_key)}",
+            ]
+            if surface:
+                summary_parts.append(f"Surface: {surface} m2")
+            if budget:
+                summary_parts.append(f"Budget: {budget} EUR")
+            summary_parts.append(f"Estimation: {quote['low_label']} - {quote['high_label']}")
+            project = ClientProject(
+                client_id=current_user["id"],
+                title=project_title,
+                summary=" | ".join(summary_parts),
+                status="Pre-devis envoye",
+            )
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+            project_saved = True
+            saved_project_id = project.id
+        finally:
+            db.close()
 
     photo_urls: list[str] = []
     for upload in project_photos or []:
@@ -3428,6 +3565,9 @@ async def devis_intelligent(
         "quote": quote,
         "handoff_id": handoff_id,
         "render_request_enabled": True,
+        "project_saved": project_saved,
+        "project_id": saved_project_id,
+        "account_required_for_final": current_user is None,
         "delivery": {
             "client_email": client_email,
             "client_email_sent": client_email_sent,

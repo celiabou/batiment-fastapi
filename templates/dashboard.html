@@ -10,6 +10,13 @@
   </div>
 </section>
 
+{% if request.query_params.get("success") == "devis_final" %}
+  <div class="form-alert">Votre demande de devis final a bien ete transmise.</div>
+{% endif %}
+{% if request.query_params.get("error") == "project_missing" %}
+  <div class="form-alert">Projet introuvable pour cette demande.</div>
+{% endif %}
+
 <section class="section dashboard-grid">
   <div class="dashboard-card">
     <h2>Vos projets</h2>
@@ -57,6 +64,27 @@
     <h2>Besoin d'aide ?</h2>
     <p class="lead">Votre chef de projet reste disponible pour ajuster le devis final et organiser la visite technique.</p>
     <a class="btn btn-solid" href="/contact">Contacter le support</a>
+  </div>
+
+  <div class="dashboard-card">
+    <h2>Demander le devis final</h2>
+    {% if projects %}
+      <form class="auth-form" method="post" action="/api/devis-final">
+        <label>Projet concerné
+          <select name="project_id" required>
+            {% for project in projects %}
+              <option value="{{ project.id }}">{{ project.title }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Message (optionnel)
+          <textarea name="message" rows="3" placeholder="Precision sur vos attentes ou contraintes"></textarea>
+        </label>
+        <button class="btn btn-solid" type="submit">Envoyer la demande</button>
+      </form>
+    {% else %}
+      <p class="muted">Aucun projet sauvegarde pour le moment.</p>
+    {% endif %}
   </div>
 </section>
 {% endblock %}

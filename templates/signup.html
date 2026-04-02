@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Creer un compte client{% endblock %}
+
+{% block content %}
+<section class="section auth-shell">
+  <div class="auth-card">
+    <p class="kicker">Espace client</p>
+    <h1>Creer votre compte</h1>
+    <p class="lead">Obtenez votre devis final et suivez vos documents de renovation.</p>
+    {% if error %}
+      <div class="form-alert">{{ error }}</div>
+    {% endif %}
+    <form class="auth-form" method="post" action="/signup">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label>
+        Nom complet
+        <input type="text" name="name" required>
+      </label>
+      <label>
+        Email
+        <input type="email" name="email" required autocomplete="email">
+      </label>
+      <label>
+        Telephone
+        <input type="text" name="phone">
+      </label>
+      <label>
+        Mot de passe
+        <input type="password" name="password" required autocomplete="new-password">
+      </label>
+      <button class="btn btn-solid" type="submit">Creer mon compte</button>
+    </form>
+    <p class="form-disclaimer">Deja un compte ? <a href="/login">Connectez-vous</a></p>
+  </div>
+</section>
+{% endblock %}

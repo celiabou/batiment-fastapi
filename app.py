@@ -2,14 +2,16 @@
 import base64
 import binascii
 import hashlib
+import hmac
 import json
 import os
 import re
+import secrets
 import smtplib
 import unicodedata
 import uuid
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from email.message import EmailMessage
 from email.utils import formataddr
 from pathlib import Path
@@ -25,7 +27,7 @@ from fastapi.templating import Jinja2Templates
 from database import SessionLocal, engine
 from db import init_db, insert_lead
 from intelligence.router import router as intelligence_router
-from models import Base, HandoffRequest, Lead
+from models import Base, ClientProject, HandoffRequest, Lead, ProjectDocument, UserAccount, UserSession
 from pricing import estimate_from_item_key, estimate_from_scope, estimate_from_text, get_tariff_item, has_required_quantity
 from saas_ai.router import router as saas_ai_router
 
@@ -67,12 +69,17 @@ CONTENT_DIR = BASE_DIR / "content"
 ARCHITECTURE_UPLOAD_DIR = STATIC_DIR / "architecture" / "uploads"
 ARCHITECTURE_RENDER_DIR = STATIC_DIR / "architecture" / "renders"
 ESTIMATE_UPLOAD_DIR = STATIC_DIR / "estimate" / "uploads"
+CLIENT_DOCS_DIR = STATIC_DIR / "client-docs"
 AGENDA_URL = os.getenv("AGENDA_URL", "").strip()
 INTERNAL_REPORT_EMAIL = os.getenv("INTERNAL_REPORT_EMAIL", "celia.b@keythinkers.fr").strip()
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
 LABOR_ONLY_MENTION = "Main-d'œuvre uniquement, hors matériaux et fournitures."
 VISITOR_COOKIE_NAME = "rb_vid"
 VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 180
+SESSION_COOKIE_NAME = "rb_session"
+SESSION_TTL_DAYS = 30
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "").strip()
 TRACKING_PARAM_KEYS = (
     "utm_source",
     "utm_medium",
@@ -91,6 +98,103 @@ def _utc_now() -> datetime:
 
 def _utc_file_stamp() -> str:
     return _utc_now().strftime("%Y%m%d%H%M%S")
+
+
+def _hash_password(raw_password: str) -> str:
+    salt = secrets.token_bytes(16)
+    derived = hashlib.pbkdf2_hmac("sha256", raw_password.encode("utf-8"), salt, 200_000)
+    return f"{salt.hex()}${derived.hex()}"
+
+
+def _verify_password(raw_password: str, stored_hash: str) -> bool:
+    if "$" not in stored_hash:
+        return False
+    salt_hex, hash_hex = stored_hash.split("$", 1)
+    try:
+        salt = bytes.fromhex(salt_hex)
+        expected = bytes.fromhex(hash_hex)
+    except ValueError:
+        return False
+    derived = hashlib.pbkdf2_hmac("sha256", raw_password.encode("utf-8"), salt, 200_000)
+    return hmac.compare_digest(derived, expected)
+
+
+def _create_session(db, user_id: int) -> str:
+    token = secrets.token_urlsafe(32)
+    expires_at = _utc_now() + timedelta(days=SESSION_TTL_DAYS)
+    db.add(UserSession(user_id=user_id, token=token, expires_at=expires_at))
+    db.commit()
+    return token
+
+
+def _get_current_user(request: Request):
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    if not token:
+        return None
+    db = SessionLocal()
+    try:
+        session = (
+            db.query(UserSession)
+            .filter(UserSession.token == token)
+            .order_by(UserSession.id.desc())
+            .first()
+        )
+        if not session:
+            return None
+        if session.expires_at <= _utc_now():
+            db.delete(session)
+            db.commit()
+            return None
+        user = db.query(UserAccount).filter(UserAccount.id == session.user_id).first()
+        if not user:
+            return None
+        return {
+            "id": user.id,
+            "email": user.email,
+            "name": user.name,
+            "role": user.role,
+        }
+    finally:
+        db.close()
+
+
+def _require_user(request: Request):
+    user = _get_current_user(request)
+    if not user:
+        return None
+    return user
+
+
+def _require_admin(request: Request):
+    user = _get_current_user(request)
+    if not user or user.get("role") != "admin":
+        return None
+    return user
+
+
+def _ensure_admin_user():
+    if not ADMIN_EMAIL or not ADMIN_PASSWORD:
+        return
+    db = SessionLocal()
+    try:
+        existing = db.query(UserAccount).filter(UserAccount.email == ADMIN_EMAIL).first()
+        if existing:
+            if existing.role != "admin":
+                existing.role = "admin"
+                existing.updated_at = _utc_now()
+                db.commit()
+            return
+        admin_user = UserAccount(
+            email=ADMIN_EMAIL,
+            password_hash=_hash_password(ADMIN_PASSWORD),
+            role="admin",
+            name="Admin",
+            status="actif",
+        )
+        db.add(admin_user)
+        db.commit()
+    finally:
+        db.close()
 
 ARCHITECTURE_DEMO_RENDERS = {
     "moderne": [
@@ -2449,8 +2553,10 @@ async def lifespan(_: FastAPI):
     ARCHITECTURE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     ARCHITECTURE_RENDER_DIR.mkdir(parents=True, exist_ok=True)
     ESTIMATE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    CLIENT_DOCS_DIR.mkdir(parents=True, exist_ok=True)
     init_db()
     Base.metadata.create_all(bind=engine)
+    _ensure_admin_user()
     yield
 
 
@@ -2484,6 +2590,7 @@ async def visitor_cookie_middleware(request: Request, call_next):
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals["AGENDA_URL"] = AGENDA_URL
+templates.env.globals["get_current_user"] = _get_current_user
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 with open(CONTENT_DIR / "services.json", encoding="utf-8") as f:
@@ -2600,6 +2707,245 @@ def estimate_project_page(request: Request):
 @app.get("/contact", response_class=HTMLResponse)
 def contact(request: Request):
     return templates.TemplateResponse(request, "contact.html")
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request, next: str = ""):
+    current_user = _get_current_user(request)
+    if current_user:
+        return RedirectResponse("/dashboard", status_code=303)
+    return templates.TemplateResponse(
+        request,
+        "login.html",
+        {"next": next},
+    )
+
+
+@app.post("/login")
+def login_submit(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    next: str = Form(""),
+):
+    normalized_email = email.strip().lower()
+    db = SessionLocal()
+    try:
+        user = db.query(UserAccount).filter(UserAccount.email == normalized_email).first()
+        if not user or not _verify_password(password, user.password_hash):
+            return templates.TemplateResponse(
+                request,
+                "login.html",
+                {
+                    "error": "Email ou mot de passe incorrect.",
+                    "next": next,
+                },
+                status_code=400,
+            )
+        token = _create_session(db, user.id)
+    finally:
+        db.close()
+
+    redirect_target = next or "/dashboard"
+    response = RedirectResponse(redirect_target, status_code=303)
+    response.set_cookie(
+        SESSION_COOKIE_NAME,
+        token,
+        max_age=SESSION_TTL_DAYS * 24 * 60 * 60,
+        httponly=True,
+        samesite="lax",
+        secure=(request.url.scheme == "https"),
+        path="/",
+    )
+    return response
+
+
+@app.post("/logout")
+def logout(request: Request):
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    if token:
+        db = SessionLocal()
+        try:
+            session = db.query(UserSession).filter(UserSession.token == token).first()
+            if session:
+                db.delete(session)
+                db.commit()
+        finally:
+            db.close()
+    response = RedirectResponse("/", status_code=303)
+    response.delete_cookie(SESSION_COOKIE_NAME, path="/")
+    return response
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard(request: Request):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard", status_code=303)
+    if user.get("role") == "admin":
+        return RedirectResponse("/admin", status_code=303)
+
+    db = SessionLocal()
+    try:
+        projects = (
+            db.query(ClientProject)
+            .filter(ClientProject.client_id == user["id"])
+            .order_by(ClientProject.created_at.desc())
+            .all()
+        )
+        project_ids = [project.id for project in projects]
+        documents = []
+        if project_ids:
+            documents = (
+                db.query(ProjectDocument)
+                .filter(ProjectDocument.project_id.in_(project_ids))
+                .order_by(ProjectDocument.created_at.desc())
+                .all()
+            )
+    finally:
+        db.close()
+
+    documents_by_project = {}
+    for doc in documents:
+        documents_by_project.setdefault(doc.project_id, []).append(doc)
+
+    return templates.TemplateResponse(
+        request,
+        "dashboard.html",
+        {
+            "user": user,
+            "projects": projects,
+            "documents_by_project": documents_by_project,
+        },
+    )
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_dashboard(request: Request):
+    user = _require_admin(request)
+    if not user:
+        return RedirectResponse("/login?next=/admin", status_code=303)
+
+    db = SessionLocal()
+    try:
+        clients = (
+            db.query(UserAccount)
+            .filter(UserAccount.role == "client")
+            .order_by(UserAccount.created_at.desc())
+            .all()
+        )
+        projects = db.query(ClientProject).order_by(ClientProject.created_at.desc()).all()
+        documents = db.query(ProjectDocument).order_by(ProjectDocument.created_at.desc()).all()
+    finally:
+        db.close()
+
+    projects_by_client = {}
+    for project in projects:
+        projects_by_client.setdefault(project.client_id, []).append(project)
+
+    documents_by_project = {}
+    for doc in documents:
+        documents_by_project.setdefault(doc.project_id, []).append(doc)
+
+    return templates.TemplateResponse(
+        request,
+        "admin.html",
+        {
+            "user": user,
+            "clients": clients,
+            "projects_by_client": projects_by_client,
+            "documents_by_project": documents_by_project,
+        },
+    )
+
+
+@app.post("/admin/clients")
+def admin_create_client(
+    request: Request,
+    name: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(""),
+    status: str = Form(""),
+    password: str = Form(...),
+    project_title: str = Form(""),
+    project_summary: str = Form(""),
+    project_status: str = Form(""),
+):
+    user = _require_admin(request)
+    if not user:
+        return RedirectResponse("/login?next=/admin", status_code=303)
+
+    normalized_email = email.strip().lower()
+    db = SessionLocal()
+    try:
+        existing = db.query(UserAccount).filter(UserAccount.email == normalized_email).first()
+        if existing:
+            return RedirectResponse("/admin?error=client_exists", status_code=303)
+
+        client = UserAccount(
+            email=normalized_email,
+            password_hash=_hash_password(password),
+            role="client",
+            name=name.strip(),
+            phone=phone.strip(),
+            status=status.strip() if status else None,
+        )
+        db.add(client)
+        db.commit()
+        db.refresh(client)
+
+        if project_title.strip():
+            project = ClientProject(
+                client_id=client.id,
+                title=project_title.strip(),
+                summary=project_summary.strip() if project_summary else None,
+                status=project_status.strip() if project_status else None,
+            )
+            db.add(project)
+            db.commit()
+    finally:
+        db.close()
+
+    return RedirectResponse("/admin", status_code=303)
+
+
+@app.post("/admin/documents")
+def admin_upload_document(
+    request: Request,
+    project_id: int = Form(...),
+    label: str = Form(""),
+    document: UploadFile = File(...),
+):
+    user = _require_admin(request)
+    if not user:
+        return RedirectResponse("/login?next=/admin", status_code=303)
+
+    suffix = _safe_suffix(document.filename or "")
+    stored_name = f"{project_id}-{_utc_file_stamp()}-{uuid.uuid4().hex}{suffix}"
+    file_path = CLIENT_DOCS_DIR / stored_name
+    with file_path.open("wb") as buffer:
+        buffer.write(document.file.read())
+    document.file.close()
+
+    db = SessionLocal()
+    try:
+        project = db.query(ClientProject).filter(ClientProject.id == project_id).first()
+        if not project:
+            return RedirectResponse("/admin?error=project_missing", status_code=303)
+        doc = ProjectDocument(
+            client_id=project.client_id,
+            project_id=project.id,
+            label=label.strip() if label else None,
+            original_name=document.filename or stored_name,
+            stored_name=stored_name,
+            mime_type=document.content_type,
+        )
+        db.add(doc)
+        db.commit()
+    finally:
+        db.close()
+
+    return RedirectResponse("/admin", status_code=303)
 
 
 @app.post("/api/lead")

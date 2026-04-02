@@ -173,3 +173,57 @@ class AITrainingJob(Base):
 
     metrics_json = Column(Text, nullable=True)
     error_message = Column(Text, nullable=True)
+
+
+class UserAccount(Base):
+    __tablename__ = "user_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+    email = Column(String(180), nullable=False, unique=True, index=True)
+    password_hash = Column(String(256), nullable=False)
+    role = Column(String(20), nullable=False, default="client", index=True)
+
+    name = Column(String(120), nullable=True)
+    phone = Column(String(50), nullable=True)
+    status = Column(String(40), nullable=True)
+
+
+class ClientProject(Base):
+    __tablename__ = "client_projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+    client_id = Column(Integer, ForeignKey("user_accounts.id"), nullable=False, index=True)
+    title = Column(String(180), nullable=False)
+    summary = Column(Text, nullable=True)
+    status = Column(String(40), nullable=True)
+
+
+class ProjectDocument(Base):
+    __tablename__ = "project_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+    client_id = Column(Integer, ForeignKey("user_accounts.id"), nullable=False, index=True)
+    project_id = Column(Integer, ForeignKey("client_projects.id"), nullable=False, index=True)
+    label = Column(String(180), nullable=True)
+    original_name = Column(String(255), nullable=False)
+    stored_name = Column(String(255), nullable=False)
+    mime_type = Column(String(120), nullable=True)
+
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+    user_id = Column(Integer, ForeignKey("user_accounts.id"), nullable=False, index=True)
+    token = Column(String(128), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)

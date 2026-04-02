@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700;800&family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/site.css?v=20260402-32">
+  <link rel="stylesheet" href="/static/site.css?v=20260402-33">
 </head>
 <body>
   <div class="bg-aura bg-aura-1"></div>
@@ -23,6 +23,7 @@
   <header class="hdr hdr-photo">
     <div class="header-shell">
       <div class="wrap nav-row">
+        {% set current_user = get_current_user(request) %}
         <a class="brand" href="/">
         <img class="brand-logo" src="/static/branding/eurobat-services.png" alt="Eurobat Services">
         <span class="brand-text">
@@ -54,6 +55,14 @@
           <a class="nav-link-main" href="/estimation-projet">Estimation du projet</a>
         </nav>
         <div class="nav-right">
+          {% if current_user %}
+            <a class="nav-ghost" href="/dashboard">Mon espace</a>
+            <form class="nav-logout" method="post" action="/logout">
+              <button class="nav-ghost" type="submit">Deconnexion</button>
+            </form>
+          {% else %}
+            <a class="nav-ghost" href="/login">Espace client</a>
+          {% endif %}
           <a class="phone-cta" href="tel:+33605941623">Appeler maintenant +33 6 05 94 16 23</a>
           <a class="nav-cta" href="/estimez-votre-projet">J'estime mes travaux</a>
         </div>

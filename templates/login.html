@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Espace client | Connexion{% endblock %}
+
+{% block content %}
+<section class="section auth-shell">
+  <div class="auth-card">
+    <p class="kicker">Espace client</p>
+    <h1>Connexion</h1>
+    <p class="lead">Accédez à vos projets, documents et suivi de rénovation.</p>
+    {% if error %}
+      <div class="form-alert">{{ error }}</div>
+    {% endif %}
+    <form class="auth-form" method="post" action="/login">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label>
+        Email
+        <input type="email" name="email" required autocomplete="email">
+      </label>
+      <label>
+        Mot de passe
+        <input type="password" name="password" required autocomplete="current-password">
+      </label>
+      <button class="btn btn-solid" type="submit">Se connecter</button>
+    </form>
+    <p class="form-disclaimer">Besoin d'un accès ? Contactez votre chargé de projet.</p>
+  </div>
+</section>
+{% endblock %}

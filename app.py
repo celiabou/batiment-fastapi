@@ -27,7 +27,7 @@ from fastapi.templating import Jinja2Templates
 from database import SessionLocal, engine
 from db import init_db, insert_lead
 from intelligence.router import router as intelligence_router
-from models import Base, ClientProject, HandoffRequest, Lead, ProjectDocument, UserAccount, UserSession
+from models import Base, ClientProject, HandoffRequest, Lead, PasswordResetToken, ProjectDocument, UserAccount, UserSession
 from pricing import estimate_from_item_key, estimate_from_scope, estimate_from_text, get_tariff_item, has_required_quantity
 from saas_ai.router import router as saas_ai_router
 
@@ -78,6 +78,7 @@ VISITOR_COOKIE_NAME = "rb_vid"
 VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 180
 SESSION_COOKIE_NAME = "rb_session"
 SESSION_TTL_DAYS = 30
+PASSWORD_RESET_TTL_HOURS = 2
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "").strip()
 TRACKING_PARAM_KEYS = (
@@ -125,6 +126,32 @@ def _create_session(db, user_id: int) -> str:
     db.add(UserSession(user_id=user_id, token=token, expires_at=expires_at))
     db.commit()
     return token
+
+
+def _create_password_reset(db, user_id: int) -> str:
+    token = secrets.token_urlsafe(32)
+    expires_at = _utc_now() + timedelta(hours=PASSWORD_RESET_TTL_HOURS)
+    db.add(PasswordResetToken(user_id=user_id, token=token, expires_at=expires_at))
+    db.commit()
+    return token
+
+
+def _consume_password_reset(db, token: str):
+    reset = (
+        db.query(PasswordResetToken)
+        .filter(PasswordResetToken.token == token)
+        .order_by(PasswordResetToken.id.desc())
+        .first()
+    )
+    if not reset:
+        return None
+    if reset.used_at is not None:
+        return None
+    if reset.expires_at <= _utc_now():
+        return None
+    reset.used_at = _utc_now()
+    db.commit()
+    return reset
 
 
 def _get_current_user(request: Request):
@@ -2783,6 +2810,99 @@ def signup_submit(
         path="/",
     )
     return response
+
+
+@app.get("/password-reset", response_class=HTMLResponse)
+def password_reset_request_page(request: Request):
+    return templates.TemplateResponse(request, "password_reset_request.html")
+
+
+@app.post("/password-reset")
+def password_reset_request(
+    request: Request,
+    email: str = Form(...),
+):
+    normalized_email = email.strip().lower()
+    db = SessionLocal()
+    try:
+        user = db.query(UserAccount).filter(UserAccount.email == normalized_email).first()
+        if not user:
+            return templates.TemplateResponse(
+                request,
+                "password_reset_request.html",
+                {"error": "Aucun compte avec cet email."},
+                status_code=400,
+            )
+
+        smtp_cfg = _smtp_settings()
+        if not _smtp_ready(smtp_cfg):
+            return templates.TemplateResponse(
+                request,
+                "password_reset_request.html",
+                {"error": "Envoi email indisponible. Merci de reessayer plus tard."},
+                status_code=503,
+            )
+
+        token = _create_password_reset(db, user.id)
+    finally:
+        db.close()
+
+    base_url = str(request.base_url).rstrip("/")
+    reset_link = f"{base_url}/password-reset/{token}"
+    subject = "Reinitialisation mot de passe"
+    body = (
+        "Bonjour,\n\n"
+        "Voici votre lien pour reinitialiser votre mot de passe:\n"
+        f"{reset_link}\n\n"
+        f"Ce lien expire dans {PASSWORD_RESET_TTL_HOURS} heures.\n"
+        "Si vous n'etes pas a l'origine de cette demande, ignorez ce message.\n"
+    )
+    _send_email_message(to_email=normalized_email, subject=subject, text_body=body)
+    return templates.TemplateResponse(request, "password_reset_done.html", {"email": normalized_email})
+
+
+@app.get("/password-reset/{token}", response_class=HTMLResponse)
+def password_reset_confirm_page(request: Request, token: str):
+    return templates.TemplateResponse(request, "password_reset_confirm.html", {"token": token})
+
+
+@app.post("/password-reset/{token}")
+def password_reset_confirm(
+    request: Request,
+    token: str,
+    password: str = Form(...),
+):
+    db = SessionLocal()
+    try:
+        reset = _consume_password_reset(db, token)
+        if not reset:
+            return templates.TemplateResponse(
+                request,
+                "password_reset_confirm.html",
+                {
+                    "token": token,
+                    "error": "Lien invalide ou expire.",
+                },
+                status_code=400,
+            )
+        user = db.query(UserAccount).filter(UserAccount.id == reset.user_id).first()
+        if not user:
+            return templates.TemplateResponse(
+                request,
+                "password_reset_confirm.html",
+                {
+                    "token": token,
+                    "error": "Compte introuvable.",
+                },
+                status_code=400,
+            )
+        user.password_hash = _hash_password(password)
+        user.updated_at = _utc_now()
+        db.commit()
+    finally:
+        db.close()
+
+    return RedirectResponse("/login", status_code=303)
 
 
 @app.post("/login")

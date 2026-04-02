@@ -227,3 +227,15 @@ class UserSession(Base):
     user_id = Column(Integer, ForeignKey("user_accounts.id"), nullable=False, index=True)
     token = Column(String(128), nullable=False, unique=True, index=True)
     expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+    user_id = Column(Integer, ForeignKey("user_accounts.id"), nullable=False, index=True)
+    token = Column(String(128), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    used_at = Column(DateTime(timezone=True), nullable=True)

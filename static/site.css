@@ -529,6 +529,31 @@ a {
   height: 16px;
 }
 
+.account-pill {
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(15, 23, 42, 0.28);
+  white-space: nowrap;
+}
+
+.account-pill:hover {
+  filter: brightness(1.05);
+}
+
+.account-pill-ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.nav-logout {
+  margin: 0;
+}
+
 .phone-cta {
   text-decoration: none;
   border: 1px solid transparent;

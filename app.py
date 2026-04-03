@@ -3421,6 +3421,8 @@ async def devis_intelligent(
     email: str = Form(""),
     project_photos: list[UploadFile] = File([]),
     project_videos: list[UploadFile] = File([]),
+    project_dpe: UploadFile | None = File(None),
+    project_plans: list[UploadFile] = File([]),
     visitor_id: str = Form(""),
     visitor_landing: str = Form(""),
     visitor_referrer: str = Form(""),
@@ -3551,6 +3553,59 @@ async def devis_intelligent(
             dst.write_bytes(content)
             video_urls.append(_public_static_url(dst))
 
+    document_refs: list[dict] = []
+    if project_dpe and project_dpe.filename:
+        suffix = _safe_suffix(project_dpe.filename)
+        filename = f"dpe_{_utc_file_stamp()}_{uuid.uuid4().hex[:8]}{suffix}"
+        dst = ESTIMATE_UPLOAD_DIR / filename
+        content = await project_dpe.read()
+        if content:
+            dst.write_bytes(content)
+            document_refs.append(
+                {
+                    "label": "DPE",
+                    "original_name": project_dpe.filename,
+                    "stored_name": filename,
+                    "mime_type": project_dpe.content_type,
+                }
+            )
+
+    for upload in project_plans or []:
+        if not upload or not upload.filename:
+            continue
+        suffix = _safe_suffix(upload.filename)
+        filename = f"plan_{_utc_file_stamp()}_{uuid.uuid4().hex[:8]}{suffix}"
+        dst = ESTIMATE_UPLOAD_DIR / filename
+        content = await upload.read()
+        if content:
+            dst.write_bytes(content)
+            document_refs.append(
+                {
+                    "label": "Plan du bien",
+                    "original_name": upload.filename,
+                    "stored_name": filename,
+                    "mime_type": upload.content_type,
+                }
+            )
+
+    if project_saved and saved_project_id and document_refs:
+        db = SessionLocal()
+        try:
+            for doc in document_refs:
+                db.add(
+                    ProjectDocument(
+                        client_id=current_user["id"],
+                        project_id=saved_project_id,
+                        label=doc["label"],
+                        original_name=doc["original_name"],
+                        stored_name=doc["stored_name"],
+                        mime_type=doc.get("mime_type"),
+                    )
+                )
+            db.commit()
+        finally:
+            db.close()
+
     has_contact = bool((phone or "").strip() or client_email)
     precall_report = _build_precall_report(
         project_type=project_key,
@@ -3607,6 +3662,7 @@ async def devis_intelligent(
                         "estimate_disclaimer": LABOR_ONLY_MENTION,
                         "source_photos": photo_urls,
                         "source_videos": video_urls,
+                        "documents": document_refs,
                         "precall_report": precall_report,
                         "render_request_status": "awaiting_request",
                         "tracking": tracking_context,

@@ -7,11 +7,48 @@
     <aside class="dashboard-sidebar">
       <p class="dashboard-title">Espace client</p>
       <nav class="dashboard-nav">
-        <a class="is-active" href="#">Accueil</a>
-        <a href="/estimez-votre-projet">Estimer mon projet</a>
-        <a href="#">Chantier</a>
-        <a href="#">Documents</a>
-        <a href="#">Guides</a>
+        <a class="is-active" href="#">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 11.5l8-6 8 6v7a1 1 0 0 1-1 1h-5v-5H10v5H5a1 1 0 0 1-1-1v-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+            </svg>
+          </span>
+          <span>Accueil</span>
+          <span class="dash-badge">3</span>
+        </a>
+        <a href="/estimez-votre-projet">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 5h8l2 2v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+              <path d="M9 12h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Estimer mon projet</span>
+        </a>
+        <a href="#">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Chantier</span>
+        </a>
+        <a href="#">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M6 4h9l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6"></path>
+            </svg>
+          </span>
+          <span>Documents</span>
+        </a>
+        <a href="#">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M5 6h14M5 10h14M5 14h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Guides</span>
+        </a>
       </nav>
     </aside>
 
@@ -29,6 +66,7 @@
           <p class="banner-kicker">Application mobile Eurobat</p>
           <p class="banner-text">Scannez le QR code pour installer l'application et suivre votre projet.</p>
         </div>
+        <button class="banner-close" type="button" aria-label="Fermer">×</button>
       </div>
 
       <section class="dashboard-section">
@@ -39,7 +77,14 @@
         <h2>{{ projects[0].title if projects else "Renovation complete d'un Appartement de 70.0 m2" }}</h2>
         <div class="dash-card">
           <div>
-            <p class="dash-card-title">Etude du projet</p>
+            <p class="dash-card-title">
+              <span class="dash-icon dash-icon-circle">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12h6M9 16h6M8 4h6l4 4v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6"></path>
+                </svg>
+              </span>
+              Etude du projet
+            </p>
             {% if recap %}
               <p class="muted">{{ recap.get("city", "Ville a confirmer") }}</p>
             {% elif projects %}

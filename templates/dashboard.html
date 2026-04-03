@@ -2,89 +2,98 @@
 {% block title %}Mon espace client{% endblock %}
 
 {% block content %}
-<section class="section">
-  <div class="page-hero dashboard-hero">
-    <p class="kicker">Espace client</p>
-    <h1>Bienvenue{{ " " ~ user.name if user.name }}</h1>
-    <p class="lead">Accédez à vos projets, documents et au suivi de votre rénovation.</p>
-  </div>
-</section>
+<section class="dashboard-shell full-bleed">
+  <div class="wrap dashboard-inner">
+    <aside class="dashboard-sidebar">
+      <p class="dashboard-title">Espace client</p>
+      <nav class="dashboard-nav">
+        <a class="is-active" href="/dashboard">Accueil</a>
+        <a href="/nos-chantiers">Chantier</a>
+        <a href="/ressources">Documents</a>
+        <a href="/nos-metiers">Guides</a>
+      </nav>
+    </aside>
 
-{% if request.query_params.get("success") == "devis_final" %}
-  <div class="form-alert">Votre demande de devis final a bien ete transmise.</div>
-{% endif %}
-{% if request.query_params.get("error") == "project_missing" %}
-  <div class="form-alert">Projet introuvable pour cette demande.</div>
-{% endif %}
+    <div class="dashboard-main">
+      {% if request.query_params.get("success") == "devis_final" %}
+        <div class="form-alert">Votre demande de devis final a bien ete transmise.</div>
+      {% endif %}
+      {% if request.query_params.get("error") == "project_missing" %}
+        <div class="form-alert">Projet introuvable pour cette demande.</div>
+      {% endif %}
 
-<section class="section dashboard-grid">
-  <div class="dashboard-card">
-    <h2>Vos projets</h2>
-    {% if projects %}
-      <div class="dashboard-list">
-        {% for project in projects %}
-          <div class="dashboard-item">
-            <div>
-              <strong>{{ project.title }}</strong>
-              {% if project.status %}
-                <span class="status-pill">{{ project.status }}</span>
-              {% endif %}
-              {% if project.summary %}
-                <p>{{ project.summary }}</p>
-              {% endif %}
-            </div>
-            <span class="muted">Créé le {{ project.created_at.strftime("%d/%m/%Y") if project.created_at }}</span>
-          </div>
-          <div class="doc-list">
-            <h4>Documents</h4>
-            {% set docs = documents_by_project.get(project.id, []) %}
-            {% if docs %}
-              <ul>
-                {% for doc in docs %}
-                  <li>
-                    <a href="/static/client-docs/{{ doc.stored_name }}" target="_blank" rel="noopener">
-                      {{ doc.label or doc.original_name }}
-                    </a>
-                    <span class="muted">({{ doc.created_at.strftime("%d/%m/%Y") if doc.created_at }})</span>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="muted">Aucun document disponible pour ce projet.</p>
-            {% endif %}
-          </div>
-        {% endfor %}
+      <div class="dashboard-banner">
+        <div class="banner-qr"></div>
+        <div>
+          <p class="banner-kicker">Application mobile Eurobat</p>
+          <p class="banner-text">Scannez le QR code pour installer l'application et suivre votre projet.</p>
+        </div>
       </div>
-    {% else %}
-      <p class="muted">Aucun projet n'est encore associé à votre compte.</p>
-    {% endif %}
-  </div>
 
-  <div class="dashboard-card">
-    <h2>Besoin d'aide ?</h2>
-    <p class="lead">Votre chef de projet reste disponible pour ajuster le devis final et organiser la visite technique.</p>
-    <a class="btn btn-solid" href="/contact">Contacter le support</a>
-  </div>
+      <section class="dashboard-section">
+        <p class="dashboard-kicker">Renovation complete</p>
+        <h2>{{ projects[0].title if projects else "Renovation complete d'un Appartement de 70.0 m2" }}</h2>
+        <div class="dash-card">
+          <div>
+            <p class="dash-card-title">Etude du projet</p>
+            <p class="muted">{{ projects[0].summary if projects else "93120 La Courneuve, France" }}</p>
+          </div>
+          <span class="status-pill">{{ projects[0].status if projects and projects[0].status else "Aucun rendez-vous a venir" }}</span>
+        </div>
+      </section>
 
-  <div class="dashboard-card">
-    <h2>Demander le devis final</h2>
-    {% if projects %}
-      <form class="auth-form" method="post" action="/api/devis-final">
-        <label>Projet concerné
-          <select name="project_id" required>
-            {% for project in projects %}
-              <option value="{{ project.id }}">{{ project.title }}</option>
-            {% endfor %}
-          </select>
-        </label>
-        <label>Message (optionnel)
-          <textarea name="message" rows="3" placeholder="Precision sur vos attentes ou contraintes"></textarea>
-        </label>
-        <button class="btn btn-solid" type="submit">Envoyer la demande</button>
-      </form>
-    {% else %}
-      <p class="muted">Aucun projet sauvegarde pour le moment.</p>
-    {% endif %}
+      <section class="dashboard-section">
+        <h3>Mes actions a realiser</h3>
+        <div class="dash-actions">
+          <div class="dash-action">
+            <span class="action-icon">+</span>
+            <span>Ajouter le DPE du bien</span>
+          </div>
+          <div class="dash-action">
+            <span class="action-icon">+</span>
+            <span>Ajouter les photos du bien</span>
+          </div>
+          <div class="dash-action">
+            <span class="action-icon">+</span>
+            <span>Ajouter les plans du bien</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="dashboard-section">
+        <h3>Une question ? Besoin d'aide ?</h3>
+        <div class="dash-contact">
+          <img src="/static/team/lea-conseillere.jpg" alt="Chef de Projet Travaux">
+          <div>
+            <p class="contact-name">Amine Messaoudi</p>
+            <p class="contact-role">Chef de Projet Travaux</p>
+            <a class="contact-phone" href="tel:+33605941623">06 05 94 16 23</a>
+            <a class="contact-mail" href="mailto:contact@eurobatservices.com">contact@eurobatservices.com</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="dashboard-section">
+        <h3>Demander le devis final</h3>
+        {% if projects %}
+          <form class="auth-form" method="post" action="/api/devis-final">
+            <label>Projet concerne
+              <select name="project_id" required>
+                {% for project in projects %}
+                  <option value="{{ project.id }}">{{ project.title }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>Message (optionnel)
+              <textarea name="message" rows="3" placeholder="Precision sur vos attentes ou contraintes"></textarea>
+            </label>
+            <button class="btn btn-solid" type="submit">Envoyer la demande</button>
+          </form>
+        {% else %}
+          <p class="muted">Aucun projet sauvegarde pour le moment.</p>
+        {% endif %}
+      </section>
+    </div>
   </div>
 </section>
 {% endblock %}

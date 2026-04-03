@@ -60,15 +60,6 @@
         <div class="form-alert">Projet introuvable pour cette demande.</div>
       {% endif %}
 
-      <div class="dashboard-banner">
-        <div class="banner-qr"></div>
-        <div>
-          <p class="banner-kicker">Application mobile Eurobat</p>
-          <p class="banner-text">Scannez le QR code pour installer l'application et suivre votre projet.</p>
-        </div>
-        <button class="banner-close" type="button" aria-label="Fermer">×</button>
-      </div>
-
       <section class="dashboard-section">
         <p class="dashboard-kicker">Renovation complete</p>
         {% set recap = project_recaps.get(projects[0].id, {}) if projects else {} %}

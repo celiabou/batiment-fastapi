@@ -1957,7 +1957,9 @@ h3 {
   height: 64px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center top;
   border: 1px solid #e2e8f0;
+  background: #f3f4f6;
 }
 
 .contact-name {
@@ -3260,6 +3262,8 @@ th {
   height: 56px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center top;
+  background: #f3f4f6;
 }
 
 @media (max-width: 900px) {

@@ -33,13 +33,56 @@
 
       <section class="dashboard-section">
         <p class="dashboard-kicker">Renovation complete</p>
+        {% set recap = project_recaps.get(projects[0].id, {}) if projects else {} %}
+        {% set recap_type = recap.get("project_type", "Appartement") %}
+        {% set recap_surface = recap.get("surface", "70.0") %}
         <h2>{{ projects[0].title if projects else "Renovation complete d'un Appartement de 70.0 m2" }}</h2>
         <div class="dash-card">
           <div>
             <p class="dash-card-title">Etude du projet</p>
-            <p class="muted">{{ projects[0].summary if projects else "93120 La Courneuve, France" }}</p>
+            {% if recap %}
+              <p class="muted">{{ recap.get("city", "Ville a confirmer") }}</p>
+            {% elif projects %}
+              <p class="muted">{{ projects[0].summary }}</p>
+            {% else %}
+              <p class="muted">93120 La Courneuve, France</p>
+            {% endif %}
           </div>
-          <span class="status-pill">{{ projects[0].status if projects and projects[0].status else "Aucun rendez-vous a venir" }}</span>
+          {% if recap %}
+            <span class="status-pill">Rendez-vous a venir: {{ recap.get("appointment_status", "Non") }}</span>
+          {% else %}
+            <span class="status-pill">{{ projects[0].status if projects and projects[0].status else "Aucun rendez-vous a venir" }}</span>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="dashboard-section">
+        <h3>Recapitulatif du projet</h3>
+        <div class="dash-summary">
+          <div>
+            <span>Type de bien</span>
+            <strong>{{ recap.get("project_type", "Appartement") }}</strong>
+          </div>
+          <div>
+            <span>Type de renovation</span>
+            <strong>{{ recap.get("scope", "Renovation complete") }}</strong>
+          </div>
+          <div>
+            <span>Surface</span>
+            <strong>{{ recap.get("surface", "70.0") }} m2</strong>
+          </div>
+          <div>
+            <span>Style</span>
+            <strong>{{ recap.get("style", "Moderne") }}</strong>
+          </div>
+          <div>
+            <span>Budget</span>
+            <strong>{{ recap.get("budget", "A confirmer") }}</strong>
+          </div>
+          <div>
+            <span>Niveau de finition</span>
+            <strong>{{ recap.get("finishing_level", "A confirmer") }}</strong>
+          </div>
         </div>
       </section>
 

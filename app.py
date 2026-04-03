@@ -109,6 +109,22 @@ def _as_utc(dt_value: datetime | None) -> datetime | None:
     return dt_value
 
 
+def _parse_project_summary(summary: str | None) -> dict:
+    if not summary:
+        return {}
+    raw = summary.strip()
+    if not raw:
+        return {}
+    if raw.startswith("{") and raw.endswith("}"):
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            return {}
+    return {"summary_text": raw}
+
+
 def _hash_password(raw_password: str) -> str:
     salt = secrets.token_bytes(16)
     derived = hashlib.pbkdf2_hmac("sha256", raw_password.encode("utf-8"), salt, 200_000)
@@ -3003,6 +3019,11 @@ def dashboard(request: Request):
     for doc in documents:
         documents_by_project.setdefault(doc.project_id, []).append(doc)
 
+    project_recaps = {}
+    for project in projects:
+        recap = _parse_project_summary(project.summary)
+        project_recaps[project.id] = recap
+
     return templates.TemplateResponse(
         request,
         "dashboard.html",
@@ -3010,6 +3031,7 @@ def dashboard(request: Request):
             "user": user,
             "projects": projects,
             "documents_by_project": documents_by_project,
+            "project_recaps": project_recaps,
         },
     )
 
@@ -3506,19 +3528,22 @@ async def devis_intelligent(
         db = SessionLocal()
         try:
             project_title = f"Renovation {PROJECT_TYPE_LABELS.get(project_key, 'Projet')}"
-            summary_parts = [
-                f"Type: {PROJECT_TYPE_LABELS.get(project_key, project_key)}",
-                f"Scope: {SMART_SCOPE_LABELS.get(scope_key, scope_key)}",
-            ]
-            if surface:
-                summary_parts.append(f"Surface: {surface} m2")
-            if budget:
-                summary_parts.append(f"Budget: {budget} EUR")
-            summary_parts.append(f"Estimation: {quote['low_label']} - {quote['high_label']}")
+            summary_payload = {
+                "project_type": PROJECT_TYPE_LABELS.get(project_key, project_key),
+                "scope": SMART_SCOPE_LABELS.get(scope_key, scope_key),
+                "style": STYLE_LABELS.get(style_key, style_key) if "STYLE_LABELS" in globals() else style_key,
+                "surface": surface or "",
+                "rooms": rooms or "",
+                "budget": budget or "",
+                "city": city or "",
+                "finishing_level": finishing_level or "",
+                "estimate_range": f"{quote['low_label']} - {quote['high_label']}",
+                "appointment_status": "Non",
+            }
             project = ClientProject(
                 client_id=current_user["id"],
                 title=project_title,
-                summary=" | ".join(summary_parts),
+                summary=json.dumps(summary_payload, ensure_ascii=False),
                 status="Pre-devis envoye",
             )
             db.add(project)

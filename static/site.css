@@ -3127,6 +3127,46 @@ th {
   font-weight: 800;
 }
 
+.dash-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-weight: 700;
+  color: #0f766e;
+  text-decoration: none;
+}
+
+.dash-link:hover {
+  text-decoration: underline;
+}
+
+.dash-docs {
+  display: grid;
+  gap: 8px;
+}
+
+.dash-doc {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e4e7ec;
+  background: #ffffff;
+  text-decoration: none;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.dash-doc-title {
+  font-size: 13px;
+}
+
+.dash-doc-meta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
 .dash-contact {
   display: flex;
   gap: 12px;

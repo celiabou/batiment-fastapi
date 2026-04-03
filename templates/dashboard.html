@@ -8,6 +8,7 @@
       <p class="dashboard-title">Espace client</p>
       <nav class="dashboard-nav">
         <a class="is-active" href="#">Accueil</a>
+        <a href="/estimez-votre-projet">Estimer mon projet</a>
         <a href="#">Chantier</a>
         <a href="#">Documents</a>
         <a href="#">Guides</a>
@@ -58,6 +59,29 @@
             <span>Ajouter les plans du bien</span>
           </div>
         </div>
+        <a class="dash-link" href="/estimez-votre-projet">Ajouter ou mettre a jour mes documents</a>
+      </section>
+
+      <section class="dashboard-section">
+        <h3>Mes documents</h3>
+        <p class="section-sub">Visualisez vos photos, videos, DPE et plans du bien.</p>
+        {% if projects %}
+          {% set docs = documents_by_project.get(projects[0].id, []) %}
+          {% if docs %}
+            <div class="dash-docs">
+              {% for doc in docs %}
+                <a class="dash-doc" href="/static/client-docs/{{ doc.stored_name }}" target="_blank" rel="noopener">
+                  <span class="dash-doc-title">{{ doc.label or doc.original_name }}</span>
+                  <span class="dash-doc-meta">Voir</span>
+                </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="muted">Aucun document disponible pour le moment.</p>
+          {% endif %}
+        {% else %}
+          <p class="muted">Aucun projet sauvegarde pour le moment.</p>
+        {% endif %}
       </section>
 
       <section class="dashboard-section">

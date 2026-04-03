@@ -1983,6 +1983,18 @@ h3 {
   text-decoration: underline;
 }
 
+.contact-phone {
+  display: inline-block;
+  margin-top: 4px;
+  color: #1f2937;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.contact-phone:hover {
+  text-decoration: underline;
+}
+
 .ai3d-steps {
   margin: 10px 0 0;
   padding-left: 18px;

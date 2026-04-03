@@ -3032,6 +3032,7 @@ def dashboard(request: Request):
             "projects": projects,
             "documents_by_project": documents_by_project,
             "project_recaps": project_recaps,
+            "hide_public_header": True,
         },
     )
 

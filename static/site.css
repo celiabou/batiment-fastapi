@@ -211,6 +211,15 @@ a {
   box-shadow: none;
 }
 
+.hdr-photo .nav-link-main:active,
+.hdr-photo .nav-link-main:focus,
+.hdr-photo .nav-drop > summary:active,
+.hdr-photo .nav-drop > summary:focus {
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
 .header-shell,
 .nav-row {
   min-height: 34px;
@@ -298,6 +307,10 @@ a {
   font-weight: 700;
   transition: 0.18s ease;
   white-space: nowrap;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-link-main:hover {
@@ -321,6 +334,10 @@ a {
   border-radius: 0;
   font-weight: 700;
   white-space: nowrap;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-drop > summary::-webkit-details-marker {

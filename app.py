@@ -3058,9 +3058,22 @@ def dashboard(request: Request):
                     "estimate_range": payload.get("quote", {}).get("estimate_range") if isinstance(payload.get("quote"), dict) else None,
                     "appointment_status": payload.get("appointment_status"),
                     "created_at": latest_handoff.created_at,
+                    "title": payload.get("quote", {}).get("title") if isinstance(payload.get("quote"), dict) else None,
                 }
         except json.JSONDecodeError:
             fallback_recap = {}
+
+    # choose the freshest recap available
+    chosen_recap: dict = {}
+    if project_recaps:
+        for p in projects:
+            rec = project_recaps.get(p.id) or {}
+            if rec:
+                chosen_recap = rec
+                break
+    if fallback_recap and not chosen_recap:
+        chosen_recap = fallback_recap
+    recap = chosen_recap
 
     return templates.TemplateResponse(
         request,
@@ -3071,7 +3084,7 @@ def dashboard(request: Request):
             "documents_by_project": documents_by_project,
             "project_recaps": project_recaps,
             "hide_public_header": True,
-            "fallback_recap": fallback_recap,
+            "recap": recap,
         },
     )
 

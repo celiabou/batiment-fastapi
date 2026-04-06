@@ -60,23 +60,12 @@
       {% endif %}
 
       <section class="dashboard-section">
-        <p class="dashboard-kicker">Renovation complete</p>
-        {% set recap = project_recaps.get(projects[0].id, {}) if projects else {} %}
-        {% set project_updated = projects[0].updated_at if projects else None %}
-        {% if fallback_recap and (not recap or (project_updated and fallback_recap.get("created_at") and fallback_recap.get("created_at") > project_updated)) %}
-          {% set recap = fallback_recap %}
-        {% endif %}
-        {% set recap_type = recap.get("project_type", "Appartement") %}
-        {% set recap_surface = recap.get("surface", "70.0") %}
-        {% set recap_scope = recap.get("scope", "Renovation complete") %}
+        <p class="dashboard-kicker">{{ recap.get("scope", "Renovation complete") if recap else "Renovation complete" }}</p>
+        {% set recap_type = recap.get("project_type", "Appartement") if recap else "Appartement" %}
+        {% set recap_surface = recap.get("surface", "70.0") if recap else "70.0" %}
+        {% set recap_scope = recap.get("scope", "Renovation complete") if recap else "Renovation complete" %}
         <h2>
-          {% if projects %}
-            {{ projects[0].title }}
-          {% elif recap %}
-            {{ recap_scope | default("Renovation complete") }} d'un {{ recap_type | default("Appartement") }} de {{ recap_surface | default("70.0") }} m2
-          {% else %}
-            Renovation complete d'un Appartement de 70.0 m2
-          {% endif %}
+          {{ recap_scope | default("Renovation complete") }} d'un {{ recap_type | default("Appartement") }} de {{ recap_surface | default("70.0") }} m2
         </h2>
         <div class="dash-card">
           <div>

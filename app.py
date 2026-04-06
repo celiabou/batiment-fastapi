@@ -310,6 +310,7 @@ STYLE_MULTIPLIER = {
     "minimaliste": 0.98,
     "industriel": 1.04,
     "scandinave": 1.01,
+    "dubai": 1.18,
 }
 
 TIMELINE_COST_MULTIPLIER = {
@@ -356,6 +357,11 @@ INTERIOR_STYLE_PROFILES = {
         "palette": ["Blanc neige", "Beige lin", "Bleu pale", "Bois miel"],
         "materials": ["Chene naturel", "Laine bouclee", "Ceramique mate"],
         "furniture_focus": ["Formes rondes", "Lumieres diffuses", "Textiles cocooning"],
+    },
+    "dubai": {
+        "palette": ["Sable dore", "Ivoire", "Bronze", "Bleu nuit"],
+        "materials": ["Marbre veine or", "Bois noyer sombre", "Laiton poli"],
+        "furniture_focus": ["Volumes luxueux", "Eclairage indirect chaleureux", "Touches deco Moyen-Orient"],
     },
 }
 

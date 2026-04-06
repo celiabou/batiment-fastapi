@@ -3581,17 +3581,32 @@ async def devis_intelligent(
                 "estimate_range": f"{quote['low_label']} - {quote['high_label']}",
                 "appointment_status": "Non",
             }
-            project = ClientProject(
-                client_id=current_user["id"],
-                title=project_title,
-                summary=json.dumps(summary_payload, ensure_ascii=False),
-                status="Pre-devis envoye",
+            # update latest project if exists, else create
+            latest_project = (
+                db.query(ClientProject)
+                .filter(ClientProject.client_id == current_user["id"])
+                .order_by(ClientProject.created_at.desc())
+                .first()
             )
-            db.add(project)
+            if latest_project:
+                latest_project.title = project_title
+                latest_project.summary = json.dumps(summary_payload, ensure_ascii=False)
+                latest_project.status = "Pre-devis mis a jour"
+                latest_project.updated_at = _utc_now()
+                saved_project_id = latest_project.id
+            else:
+                project = ClientProject(
+                    client_id=current_user["id"],
+                    title=project_title,
+                    summary=json.dumps(summary_payload, ensure_ascii=False),
+                    status="Pre-devis envoye",
+                )
+                db.add(project)
+                db.commit()
+                db.refresh(project)
+                saved_project_id = project.id
             db.commit()
-            db.refresh(project)
             project_saved = True
-            saved_project_id = project.id
         finally:
             db.close()
 

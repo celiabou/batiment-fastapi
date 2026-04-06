@@ -3019,6 +3019,12 @@ def dashboard(request: Request):
                 .order_by(ProjectDocument.created_at.desc())
                 .all()
             )
+        latest_handoff = (
+            db.query(HandoffRequest)
+            .filter(HandoffRequest.email == user.get("email"))
+            .order_by(HandoffRequest.created_at.desc())
+            .first()
+        )
     finally:
         db.close()
 
@@ -3031,6 +3037,26 @@ def dashboard(request: Request):
         recap = _parse_project_summary(project.summary)
         project_recaps[project.id] = recap
 
+    fallback_recap = {}
+    if not project_recaps and latest_handoff:
+        try:
+            payload = json.loads(latest_handoff.conversation or "{}")
+            if isinstance(payload, dict):
+                fallback_recap = {
+                    "project_type": payload.get("project_type") or payload.get("work_type"),
+                    "scope": payload.get("scope"),
+                    "style": payload.get("style"),
+                    "surface": payload.get("surface"),
+                    "rooms": payload.get("rooms"),
+                    "budget": payload.get("budget"),
+                    "city": payload.get("city"),
+                    "finishing_level": payload.get("finishing_level"),
+                    "estimate_range": payload.get("quote", {}).get("estimate_range") if isinstance(payload.get("quote"), dict) else None,
+                    "appointment_status": payload.get("appointment_status"),
+                }
+        except json.JSONDecodeError:
+            fallback_recap = {}
+
     return templates.TemplateResponse(
         request,
         "dashboard.html",
@@ -3040,6 +3066,7 @@ def dashboard(request: Request):
             "documents_by_project": documents_by_project,
             "project_recaps": project_recaps,
             "hide_public_header": True,
+            "fallback_recap": fallback_recap,
         },
     )
 

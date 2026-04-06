@@ -62,6 +62,9 @@
       <section class="dashboard-section">
         <p class="dashboard-kicker">Renovation complete</p>
         {% set recap = project_recaps.get(projects[0].id, {}) if projects else {} %}
+        {% if not recap and fallback_recap %}
+          {% set recap = fallback_recap %}
+        {% endif %}
         {% set recap_type = recap.get("project_type", "Appartement") %}
         {% set recap_surface = recap.get("surface", "70.0") %}
         <h2>{{ projects[0].title if projects else "Renovation complete d'un Appartement de 70.0 m2" }}</h2>
@@ -75,13 +78,15 @@
               </span>
               Etude du projet
             </p>
-            {% if recap %}
-              <p class="muted">{{ recap.get("city", "Ville a confirmer") }}</p>
-            {% elif projects %}
-              <p class="muted">{{ projects[0].summary }}</p>
-            {% else %}
-              <p class="muted">93120 La Courneuve, France</p>
-            {% endif %}
+            <p class="muted">
+              {% if recap and recap.get("city") %}
+                {{ recap.get("city") }}
+              {% elif projects and projects[0].summary %}
+                {{ projects[0].summary }}
+              {% else %}
+                93120 La Courneuve, France
+              {% endif %}
+            </p>
           </div>
           {% if recap %}
             <span class="status-pill">Rendez-vous a venir: {{ recap.get("appointment_status", "Non") }}</span>

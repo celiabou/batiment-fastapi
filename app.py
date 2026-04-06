@@ -3036,49 +3036,49 @@ def dashboard(request: Request):
     for doc in documents:
         documents_by_project.setdefault(doc.project_id, []).append(doc)
 
+    # build project recap map
     project_recaps = {}
     for project in projects:
         recap = _parse_project_summary(project.summary)
+        if recap:
+            if not recap.get("updated_label") and project.updated_at:
+                recap["updated_at"] = project.updated_at
+                recap["updated_label"] = project.updated_at.strftime("%d/%m/%Y %H:%M")
         project_recaps[project.id] = recap
 
-    # latest handoff recap
+    # latest handoff recap enriched with columns
     handoff_recap = {}
     if latest_handoff:
         try:
             payload = json.loads(latest_handoff.conversation or "{}")
-            if isinstance(payload, dict):
-                handoff_recap = {
-                    "project_type": payload.get("project_type") or payload.get("work_type"),
-                    "scope": payload.get("scope"),
-                    "style": payload.get("style"),
-                    "surface": payload.get("surface"),
-                    "rooms": payload.get("rooms"),
-                    "budget": payload.get("budget"),
-                    "city": payload.get("city"),
-                    "finishing_level": payload.get("finishing_level"),
-                    "estimate_range": payload.get("quote", {}).get("estimate_range") if isinstance(payload.get("quote"), dict) else None,
-                    "appointment_status": payload.get("appointment_status") or "Non planifie",
-                    "timeline": payload.get("timeline"),
-                    "work_item_key": payload.get("work_item_key"),
-                    "work_quantity": payload.get("work_quantity"),
-                    "work_unit": payload.get("work_unit"),
-                    "updated_at": latest_handoff.created_at,
-                    "updated_label": latest_handoff.created_at.strftime("%d/%m/%Y %H:%M") if latest_handoff.created_at else "",
-                }
         except json.JSONDecodeError:
-            handoff_recap = {}
+            payload = {}
+        if isinstance(payload, dict):
+            handoff_recap = {
+                "project_type": payload.get("project_type") or payload.get("work_type") or "",
+                "scope": payload.get("scope") or "",
+                "style": payload.get("style") or "",
+                "surface": payload.get("surface") or (latest_handoff.surface or ""),
+                "rooms": payload.get("rooms") or "",
+                "budget": payload.get("budget") or "",
+                "city": payload.get("city") or (latest_handoff.city or ""),
+                "finishing_level": payload.get("finishing_level") or "",
+                "estimate_range": payload.get("quote", {}).get("estimate_range") if isinstance(payload.get("quote"), dict) else None,
+                "appointment_status": payload.get("appointment_status") or latest_handoff.status or "Non planifie",
+                "timeline": payload.get("timeline") or "",
+                "work_item_key": payload.get("work_item_key") or "",
+                "work_quantity": payload.get("work_quantity") or "",
+                "work_unit": payload.get("work_unit") or "",
+                "updated_at": latest_handoff.created_at,
+                "updated_label": latest_handoff.created_at.strftime("%d/%m/%Y %H:%M") if latest_handoff.created_at else "",
+            }
 
-    # choose recap: prefer handoff if exists, otherwise latest project recap
+    # merge preference: handoff first, else latest project recap
     recap: dict = {}
     if handoff_recap:
         recap = handoff_recap
     elif projects:
         recap = project_recaps.get(projects[0].id) or {}
-        if recap and not recap.get("updated_label"):
-            ts = projects[0].updated_at
-            if ts:
-                recap["updated_at"] = ts
-                recap["updated_label"] = ts.strftime("%d/%m/%Y %H:%M")
 
     return templates.TemplateResponse(
         request,

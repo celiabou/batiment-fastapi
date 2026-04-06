@@ -62,7 +62,8 @@
       <section class="dashboard-section">
         <p class="dashboard-kicker">Renovation complete</p>
         {% set recap = project_recaps.get(projects[0].id, {}) if projects else {} %}
-        {% if not recap and fallback_recap %}
+        {% set project_updated = projects[0].updated_at if projects else None %}
+        {% if fallback_recap and (not recap or (project_updated and fallback_recap.get("created_at") and fallback_recap.get("created_at") > project_updated)) %}
           {% set recap = fallback_recap %}
         {% endif %}
         {% set recap_type = recap.get("project_type", "Appartement") %}

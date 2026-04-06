@@ -3007,7 +3007,7 @@ def dashboard(request: Request):
         projects = (
             db.query(ClientProject)
             .filter(ClientProject.client_id == user["id"])
-            .order_by(ClientProject.created_at.desc())
+            .order_by(ClientProject.updated_at.desc(), ClientProject.created_at.desc())
             .all()
         )
         project_ids = [project.id for project in projects]
@@ -3057,6 +3057,7 @@ def dashboard(request: Request):
                     "finishing_level": payload.get("finishing_level"),
                     "estimate_range": payload.get("quote", {}).get("estimate_range") if isinstance(payload.get("quote"), dict) else None,
                     "appointment_status": payload.get("appointment_status"),
+                    "created_at": latest_handoff.created_at,
                 }
         except json.JSONDecodeError:
             fallback_recap = {}

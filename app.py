@@ -3073,12 +3073,12 @@ def dashboard(request: Request):
                 "updated_label": latest_handoff.created_at.strftime("%d/%m/%Y %H:%M") if latest_handoff.created_at else "",
             }
 
-    # merge preference: handoff first, else latest project recap
+    # merge preference: latest project recap if present, else handoff
     recap: dict = {}
-    if handoff_recap:
-        recap = handoff_recap
-    elif projects:
+    if projects:
         recap = project_recaps.get(projects[0].id) or {}
+    if not recap and handoff_recap:
+        recap = handoff_recap
 
     return templates.TemplateResponse(
         request,

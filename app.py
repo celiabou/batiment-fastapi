@@ -3041,14 +3041,13 @@ def dashboard(request: Request):
         recap = _parse_project_summary(project.summary)
         project_recaps[project.id] = recap
 
-    has_recap = any(bool(r) for r in project_recaps.values())
-
-    fallback_recap = {}
-    if (not has_recap) and latest_handoff:
+    # latest handoff recap
+    handoff_recap = {}
+    if latest_handoff:
         try:
             payload = json.loads(latest_handoff.conversation or "{}")
             if isinstance(payload, dict):
-                fallback_recap = {
+                handoff_recap = {
                     "project_type": payload.get("project_type") or payload.get("work_type"),
                     "scope": payload.get("scope"),
                     "style": payload.get("style"),
@@ -3058,26 +3057,28 @@ def dashboard(request: Request):
                     "city": payload.get("city"),
                     "finishing_level": payload.get("finishing_level"),
                     "estimate_range": payload.get("quote", {}).get("estimate_range") if isinstance(payload.get("quote"), dict) else None,
-                    "appointment_status": payload.get("appointment_status"),
-                    "created_at": latest_handoff.created_at,
-                    "title": payload.get("quote", {}).get("title") if isinstance(payload.get("quote"), dict) else None,
+                    "appointment_status": payload.get("appointment_status") or "Non planifie",
+                    "timeline": payload.get("timeline"),
+                    "work_item_key": payload.get("work_item_key"),
+                    "work_quantity": payload.get("work_quantity"),
+                    "work_unit": payload.get("work_unit"),
+                    "updated_at": latest_handoff.created_at,
+                    "updated_label": latest_handoff.created_at.strftime("%d/%m/%Y %H:%M") if latest_handoff.created_at else "",
                 }
         except json.JSONDecodeError:
-            fallback_recap = {}
+            handoff_recap = {}
 
-    # choose recap: compare latest project vs latest handoff
+    # choose recap: prefer handoff if exists, otherwise latest project recap
     recap: dict = {}
-    latest_project = projects[0] if projects else None
-    project_recap = project_recaps.get(latest_project.id) if latest_project else {}
-    project_ts = latest_project.updated_at if latest_project else None
-    handoff_ts = fallback_recap.get("created_at") if fallback_recap else None
-
-    if fallback_recap and (not project_recap or (handoff_ts and project_ts and handoff_ts > project_ts)):
-        recap = fallback_recap
-    elif project_recap:
-        recap = project_recap
-    elif fallback_recap:
-        recap = fallback_recap
+    if handoff_recap:
+        recap = handoff_recap
+    elif projects:
+        recap = project_recaps.get(projects[0].id) or {}
+        if recap and not recap.get("updated_label"):
+            ts = projects[0].updated_at
+            if ts:
+                recap["updated_at"] = ts
+                recap["updated_label"] = ts.strftime("%d/%m/%Y %H:%M")
 
     return templates.TemplateResponse(
         request,

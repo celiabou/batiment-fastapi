@@ -125,6 +125,13 @@ def _parse_project_summary(summary: str | None) -> dict:
     return {"summary_text": raw}
 
 
+def _is_recap_empty(recap: dict | None) -> bool:
+    if not recap:
+        return True
+    keys = ["project_type", "scope", "surface", "city", "budget", "style", "timeline"]
+    return not any(recap.get(k) for k in keys)
+
+
 def _hash_password(raw_password: str) -> str:
     salt = secrets.token_bytes(16)
     derived = hashlib.pbkdf2_hmac("sha256", raw_password.encode("utf-8"), salt, 200_000)
@@ -3073,12 +3080,19 @@ def dashboard(request: Request):
                 "updated_label": latest_handoff.created_at.strftime("%d/%m/%Y %H:%M") if latest_handoff.created_at else "",
             }
 
-    # merge preference: latest project recap if present, else handoff
+    # merge preference: projet si non vide, sinon handoff; si handoff plus récent, on remplace
     recap: dict = {}
-    if projects:
-        recap = project_recaps.get(projects[0].id) or {}
-    if not recap and handoff_recap:
-        recap = handoff_recap
+    project_recap = project_recaps.get(projects[0].id) if projects else {}
+    project_ts = projects[0].updated_at if projects else None
+    handoff_ts = handoff_recap.get("updated_at") if handoff_recap else None
+
+    if project_recap and not _is_recap_empty(project_recap):
+        recap = project_recap
+    if handoff_recap:
+        if _is_recap_empty(recap):
+            recap = handoff_recap
+        elif handoff_ts and project_ts and handoff_ts > project_ts:
+            recap = handoff_recap
 
     return templates.TemplateResponse(
         request,

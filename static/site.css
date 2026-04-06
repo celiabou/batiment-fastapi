@@ -1892,8 +1892,8 @@ h3 {
 .ai3d-layout {
   margin-top: 16px;
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1.8fr) minmax(380px, 1fr);
+  gap: 28px;
 }
 
 .ai3d-form {
@@ -1939,7 +1939,9 @@ h3 {
 
 .ai3d-side .box {
   margin-top: 0;
-  height: 100%;
+  height: fit-content;
+  position: sticky;
+  top: 90px;
 }
 
 .contact-card {

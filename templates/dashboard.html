@@ -67,7 +67,16 @@
         {% endif %}
         {% set recap_type = recap.get("project_type", "Appartement") %}
         {% set recap_surface = recap.get("surface", "70.0") %}
-        <h2>{{ projects[0].title if projects else "Renovation complete d'un Appartement de 70.0 m2" }}</h2>
+        {% set recap_scope = recap.get("scope", "Renovation complete") %}
+        <h2>
+          {% if projects %}
+            {{ projects[0].title }}
+          {% elif recap %}
+            {{ recap_scope | default("Renovation complete") }} d'un {{ recap_type | default("Appartement") }} de {{ recap_surface | default("70.0") }} m2
+          {% else %}
+            Renovation complete d'un Appartement de 70.0 m2
+          {% endif %}
+        </h2>
         <div class="dash-card">
           <div>
             <p class="dash-card-title">

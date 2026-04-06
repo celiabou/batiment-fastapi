@@ -3021,7 +3021,11 @@ def dashboard(request: Request):
             )
         latest_handoff = (
             db.query(HandoffRequest)
-            .filter(HandoffRequest.email == user.get("email"))
+            .filter(
+                (HandoffRequest.email == user.get("email"))
+                | (HandoffRequest.phone == user.get("phone"))
+                | (HandoffRequest.email.is_(None))
+            )
             .order_by(HandoffRequest.created_at.desc())
             .first()
         )

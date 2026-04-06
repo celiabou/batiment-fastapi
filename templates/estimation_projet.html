@@ -95,6 +95,7 @@
           <span class="unit-tag js-work-unit">--</span>
         </div>
       </label>
+      <input type="hidden" name="work_unit" id="workUnitHidden" value="">
     </div>
 
     <div class="ai3d-form-grid ai3d-form-grid-4">
@@ -173,6 +174,22 @@
   </form>
 
   <aside class="ai3d-side">
+    <div class="box live-recap">
+      <h3>Votre récap en direct</h3>
+      <ul class="live-recap-list">
+        <li><span>Poste de travaux</span><strong id="liveWorkItem">--</strong></li>
+        <li><span>Quantite</span><strong id="liveQuantity">--</strong></li>
+        <li><span>Type de bien</span><strong id="liveType">--</strong></li>
+        <li><span>Type de travaux</span><strong id="liveScope">--</strong></li>
+        <li><span>Style</span><strong id="liveStyle">--</strong></li>
+        <li><span>Surface</span><strong id="liveSurface">--</strong></li>
+        <li><span>Pièces</span><strong id="liveRooms">--</strong></li>
+        <li><span>Budget</span><strong id="liveBudget">--</strong></li>
+        <li><span>Echéance</span><strong id="liveTimeline">--</strong></li>
+        <li><span>Ville</span><strong id="liveCity">--</strong></li>
+      </ul>
+      <p class="live-recap-note" id="liveSavedHint">Brouillon sauvegardé localement.</p>
+    </div>
     <div class="box">
       <h3>Ce que vous recevez</h3>
       <ol class="ai3d-steps">

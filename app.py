@@ -125,6 +125,13 @@ def _parse_project_summary(summary: str | None) -> dict:
     return {"summary_text": raw}
 
 
+def _humanize(value: str | None) -> str:
+    """Convert snake_case or raw keys to human-readable title text."""
+    if not value:
+        return "—"
+    return str(value).replace("_", " ").strip().title()
+
+
 def _hash_password(raw_password: str) -> str:
     salt = secrets.token_bytes(16)
     derived = hashlib.pbkdf2_hmac("sha256", raw_password.encode("utf-8"), salt, 200_000)
@@ -2651,6 +2658,7 @@ async def visitor_cookie_middleware(request: Request, call_next):
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals["AGENDA_URL"] = AGENDA_URL
 templates.env.globals["get_current_user"] = _get_current_user
+templates.env.globals["humanize"] = _humanize
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 with open(CONTENT_DIR / "services.json", encoding="utf-8") as f:
@@ -2959,11 +2967,14 @@ def login_submit(
                 },
                 status_code=400,
             )
+        user_role = user.role
         token = _create_session(db, user.id)
     finally:
         db.close()
 
-    redirect_target = next or "/dashboard"
+    redirect_target = next
+    if not redirect_target:
+        redirect_target = "/admin/dashboard" if user_role == "admin" else "/dashboard"
     response = RedirectResponse(redirect_target, status_code=303)
     response.set_cookie(
         SESSION_COOKIE_NAME,
@@ -3000,7 +3011,7 @@ def dashboard(request: Request):
     if not user:
         return RedirectResponse("/login?next=/dashboard", status_code=303)
     if user.get("role") == "admin":
-        return RedirectResponse("/admin", status_code=303)
+        return RedirectResponse("/admin/dashboard", status_code=303)
 
     db = SessionLocal()
     try:
@@ -3134,42 +3145,8 @@ def request_final_quote(
 
 
 @app.get("/admin", response_class=HTMLResponse)
-def admin_dashboard(request: Request):
-    user = _require_admin(request)
-    if not user:
-        return RedirectResponse("/login?next=/admin", status_code=303)
-
-    db = SessionLocal()
-    try:
-        clients = (
-            db.query(UserAccount)
-            .filter(UserAccount.role == "client")
-            .order_by(UserAccount.created_at.desc())
-            .all()
-        )
-        projects = db.query(ClientProject).order_by(ClientProject.created_at.desc()).all()
-        documents = db.query(ProjectDocument).order_by(ProjectDocument.created_at.desc()).all()
-    finally:
-        db.close()
-
-    projects_by_client = {}
-    for project in projects:
-        projects_by_client.setdefault(project.client_id, []).append(project)
-
-    documents_by_project = {}
-    for doc in documents:
-        documents_by_project.setdefault(doc.project_id, []).append(doc)
-
-    return templates.TemplateResponse(
-        request,
-        "admin.html",
-        {
-            "user": user,
-            "clients": clients,
-            "projects_by_client": projects_by_client,
-            "documents_by_project": documents_by_project,
-        },
-    )
+def admin_redirect(request: Request):
+    return RedirectResponse("/admin/dashboard", status_code=303)
 
 
 @app.post("/admin/clients")
@@ -4743,6 +4720,354 @@ def list_handoffs(limit: int = 20):
         }
     finally:
         db.close()
+
+
+# ============================================================
+# ADMIN DASHBOARD ROUTES (separate from /admin management)
+# ============================================================
+
+@app.get("/admin/login", response_class=HTMLResponse)
+def admin_login(request: Request):
+    user = _require_admin(request)
+    if user:
+        return RedirectResponse("/admin/dashboard", status_code=303)
+    return templates.TemplateResponse(
+        request,
+        "admin_login.html",
+        {"error": request.query_params.get("error")},
+    )
+
+
+@app.post("/admin/login")
+def admin_login_post(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    next_url: str = Form(""),
+):
+    normalized_email = email.strip().lower()
+    db = SessionLocal()
+    try:
+        user_account = (
+            db.query(UserAccount)
+            .filter(UserAccount.email == normalized_email)
+            .first()
+        )
+        if not user_account or not _verify_password(password, user_account.password_hash):
+            return RedirectResponse("/admin/login?error=invalid", status_code=303)
+        if user_account.role != "admin":
+            return RedirectResponse("/admin/login?error=forbidden", status_code=303)
+
+        token = _create_session(db, user_account.id)
+    finally:
+        db.close()
+
+    redirect_to = next_url.strip() or "/admin/dashboard"
+    response = RedirectResponse(redirect_to, status_code=303)
+    response.set_cookie(
+        SESSION_COOKIE_NAME,
+        token,
+        httponly=True,
+        samesite="lax",
+        max_age=SESSION_TTL_DAYS * 86400,
+        path="/",
+    )
+    return response
+
+
+@app.post("/admin/logout")
+def admin_logout(request: Request):
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    if token:
+        db = SessionLocal()
+        try:
+            session = db.query(UserSession).filter(UserSession.token == token).first()
+            if session:
+                db.delete(session)
+                db.commit()
+        finally:
+            db.close()
+    response = RedirectResponse("/admin/login", status_code=303)
+    response.delete_cookie(SESSION_COOKIE_NAME, path="/")
+    return response
+
+
+@app.get("/admin/dashboard", response_class=HTMLResponse)
+def admin_dashboard_view(request: Request):
+    user = _require_admin(request)
+    if not user:
+        return RedirectResponse("/admin/login?next=/admin/dashboard", status_code=303)
+
+    db = SessionLocal()
+    try:
+        handoffs = (
+            db.query(HandoffRequest)
+            .order_by(HandoffRequest.created_at.desc())
+            .all()
+        )
+        users = (
+            db.query(UserAccount)
+            .filter(UserAccount.role == "client")
+            .order_by(UserAccount.created_at.desc())
+            .all()
+        )
+
+        now = _utc_now()
+        week_ago = now - timedelta(days=7)
+        recent_count = (
+            db.query(HandoffRequest)
+            .filter(HandoffRequest.created_at >= week_ago)
+            .count()
+        )
+    finally:
+        db.close()
+
+    # Build estimate list with parsed recaps
+    estimates = []
+    for h in handoffs:
+        recap = _parse_handoff_conversation(h)
+        estimates.append({
+            "id": h.id,
+            "created_at": h.created_at,
+            "status": h.status,
+            "priority": h.priority,
+            "name": h.name,
+            "email": h.email,
+            "phone": h.phone,
+            "recap": recap,
+        })
+
+    return templates.TemplateResponse(
+        request,
+        "admin_dashboard.html",
+        {
+            "user": user,
+            "estimates": estimates,
+            "users": users,
+            "recent_estimates_count": recent_count,
+        },
+    )
+
+
+@app.get("/admin/dashboard/estimate/{estimate_id}", response_class=HTMLResponse)
+def admin_estimate_detail(estimate_id: int, request: Request):
+    user = _require_admin(request)
+    if not user:
+        return RedirectResponse("/admin/login", status_code=303)
+
+    db = SessionLocal()
+    try:
+        handoff = (
+            db.query(HandoffRequest)
+            .filter(HandoffRequest.id == estimate_id)
+            .first()
+        )
+    finally:
+        db.close()
+
+    if not handoff:
+        return RedirectResponse("/admin/dashboard?error=not_found", status_code=303)
+
+    recap = _parse_handoff_conversation(handoff)
+    raw = _parse_full_conversation(handoff)
+
+    return templates.TemplateResponse(
+        request,
+        "admin_estimate_detail.html",
+        {
+            "user": user,
+            "estimate": handoff,
+            "recap": recap,
+            "raw": raw,
+            "user_email": handoff.email,
+        },
+    )
+
+
+@app.get("/admin/dashboard/users", response_class=HTMLResponse)
+def admin_users_view(request: Request):
+    user = _require_admin(request)
+    if not user:
+        return RedirectResponse("/admin/login", status_code=303)
+
+    email_filter = request.query_params.get("email", "").strip().lower()
+
+    db = SessionLocal()
+    try:
+        if email_filter:
+            users = (
+                db.query(UserAccount)
+                .filter(UserAccount.email == email_filter)
+                .all()
+            )
+            if not users:
+                users = (
+                    db.query(UserAccount)
+                    .order_by(UserAccount.created_at.desc())
+                    .all()
+                )
+        else:
+            users = (
+                db.query(UserAccount)
+                .order_by(UserAccount.created_at.desc())
+                .all()
+            )
+
+        # Count estimates per user
+        estimate_counts = {}
+        for u in users:
+            count = (
+                db.query(HandoffRequest)
+                .filter(
+                    (HandoffRequest.email == u.email)
+                    | (HandoffRequest.phone == u.phone)
+                )
+                .count()
+            )
+            estimate_counts[u.id] = count
+    finally:
+        db.close()
+
+    return templates.TemplateResponse(
+        request,
+        "admin_users.html",
+        {
+            "user": user,
+            "users": users,
+            "estimate_counts": estimate_counts,
+        },
+    )
+
+
+@app.get("/admin/dashboard/users/detail", response_class=HTMLResponse)
+def admin_user_detail(request: Request):
+    user = _require_admin(request)
+    if not user:
+        return RedirectResponse("/admin/login", status_code=303)
+
+    user_email = request.query_params.get("email", "").strip().lower()
+    if not user_email:
+        return RedirectResponse("/admin/dashboard/users", status_code=303)
+
+    db = SessionLocal()
+    try:
+        user_account = (
+            db.query(UserAccount)
+            .filter(UserAccount.email == user_email)
+            .first()
+        )
+        if not user_account:
+            return RedirectResponse("/admin/dashboard/users?error=not_found", status_code=303)
+
+        # Get all handoffs for this user
+        handoffs = (
+            db.query(HandoffRequest)
+            .filter(
+                (HandoffRequest.email == user_account.email)
+                | (HandoffRequest.phone == user_account.phone)
+            )
+            .order_by(HandoffRequest.created_at.desc())
+            .all()
+        )
+
+        # Get projects
+        projects = (
+            db.query(ClientProject)
+            .filter(ClientProject.client_id == user_account.id)
+            .order_by(ClientProject.created_at.desc())
+            .all()
+        )
+
+        # Doc counts
+        project_ids = [p.id for p in projects]
+        doc_counts = {}
+        if project_ids:
+            docs = (
+                db.query(ProjectDocument)
+                .filter(ProjectDocument.project_id.in_(project_ids))
+                .all()
+            )
+            for doc in docs:
+                doc_counts[doc.project_id] = doc_counts.get(doc.project_id, 0) + 1
+    finally:
+        db.close()
+
+    # Parse handoff recaps
+    estimates = []
+    for h in handoffs:
+        recap = _parse_handoff_conversation(h)
+        estimates.append({
+            "id": h.id,
+            "created_at": h.created_at,
+            "status": h.status,
+            "recap": recap,
+        })
+
+    return templates.TemplateResponse(
+        request,
+        "admin_user_detail.html",
+        {
+            "user": user,
+            "user_account": user_account,
+            "estimates": estimates,
+            "projects": projects,
+            "doc_counts": doc_counts,
+        },
+    )
+
+
+def _parse_handoff_conversation(handoff) -> dict:
+    """Parse a HandoffRequest conversation JSON into a recap dict."""
+    if not handoff or not handoff.conversation:
+        return {}
+    try:
+        payload = json.loads(handoff.conversation)
+        if not isinstance(payload, dict):
+            return {}
+        return {
+            "project_type": payload.get("project_type") or payload.get("work_type"),
+            "scope": payload.get("scope"),
+            "style": payload.get("style"),
+            "surface": payload.get("surface"),
+            "rooms": payload.get("rooms"),
+            "budget": payload.get("budget"),
+            "city": payload.get("city"),
+            "finishing_level": payload.get("finishing_level"),
+            "timeline": payload.get("timeline"),
+            "estimate_range": payload.get("quote", {}).get("estimate_range") if isinstance(payload.get("quote"), dict) else None,
+            "appointment_status": payload.get("appointment_status"),
+            "work_item_key": payload.get("work_item_key"),
+            "work_quantity": payload.get("work_quantity"),
+            "work_unit": payload.get("work_unit"),
+            "stage": payload.get("stage"),
+            "title": payload.get("quote", {}).get("title") if isinstance(payload.get("quote"), dict) else None,
+        }
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
+def _parse_full_conversation(handoff) -> dict:
+    """Parse full conversation JSON for detailed admin view."""
+    if not handoff or not handoff.conversation:
+        return {}
+    try:
+        payload = json.loads(handoff.conversation)
+        if isinstance(payload, dict):
+            return payload
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return {}
+
+
+def _format_conversation_json(conversation_str: str | None) -> str:
+    """Format conversation JSON for readable display."""
+    if not conversation_str:
+        return "{}"
+    try:
+        payload = json.loads(conversation_str)
+        return json.dumps(payload, indent=2, ensure_ascii=False)
+    except (json.JSONDecodeError, TypeError):
+        return conversation_str or "{}"
 
 
 if __name__ == "__main__":

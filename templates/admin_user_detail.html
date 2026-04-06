@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Administration | Client {{ user_account.name or user_account.email }}{% endblock %}
+
+{% block content %}
+<section class="section admin-hero">
+  <div class="admin-hero-inner">
+    <p class="kicker">Administration — Client</p>
+    <h1>{{ user_account.name or user_account.email }}</h1>
+    <nav class="admin-nav-links">
+      <a href="/admin/dashboard/users">&larr; Retour aux clients</a>
+      <a href="/admin/dashboard">Estimations</a>
+    </nav>
+  </div>
+</section>
+
+<!-- User Profile -->
+<section class="section admin-section">
+  <div class="admin-detail-grid">
+    <div class="admin-detail-card">
+      <h3>Profil du client</h3>
+      <dl class="admin-detail-list">
+        <dt>Nom</dt>
+        <dd>{{ user_account.name or "—" }}</dd>
+
+        <dt>Email</dt>
+        <dd>{{ user_account.email }}</dd>
+
+        <dt>Telephone</dt>
+        <dd>{{ user_account.phone or "—" }}</dd>
+
+        <dt>Role</dt>
+        <dd>{{ user_account.role }}</dd>
+
+        <dt>Statut</dt>
+        <dd>{{ user_account.status or "—" }}</dd>
+
+        <dt>Inscrit le</dt>
+        <dd>{{ user_account.created_at.strftime("%d/%m/%Y %H:%M") if user_account.created_at else "—" }}</dd>
+
+        <dt>Derniere mise a jour</dt>
+        <dd>{{ user_account.updated_at.strftime("%d/%m/%Y %H:%M") if user_account.updated_at else "—" }}</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- Estimate History -->
+<section class="section admin-section">
+  <h2>Historique des estimations ({{ estimates|length }})</h2>
+  {% if estimates %}
+    <div class="admin-table-shell">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type de projet</th>
+            <th>Portee</th>
+            <th>Budget</th>
+            <th>Ville</th>
+            <th>Statut</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for est in estimates %}
+            {% set recap = est.recap %}
+            <tr>
+              <td>{{ est.created_at.strftime("%d/%m/%Y %H:%M") if est.created_at else "—" }}</td>
+              <td>{{ humanize(recap.get("project_type")) }}</td>
+              <td>{{ humanize(recap.get("scope")) }}</td>
+              <td>{{ recap.get("budget", "—") or "—" }}</td>
+              <td>{{ recap.get("city", "—") or "—" }}</td>
+              <td><span class="status-badge status-{{ est.status or 'new' }}">{{ humanize(est.status) }}</span></td>
+              <td>
+                <a href="/admin/dashboard/estimate/{{ est.id }}" class="btn btn-sm" title="Voir le detail">Détail</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Aucune estimation pour ce client.</p>
+  {% endif %}
+</section>
+
+<!-- Projects -->
+{% if projects %}
+<section class="section admin-section">
+  <h2>Projets ({{ projects|length }})</h2>
+  <div class="admin-table-shell">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Titre</th>
+          <th>Statut</th>
+          <th>Cree le</th>
+          <th>Documents</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for proj in projects %}
+          <tr>
+            <td><strong>{{ proj.title }}</strong></td>
+            <td>{{ proj.status or "—" }}</td>
+            <td>{{ proj.created_at.strftime("%d/%m/%Y") if proj.created_at else "—" }}</td>
+            <td>{{ doc_counts.get(proj.id, 0) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

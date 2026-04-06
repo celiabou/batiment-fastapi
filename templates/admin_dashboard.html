@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Administration | Tableau de bord{% endblock %}
+
+{% block content %}
+<section class="section admin-hero">
+  <div class="admin-hero-inner">
+    <p class="kicker">Administration</p>
+    <h1>Tableau de bord</h1>
+    <p class="lead">Vue d'ensemble des estimations, clients et activite.</p>
+    <nav class="admin-nav-links">
+      <a href="/admin/dashboard" class="is-active">Estimations</a>
+      <a href="/admin/dashboard/users">Clients</a>
+      <a href="/admin">Gestion clients</a>
+    </nav>
+  </div>
+</section>
+
+<section class="section admin-section">
+  <!-- Overview Cards -->
+  <div class="admin-stats-grid">
+    <div class="admin-stat-card">
+      <span class="stat-number">{{ estimates|length }}</span>
+      <span class="stat-label">Estimations</span>
+    </div>
+    <div class="admin-stat-card">
+      <span class="stat-number">{{ users|length }}</span>
+      <span class="stat-label">Clients</span>
+    </div>
+    <div class="admin-stat-card">
+      <span class="stat-number">{{ recent_estimates_count }}</span>
+      <span class="stat-label">7 derniers jours</span>
+    </div>
+  </div>
+</section>
+
+<section class="section admin-section">
+  <h2>Toutes les estimations</h2>
+  {% if estimates %}
+    <div class="admin-table-shell">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Client</th>
+            <th>Type de projet</th>
+            <th>Portee</th>
+            <th>Budget</th>
+            <th>Ville</th>
+            <th>Statut</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for est in estimates %}
+            <tr>
+              <td>{{ est.created_at.strftime("%d/%m/%Y %H:%M") if est.created_at else "—" }}</td>
+              <td>
+                {% if est.email %}
+                  <a href="/admin/dashboard/users?email={{ est.email }}">{{ est.email }}</a>
+                {% elif est.name %}
+                  {{ est.name }}
+                {% else %}
+                  <span class="muted">Anonyme</span>
+                {% endif %}
+              </td>
+              <td>{{ humanize(est.recap.get("project_type")) }}</td>
+              <td>{{ humanize(est.recap.get("scope")) }}</td>
+              <td>{{ est.recap.get("budget", "—") or "—" }}</td>
+              <td>{{ est.recap.get("city", "—") or "—" }}</td>
+              <td><span class="status-badge status-{{ est.status or 'new' }}">{{ humanize(est.status) }}</span></td>
+              <td>
+                <a href="/admin/dashboard/estimate/{{ est.id }}" class="btn btn-sm" title="Voir le detail">Détail</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Aucune estimation enregistree.</p>
+  {% endif %}
+</section>
+{% endblock %}

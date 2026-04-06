@@ -84,6 +84,10 @@
   const renderHandoffManual = document.getElementById("aiRenderHandoffManual");
   const backToQuoteBtn = document.getElementById("ai3dBackToQuoteForm");
 
+  // Photo preview state (accessible from submitQuote for form reset)
+  const quotePhotosPreview = document.getElementById("quotePhotosPreview");
+  let quotePhotosSelectedFiles = [];
+
   const workItemSelects = Array.from(document.querySelectorAll(".js-work-item"));
   const workQtyInputs = Array.from(document.querySelectorAll(".js-work-qty"));
   const workUnitTags = Array.from(document.querySelectorAll(".js-work-unit"));
@@ -539,6 +543,17 @@
       }
 
       setText(quoteStatusEl, data.message || "Estimation envoyee.");
+      // Clear the form after successful submission
+      try {
+        quoteForm.reset();
+        if (quotePhotosPreview) {
+          quotePhotosPreview.innerHTML = "";
+          quotePhotosSelectedFiles = [];
+        }
+        updateLiveRecap();
+      } catch (e) {
+        // ignore
+      }
       if (hasRenderForm) {
         setText(renderTitleEl, currentHandoffId ? `Dossier #${currentHandoffId} pret` : "Dossier devis pret");
         setText(renderSummaryEl, "Le devis est pose. Vous pouvez maintenant demander le rendu 3D avec plusieurs photos.");
@@ -694,4 +709,53 @@
   loadDraft();
   updateLiveRecap();
   refreshRenderEligibility();
+
+  // Photo preview with add/remove support (event delegation for remove buttons)
+  const quotePhotosInput = document.getElementById("quotePhotosInput");
+  if (quotePhotosInput && quotePhotosPreview) {
+    // Use event delegation for remove buttons (they are added async via FileReader)
+    quotePhotosPreview.addEventListener("click", function (e) {
+      var btn = e.target.closest(".remove-photo");
+      if (!btn) return;
+      var idx = parseInt(btn.getAttribute("data-index"));
+      if (isNaN(idx)) return;
+      quotePhotosSelectedFiles.splice(idx, 1);
+      updateInputFiles();
+      renderPreview();
+    });
+
+    function renderPreview() {
+      quotePhotosPreview.innerHTML = "";
+      quotePhotosSelectedFiles.forEach(function (file, i) {
+        if (!file.type.startsWith("image/")) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const div = document.createElement("div");
+          div.className = "photo-preview-item";
+          div.innerHTML =
+            '<img src="' + e.target.result + '" alt="' + file.name + '">' +
+            '<button type="button" class="remove-photo" data-index="' + i + '">&times;</button>';
+          quotePhotosPreview.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function updateInputFiles() {
+      var dt = new DataTransfer();
+      quotePhotosSelectedFiles.forEach(function (f) { dt.items.add(f); });
+      quotePhotosInput.files = dt.files;
+    }
+
+    quotePhotosInput.addEventListener("change", function () {
+      var newFiles = Array.from(this.files || []);
+      quotePhotosSelectedFiles = quotePhotosSelectedFiles.concat(newFiles);
+      updateInputFiles();
+      renderPreview();
+      // Reset input so same file can be re-added if removed
+      this.value = "";
+    });
+
+    renderPreview();
+  }
 })();

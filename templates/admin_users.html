@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Administration | Clients{% endblock %}
+
+{% block content %}
+<section class="section admin-hero">
+  <div class="admin-hero-inner">
+    <p class="kicker">Administration</p>
+    <h1>Clients</h1>
+    <p class="lead">Tous les clients enregistres et leur activite.</p>
+    <nav class="admin-nav-links">
+      <a href="/admin/dashboard">Estimations</a>
+      <a href="/admin/dashboard/users" class="is-active">Clients</a>
+      <a href="/admin">Gestion clients</a>
+    </nav>
+  </div>
+</section>
+
+<section class="section admin-section">
+  {% if users %}
+    <div class="admin-table-shell">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Email</th>
+            <th>Telephone</th>
+            <th>Role</th>
+            <th>Statut</th>
+            <th>Inscrit le</th>
+            <th>Estimations</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+            <tr>
+              <td><strong>{{ u.name or "—" }}</strong></td>
+              <td><a href="/admin/dashboard/users/detail?email={{ u.email }}">{{ u.email }}</a></td>
+              <td>{{ u.phone or "—" }}</td>
+              <td>{{ u.role }}</td>
+              <td>{{ u.status or "—" }}</td>
+              <td>{{ u.created_at.strftime("%d/%m/%Y") if u.created_at else "—" }}</td>
+              <td>{{ estimate_counts.get(u.id, 0) }}</td>
+              <td>
+                <a href="/admin/dashboard/users/detail?email={{ u.email }}" class="btn btn-sm" title="Voir le profil">Profil</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Aucun client enregistre.</p>
+  {% endif %}
+</section>
+{% endblock %}

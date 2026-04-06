@@ -138,11 +138,14 @@
     </label>
 
     <label>Photos du bien (appartement / maison / studio)
-      <input type="file" name="project_photos" accept="image/*" multiple>
+      <input type="file" id="quotePhotosInput" name="project_photos" accept="image/*" multiple>
+      <span class="file-hint">Plusieurs photos acceptees (JPG, PNG, WebP)</span>
+      <div id="quotePhotosPreview" class="photo-preview"></div>
     </label>
 
     <label>Videos du bien (prises nettes)
-      <input type="file" name="project_videos" accept="video/*" multiple>
+      <input type="file" id="quoteVideosInput" name="project_videos" accept="video/*" multiple>
+      <span class="file-hint">Plusieurs videos acceptees</span>
     </label>
 
     <label>DPE du bien (optionnel)

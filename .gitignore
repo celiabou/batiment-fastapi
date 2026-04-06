@@ -1,6 +1,7 @@
 .DS_Store
 .env
 .venv/
+.myenv/
 __pycache__/
 *.pyc
 leads.sqlite

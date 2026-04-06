@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+{% block title %}Administration | Estimation #{{ estimate.id }}{% endblock %}
+
+{% block content %}
+<section class="section admin-hero">
+  <div class="admin-hero-inner">
+    <p class="kicker">Administration — Estimation #{{ estimate.id }}</p>
+    <h1>Detail de l'estimation</h1>
+    <nav class="admin-nav-links">
+      <a href="/admin/dashboard">&larr; Retour aux estimations</a>
+      {% if user_email %}
+        <a href="/admin/dashboard/users?email={{ user_email }}">Voir le client</a>
+      {% endif %}
+    </nav>
+  </div>
+</section>
+
+<!-- Stage & Status -->
+<section class="section admin-section">
+  <div class="admin-detail-grid">
+    <div class="admin-detail-card">
+      <h3>Statut &etape</h3>
+      <dl class="admin-detail-list">
+        <dt>etape</dt>
+        <dd><span class="status-badge status-{{ recap.stage or estimate.status or 'new' }}">{{ humanize(recap.stage) or humanize(estimate.status) }}</span></dd>
+        <dt>Priorite</dt>
+        <dd>{{ humanize(estimate.priority) }}</dd>
+        <dt>Source</dt>
+        <dd>{{ humanize(estimate.source) }}</dd>
+        <dt>Date</dt>
+        <dd>{{ estimate.created_at.strftime("%d/%m/%Y %H:%M") if estimate.created_at else "—" }}</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- Contact -->
+<section class="section admin-section">
+  <h2>Contact</h2>
+  <div class="admin-detail-grid">
+    <div class="admin-detail-card">
+      <dl class="admin-detail-list">
+        <dt>Nom</dt>
+        <dd>{{ estimate.name or "—" }}</dd>
+        <dt>Email</dt>
+        <dd>{% if estimate.email %}<a href="/admin/dashboard/users?email={{ estimate.email }}">{{ estimate.email }}</a>{% else %}—{% endif %}</dd>
+        <dt>Telephone</dt>
+        <dd>{{ estimate.phone or "—" }}</dd>
+        <dt>Ville</dt>
+        <dd>{{ recap.city or estimate.city or "—" }}</dd>
+        <dt>Code postal</dt>
+        <dd>{{ estimate.postal_code or "—" }}</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- Project Info -->
+<section class="section admin-section">
+  <h2>Projet</h2>
+  <div class="admin-detail-grid">
+    <div class="admin-detail-card">
+      <dl class="admin-detail-list">
+        <dt>Type de projet</dt>
+        <dd>{{ humanize(recap.project_type) }}</dd>
+        <dt>Portee</dt>
+        <dd>{{ humanize(recap.scope) }}</dd>
+        <dt>Style</dt>
+        <dd>{{ humanize(recap.style) }}</dd>
+        <dt>Niveau de finition</dt>
+        <dd>{{ humanize(recap.finishing_level) }}</dd>
+        <dt>Echeance</dt>
+        <dd>{{ humanize(recap.timeline) }}</dd>
+      </dl>
+    </div>
+    <div class="admin-detail-card">
+      <dl class="admin-detail-list">
+        <dt>Surface</dt>
+        <dd>{{ recap.surface or "—" }} m²</dd>
+        <dt>Pieces</dt>
+        <dd>{{ recap.rooms or "—" }}</dd>
+        <dt>Budget client</dt>
+        <dd>{{ recap.budget or "—" }} EUR</dd>
+        <dt>Poste</dt>
+        <dd>{{ humanize(recap.work_item_key) }}</dd>
+        <dt>Quantite</dt>
+        <dd>{{ recap.work_quantity or "—" }} {{ recap.work_unit or "" }}</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- Quote / Estimation -->
+{% set quote = raw.get("quote", {}) %}
+{% if quote %}
+<section class="section admin-section">
+  <h2>Devis — {{ quote.get("project_type_label", "") }} — {{ quote.get("scope_label", "") }}</h2>
+  <div class="admin-detail-grid">
+    <div class="admin-detail-card">
+      <dl class="admin-detail-list">
+        <dt>Fourchette basse</dt>
+        <dd>{{ quote.get("low_label", "") or quote.get("low", "—") }}</dd>
+        <dt>Fourchette haute</dt>
+        <dd>{{ quote.get("high_label", "") or quote.get("high", "—") }}</dd>
+        <dt>Duree estimee</dt>
+        <dd>{% set dw = quote.get("duration_weeks", {}) %}{{ dw.get("min", "—") }}–{{ dw.get("max", "—") }} semaines</dd>
+        <dt>Confiance</dt>
+        <dd>{{ "%.0f"|format(quote.get("confidence", 0) * 100) }}%</dd>
+        <dt>Fit budget</dt>
+        <dd>
+          {% set bf = quote.get("budget_fit", {}) %}
+          <span class="status-badge status-{% if bf.get('status') == 'over_budget' %}converted{% elif bf.get('status') == 'under_budget' %}qualified{% else %}new{% endif %}">{{ bf.get("message", "—") }}</span>
+        </dd>
+      </dl>
+    </div>
+  </div>
+
+  {% set breakdown = quote.get("breakdown", []) %}
+  {% if breakdown %}
+  <div class="admin-table-shell" style="margin-top: 20px;">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Poste</th>
+          <th>Part</th>
+          <th>Min</th>
+          <th>Max</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in breakdown %}
+        <tr>
+          <td><strong>{{ item.label }}</strong></td>
+          <td>{{ item.share_percent }}%</td>
+          <td>{{ item.low_label or item.low }}</td>
+          <td>{{ item.high_label or item.high }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% set assumptions = quote.get("assumptions", []) %}
+  {% if assumptions %}
+  <div style="margin-top: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;">
+    <strong>Hypotheses :</strong>
+    <ul style="margin: 8px 0 0 20px; line-height: 1.6;">
+      {% for a in assumptions %}<li>{{ a }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+<!-- Pre-call Report -->
+{% set prer = raw.get("precall_report", {}) %}
+{% if prer %}
+<section class="section admin-section">
+  <h2>Compte rendu pre-appel</h2>
+  <div class="admin-detail-grid">
+    <div class="admin-detail-card">
+      <dl class="admin-detail-list">
+        <dt>Score conversion</dt>
+        <dd><strong>{{ prer.get("conversion_score", "—") }}</strong>/100 — <em>{{ prer.get("conversion_band", "") }}</em></dd>
+        <dt>Resume</dt>
+        <dd style="grid-column: 1 / -1;">{{ prer.get("summary", "—") }}</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- Snapshot -->
+  {% set snap = prer.get("snapshot", {}) %}
+  {% if snap %}
+  <div class="admin-detail-grid" style="margin-top: 16px;">
+    <div class="admin-detail-card">
+      <h3>Snapshot</h3>
+      <dl class="admin-detail-list">
+        <dt>Type</dt><dd>{{ humanize(snap.get("project_type")) }}</dd>
+        <dt>Portee</dt><dd>{{ humanize(snap.get("scope")) }}</dd>
+        <dt>Style</dt><dd>{{ humanize(snap.get("style")) }}</dd>
+        <dt>Echeance</dt><dd>{{ humanize(snap.get("timeline")) }}</dd>
+        <dt>Ville</dt><dd>{{ snap.get("city", "—") }}</dd>
+        <dt>Surface</dt><dd>{{ snap.get("surface", "—") }}</dd>
+        <dt>Budget</dt><dd>{{ snap.get("budget", "—") }}</dd>
+        <dt>Contact pret</dt><dd>{{ snap.get("contact_ready", "—") }}</dd>
+      </dl>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Advantages / Inconvenients -->
+  <div class="admin-detail-grid" style="margin-top: 16px;">
+    {% set adv = prer.get("advantages", []) %}
+    {% if adv %}
+    <div class="admin-detail-card" style="border-left: 3px solid #22c55e;">
+      <h3 style="color: #16a34a;">Points forts</h3>
+      <ul style="margin: 8px 0 0 20px; font-size: 14px; line-height: 1.6;">
+        {% for a in adv %}<li>{{ a }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% set inc = prer.get("inconvenients", []) %}
+    {% if inc %}
+    <div class="admin-detail-card" style="border-left: 3px solid #f59e0b;">
+      <h3 style="color: #d97706;">Points faibles</h3>
+      <ul style="margin: 8px 0 0 20px; font-size: 14px; line-height: 1.6;">
+        {% for i in inc %}<li>{{ i }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Call Plan -->
+  {% set cp = prer.get("call_plan", []) %}
+  {% if cp %}
+  <div style="margin-top: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
+    <h3 style="margin: 0 0 10px; font-size: 15px;">Plan d'appel</h3>
+    <ol style="margin: 0 0 0 20px; font-size: 14px; line-height: 1.8;">
+      {% for step in cp %}<li>{{ step }}</li>{% endfor %}
+    </ol>
+  </div>
+  {% endif %}
+
+  <!-- Points to Validate -->
+  {% set ptv = prer.get("points_to_validate", []) %}
+  {% if ptv %}
+  <div style="margin-top: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
+    <h3 style="margin: 0 0 10px; font-size: 15px;">Points a valider</h3>
+    <ul style="margin: 0 0 0 20px; font-size: 14px; line-height: 1.8;">
+      {% for p in ptv %}<li>{{ p }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+<!-- Notes -->
+{% set notes = raw.get("notes", "") %}
+{% if notes %}
+<section class="section admin-section">
+  <h2>Notes</h2>
+  <div style="padding: 16px; background: var(--bg-secondary); border-radius: 8px; font-size: 14px; line-height: 1.6;">
+    {{ notes }}
+  </div>
+</section>
+{% endif %}
+
+<!-- Photos -->
+<section class="section admin-section">
+  <h2>Photos source</h2>
+  {% set photos = raw.get("source_photos", []) %}
+  {% if photos %}
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+      {% for photo in photos %}
+      <a href="{{ photo }}" target="_blank" rel="noopener">
+        <img src="{{ photo }}" alt="Photo source" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid var(--border); object-fit: cover;">
+      </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">Aucune photo uploadée pour cette estimation.</p>
+  {% endif %}
+</section>
+{% endblock %}

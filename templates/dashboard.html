@@ -60,12 +60,12 @@
       {% endif %}
 
       <section class="dashboard-section">
-        <p class="dashboard-kicker">{{ recap.get("scope", "Renovation complete") if recap else "Renovation complete" }}</p>
-        {% set recap_type = recap.get("project_type", "Appartement") if recap else "Appartement" %}
-        {% set recap_surface = recap.get("surface", "70.0") if recap else "70.0" %}
-        {% set recap_scope = recap.get("scope", "Renovation complete") if recap else "Renovation complete" %}
+        <p class="dashboard-kicker">{{ recap.get("scope", "—") if recap else "—" }}</p>
+        {% set recap_type = recap.get("project_type", "—") if recap else "—" %}
+        {% set recap_surface = recap.get("surface", "—") if recap else "—" %}
+        {% set recap_scope = recap.get("scope", "—") if recap else "—" %}
         <h2>
-          {{ recap_scope | default("Renovation complete") }} d'un {{ recap_type | default("Appartement") }} de {{ recap_surface | default("70.0") }} m2
+          {{ recap_scope | default("—") }} d'un {{ recap_type | default("—") }} de {{ recap_surface | default("—") }} m2
         </h2>
         <div class="dash-card">
           <div>
@@ -78,18 +78,12 @@
               Etude du projet
             </p>
             <p class="muted">
-              {% if recap and recap.get("city") %}
-                {{ recap.get("city") }}
-              {% elif projects and projects[0].summary %}
-                {{ projects[0].summary }}
-              {% else %}
-                93120 La Courneuve, France
-              {% endif %}
+              {{ recap.get("city", "—") if recap else "—" }}
             </p>
           </div>
           {% if recap %}
             <span class="status-pill">
-              Rendez-vous: {{ recap.get("appointment_status", "Non") }}
+              Rendez-vous: {{ recap.get("appointment_status", "—") }}
             </span>
           {% else %}
             <span class="status-pill">{{ projects[0].status if projects and projects[0].status else "Aucun rendez-vous a venir" }}</span>
@@ -102,27 +96,27 @@
         <div class="dash-summary">
           <div>
             <span>Type de bien</span>
-            <strong>{{ recap.get("project_type", "Appartement") }}</strong>
+            <strong>{{ recap.get("project_type", "—") if recap else "—" }}</strong>
           </div>
           <div>
             <span>Type de renovation</span>
-            <strong>{{ recap.get("scope", "Renovation complete") }}</strong>
+            <strong>{{ recap.get("scope", "—") if recap else "—" }}</strong>
           </div>
           <div>
             <span>Surface</span>
-            <strong>{{ recap.get("surface", "70.0") }} m2</strong>
+            <strong>{{ recap.get("surface", "—") if recap else "—" }} m2</strong>
           </div>
           <div>
             <span>Style</span>
-            <strong>{{ recap.get("style", "Moderne") }}</strong>
+            <strong>{{ recap.get("style", "—") if recap else "—" }}</strong>
           </div>
           <div>
             <span>Budget</span>
-            <strong>{{ recap.get("budget", "A confirmer") }}</strong>
+            <strong>{{ recap.get("budget", "—") if recap else "—" }}</strong>
           </div>
           <div>
             <span>Niveau de finition</span>
-            <strong>{{ recap.get("finishing_level", "A confirmer") }}</strong>
+            <strong>{{ recap.get("finishing_level", "—") if recap else "—" }}</strong>
           </div>
         </div>
       </section>

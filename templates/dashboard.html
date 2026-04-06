@@ -96,6 +96,23 @@
       </section>
 
       <section class="dashboard-section">
+        <div class="live-recap dashboard-live">
+          <h3>Récap en direct</h3>
+          <ul class="live-recap-list">
+            <li><span>Type de bien</span><strong>{{ recap.get("project_type", "N/A") }}</strong></li>
+            <li><span>Travaux</span><strong>{{ recap.get("scope", "N/A") }}</strong></li>
+            <li><span>Surface</span><strong>{{ recap.get("surface", "N/A") }} m2</strong></li>
+            <li><span>Style</span><strong>{{ recap.get("style", "N/A") }}</strong></li>
+            <li><span>Budget</span><strong>{{ recap.get("budget", "N/A") }}</strong></li>
+            <li><span>Ville</span><strong>{{ recap.get("city", "N/A") }}</strong></li>
+            <li><span>Echéance</span><strong>{{ recap.get("timeline", "N/A") }}</strong></li>
+            <li><span>Poste</span><strong>{{ recap.get("work_item_key", "N/A") }}</strong></li>
+            <li><span>Quantité</span><strong>{{ recap.get("work_quantity", "N/A") }}</strong></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="dashboard-section">
         <h3>Recapitulatif du projet</h3>
         <div class="dash-summary">
           <div>

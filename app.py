@@ -3540,35 +3540,8 @@ async def devis_intelligent(
         )
 
     smtp_cfg = _smtp_settings()
-    if not _smtp_ready(smtp_cfg):
-        smtp_host = (smtp_cfg.get("host") or "").strip()
-        smtp_user = (smtp_cfg.get("user") or "").strip()
-        provider_hint = "Gmail" if "gmail" in smtp_host.lower() or "gmail" in smtp_user.lower() else "SMTP"
-        return JSONResponse(
-            {
-                "ok": False,
-                "error": (
-                    f"Envoi email indisponible: configuration {provider_hint} incomplete. "
-                    "Renseignez SMTP_HOST, SMTP_USER, SMTP_FROM_EMAIL et surtout SMTP_PASSWORD."
-                ),
-                "setup_steps": [
-                    "Lancez ./run_gmail.sh si vous utilisez divclass72@gmail.com.",
-                    "Saisissez le mot de passe d'application Gmail (16 caracteres).",
-                    "Relancez l'envoi du devis intelligent.",
-                ],
-            },
-            status_code=503,
-        )
-
+    email_enabled = _smtp_ready(smtp_cfg)
     internal_recipient = (INTERNAL_REPORT_EMAIL or smtp_cfg.get("from_email") or "").strip()
-    if not internal_recipient:
-        return JSONResponse(
-            {
-                "ok": False,
-                "error": "Destinataire interne indisponible. Configurez INTERNAL_REPORT_EMAIL.",
-            },
-            status_code=503,
-        )
 
     tracking_context = _extract_tracking_context(
         request,
@@ -3795,6 +3768,19 @@ async def devis_intelligent(
             handoff_id = handoff.id
         finally:
             db.close()
+
+    # si SMTP non config, on renvoie quand même l'estimation
+    if not email_enabled or not internal_recipient:
+        return {
+            "ok": True,
+            "message": "Estimation sauvegardee (email non envoye - SMTP non configure).",
+            "quote": quote,
+            "handoff_id": handoff_id,
+            "delivery": {
+                "client_email_sent": False,
+                "internal_email_sent": False,
+            },
+        }
 
     client_subject, client_body = _compose_client_devis_email(
         name=name,

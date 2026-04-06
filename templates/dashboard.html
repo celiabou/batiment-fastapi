@@ -4,7 +4,54 @@
 {% block content %}
 <section class="dashboard-shell full-bleed">
   <div class="wrap dashboard-inner">
-    <div class="dashboard-main dashboard-main-full">
+    <aside class="dashboard-sidebar">
+      <p class="dashboard-title">Espace client</p>
+      <nav class="dashboard-nav">
+        <a class="is-active" href="#">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 11.5l8-6 8 6v7a1 1 0 0 1-1 1h-5v-5H10v5H5a1 1 0 0 1-1-1v-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+            </svg>
+          </span>
+          <span>Accueil</span>
+        </a>
+        <a href="/estimez-votre-projet">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 5h8l2 2v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+              <path d="M9 12h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Estimer mon projet</span>
+        </a>
+        <a href="#">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Chantier</span>
+        </a>
+        <a href="#">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M6 4h9l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6"></path>
+            </svg>
+          </span>
+          <span>Documents</span>
+        </a>
+        <a href="#">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M5 6h14M5 10h14M5 14h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Guides</span>
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main">
       {% if request.query_params.get("success") == "devis_final" %}
         <div class="form-alert">Votre demande de devis final a bien ete transmise.</div>
       {% endif %}
@@ -19,50 +66,58 @@
         {% set recap_surface = recap.get("surface", "70.0") %}
         <h2>{{ projects[0].title if projects else "Renovation complete d'un Appartement de 70.0 m2" }}</h2>
         <div class="dash-card">
-          <div class="stage-left">
-            <div class="stage-icon">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M9 12h6M9 16h6M8 4h6l4 4v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6"></path>
-              </svg>
-            </div>
-            <div>
-              <p class="dash-card-title">Etude du projet</p>
-              <p class="muted">{{ recap.get("city", "Ville a confirmer") if recap else "93120 La Courneuve, France" }}</p>
-              <p class="muted">Aucun rendez-vous a venir</p>
-            </div>
+          <div>
+            <p class="dash-card-title">
+              <span class="dash-icon dash-icon-circle">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12h6M9 16h6M8 4h6l4 4v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6"></path>
+                </svg>
+              </span>
+              Etude du projet
+            </p>
+            {% if recap %}
+              <p class="muted">{{ recap.get("city", "Ville a confirmer") }}</p>
+            {% elif projects %}
+              <p class="muted">{{ projects[0].summary }}</p>
+            {% else %}
+              <p class="muted">93120 La Courneuve, France</p>
+            {% endif %}
           </div>
+          {% if recap %}
+            <span class="status-pill">Rendez-vous a venir: {{ recap.get("appointment_status", "Non") }}</span>
+          {% else %}
+            <span class="status-pill">{{ projects[0].status if projects and projects[0].status else "Aucun rendez-vous a venir" }}</span>
+          {% endif %}
         </div>
       </section>
 
       <section class="dashboard-section">
-        <h3>Mes actions a realiser</h3>
-        <div class="dash-actions">
-          <button class="dash-action">
-            <span class="action-icon">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M6 4h9l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6"></path>
-                <path d="M9 13h6M9 16h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
-              </svg>
-            </span>
-            <span>Ajouter le DPE du bien</span>
-          </button>
-          <button class="dash-action">
-            <span class="action-icon">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M4 7h16M4 17h16M7 7v10M17 7v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
-                <path d="M9.5 11.5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
-              </svg>
-            </span>
-            <span>Ajouter les photos du bien</span>
-          </button>
-          <button class="dash-action">
-            <span class="action-icon">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M5 6h14M5 12h14M5 18h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
-              </svg>
-            </span>
-            <span>Ajouter les plans du bien</span>
-          </button>
+        <h3>Recapitulatif du projet</h3>
+        <div class="dash-summary">
+          <div>
+            <span>Type de bien</span>
+            <strong>{{ recap.get("project_type", "Appartement") }}</strong>
+          </div>
+          <div>
+            <span>Type de renovation</span>
+            <strong>{{ recap.get("scope", "Renovation complete") }}</strong>
+          </div>
+          <div>
+            <span>Surface</span>
+            <strong>{{ recap.get("surface", "70.0") }} m2</strong>
+          </div>
+          <div>
+            <span>Style</span>
+            <strong>{{ recap.get("style", "Moderne") }}</strong>
+          </div>
+          <div>
+            <span>Budget</span>
+            <strong>{{ recap.get("budget", "A confirmer") }}</strong>
+          </div>
+          <div>
+            <span>Niveau de finition</span>
+            <strong>{{ recap.get("finishing_level", "A confirmer") }}</strong>
+          </div>
         </div>
       </section>
 

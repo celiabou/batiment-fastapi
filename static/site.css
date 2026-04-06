@@ -2124,6 +2124,15 @@ h3 {
   justify-content: center;
 }
 
+.unit-override {
+  border: 1px solid #d4dde8;
+  border-radius: 10px;
+  padding: 6px 8px;
+  background: #fff;
+  font-weight: 700;
+  color: #1f2937;
+}
+
 .form-disclaimer {
   margin: 10px 0 8px;
   font-size: 12px;

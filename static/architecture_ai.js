@@ -88,6 +88,7 @@
   const workQtyInputs = Array.from(document.querySelectorAll(".js-work-qty"));
   const workUnitTags = Array.from(document.querySelectorAll(".js-work-unit"));
   const workUnitHidden = document.getElementById("workUnitHidden");
+  const workUnitOverride = document.getElementById("workUnitOverride");
 
   let quoteSubmitted = false;
   let quoteSubmitting = false;
@@ -439,7 +440,9 @@
   function syncWorkItemUnits() {
     workItemSelects.forEach((selectEl, idx) => {
       const selected = selectEl.options[selectEl.selectedIndex];
-      const unit = selected ? selected.getAttribute("data-unit") || "--" : "--";
+      const autoUnit = selected ? selected.getAttribute("data-unit") || "--" : "--";
+      const overrideUnit = workUnitOverride ? workUnitOverride.value : "";
+      const unit = overrideUnit || autoUnit || "--";
       const unitTag = workUnitTags[idx];
       const qtyInput = workQtyInputs[idx];
       if (unitTag) unitTag.textContent = unit;
@@ -660,6 +663,13 @@
   workItemSelects.forEach((selectEl) => {
     selectEl.addEventListener("change", syncWorkItemUnits);
   });
+  if (workUnitOverride) {
+    workUnitOverride.addEventListener("change", () => {
+      syncWorkItemUnits();
+      updateLiveRecap();
+      saveDraft();
+    });
+  }
   quoteForm.addEventListener("input", () => {
     updateLiveRecap();
     saveDraft();

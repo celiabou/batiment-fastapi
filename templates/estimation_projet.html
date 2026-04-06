@@ -93,6 +93,13 @@
         <div class="unit-field">
           <input name="work_quantity" class="js-work-qty" type="number" min="0" step="0.1" placeholder="Ex: 80">
           <span class="unit-tag js-work-unit">--</span>
+          <select id="workUnitOverride" class="unit-override">
+            <option value="">Auto</option>
+            <option value="m2">m2</option>
+            <option value="m3">m3</option>
+            <option value="unite">Unite</option>
+            <option value="forfait">Forfait</option>
+          </select>
         </div>
       </label>
       <input type="hidden" name="work_unit" id="workUnitHidden" value="">

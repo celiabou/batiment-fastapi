@@ -2184,6 +2184,7 @@ def _build_smart_quote(
     finishing_level: str = "",
     work_item_key: str = "",
     work_quantity: str = "",
+    work_unit: str = "",
 ) -> dict:
     scope_key = scope if scope in SMART_SCOPE_CONFIG else "renovation_complete"
     style_key = style if style in STYLE_MULTIPLIER else "moderne"
@@ -2210,7 +2211,7 @@ def _build_smart_quote(
     pricing_source = "smart_scope"
     base_from_grid = estimate_from_scope(scope_key, project_key, surface_value, finishing_key)
     if work_item_key:
-        base_from_grid = estimate_from_item_key(work_item_key, quantity_value)
+        base_from_grid = estimate_from_item_key(work_item_key, quantity_value, (work_unit or "").strip() or None)
         if base_from_grid:
             pricing_source = "tariff_item"
 
@@ -3434,6 +3435,7 @@ async def devis_intelligent(
     finishing_level: str = Form(""),
     work_item_key: str = Form(""),
     work_quantity: str = Form(""),
+    work_unit: str = Form(""),
     city: str = Form(""),
     surface: str = Form(""),
     rooms: str = Form(""),
@@ -3521,6 +3523,7 @@ async def devis_intelligent(
         finishing_level=finishing_level,
         work_item_key=work_item_key,
         work_quantity=work_quantity,
+        work_unit=work_unit,
     )
 
     project_saved = False
@@ -3680,6 +3683,7 @@ async def devis_intelligent(
                         "finishing_level": finishing_level,
                         "work_item_key": work_item_key,
                         "work_quantity": work_quantity,
+                        "work_unit": work_unit,
                         "city": city,
                         "surface": surface,
                         "rooms": rooms,
@@ -3985,6 +3989,7 @@ async def render_3d_on_demand(
             finishing_level=str((handoff_payload or {}).get("finishing_level", "")),
             work_item_key=str((handoff_payload or {}).get("work_item_key", "")),
             work_quantity=str((handoff_payload or {}).get("work_quantity", "")),
+            work_unit=str((handoff_payload or {}).get("work_unit", "")),
         )
 
         prompt = _compose_architecture_prompt(

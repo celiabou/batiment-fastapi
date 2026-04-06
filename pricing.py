@@ -140,12 +140,12 @@ def has_required_quantity(text: str, item: dict | None) -> bool:
     return False
 
 
-def estimate_from_item_key(item_key: str, quantity: float | int | None) -> dict | None:
+def estimate_from_item_key(item_key: str, quantity: float | int | None, unit_override: str | None = None) -> dict | None:
     item = TARIFF_BY_KEY.get((item_key or "").strip())
     if not item:
         return None
 
-    unit = item["unit"]
+    unit = unit_override or item["unit"]
     if unit == "forfait":
         return {"low": item["min"], "high": item["max"], "unit": unit, "label": item["label"]}
 

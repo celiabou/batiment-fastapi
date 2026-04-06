@@ -126,7 +126,11 @@
 
   function updateLiveRecap() {
     const snap = readFormSnapshot();
-    if (liveFields.work_item_key) liveFields.work_item_key.textContent = snap.work_item_key || "--";
+    if (liveFields.work_item_key) {
+      const selected = workItemSelects[0]?.selectedOptions?.[0];
+      const label = selected ? selected.textContent : "";
+      liveFields.work_item_key.textContent = label || snap.work_item_key || "--";
+    }
     if (liveFields.work_quantity) {
       const qty = snap.work_quantity ? snap.work_quantity : "--";
       const unit = snap.work_unit ? ` ${snap.work_unit}` : "";

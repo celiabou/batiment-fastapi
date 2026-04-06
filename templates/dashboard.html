@@ -88,7 +88,9 @@
             </p>
           </div>
           {% if recap %}
-            <span class="status-pill">Rendez-vous a venir: {{ recap.get("appointment_status", "Non") }}</span>
+            <span class="status-pill">
+              Rendez-vous: {{ recap.get("appointment_status", "Non") }}
+            </span>
           {% else %}
             <span class="status-pill">{{ projects[0].status if projects and projects[0].status else "Aucun rendez-vous a venir" }}</span>
           {% endif %}

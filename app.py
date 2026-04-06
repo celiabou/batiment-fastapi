@@ -3065,16 +3065,19 @@ def dashboard(request: Request):
         except json.JSONDecodeError:
             fallback_recap = {}
 
-    # choose recap: prefer latest handoff if present; otherwise first project recap
+    # choose recap: compare latest project vs latest handoff
     recap: dict = {}
-    if fallback_recap:
+    latest_project = projects[0] if projects else None
+    project_recap = project_recaps.get(latest_project.id) if latest_project else {}
+    project_ts = latest_project.updated_at if latest_project else None
+    handoff_ts = fallback_recap.get("created_at") if fallback_recap else None
+
+    if fallback_recap and (not project_recap or (handoff_ts and project_ts and handoff_ts > project_ts)):
         recap = fallback_recap
-    elif has_recap:
-        for p in projects:
-            rec = project_recaps.get(p.id) or {}
-            if rec:
-                recap = rec
-                break
+    elif project_recap:
+        recap = project_recap
+    elif fallback_recap:
+        recap = fallback_recap
 
     return templates.TemplateResponse(
         request,
@@ -3594,6 +3597,10 @@ async def devis_intelligent(
                 "city": city or "",
                 "finishing_level": finishing_level or "",
                 "estimate_range": f"{quote['low_label']} - {quote['high_label']}",
+                "timeline": timeline or "",
+                "work_item_key": work_item_key or "",
+                "work_quantity": work_quantity or "",
+                "work_unit": work_unit or "",
                 "appointment_status": "Non",
             }
             # update latest project if exists, else create

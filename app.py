@@ -3041,8 +3041,10 @@ def dashboard(request: Request):
         recap = _parse_project_summary(project.summary)
         project_recaps[project.id] = recap
 
+    has_recap = any(bool(r) for r in project_recaps.values())
+
     fallback_recap = {}
-    if not project_recaps and latest_handoff:
+    if (not has_recap) and latest_handoff:
         try:
             payload = json.loads(latest_handoff.conversation or "{}")
             if isinstance(payload, dict):
@@ -3065,13 +3067,13 @@ def dashboard(request: Request):
 
     # choose the freshest recap available
     chosen_recap: dict = {}
-    if project_recaps:
+    if has_recap:
         for p in projects:
             rec = project_recaps.get(p.id) or {}
             if rec:
                 chosen_recap = rec
                 break
-    if fallback_recap and not chosen_recap:
+    if fallback_recap and (not chosen_recap):
         chosen_recap = fallback_recap
     recap = chosen_recap
 

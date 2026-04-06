@@ -2995,7 +2995,7 @@ th {
 
 .dashboard-inner {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
 }
 
@@ -3040,6 +3040,10 @@ th {
 .dashboard-main {
   display: grid;
   gap: 18px;
+}
+
+.dashboard-main-full {
+  grid-column: 1 / -1;
 }
 
 .dashboard-banner {
@@ -3106,10 +3110,11 @@ th {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid #e4e7ec;
-  background: #ffffff;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid #efe1c4;
+  background: #fffefc;
+  box-shadow: var(--shadow-soft);
 }
 
 .dash-card-title {
@@ -3123,30 +3128,42 @@ th {
 
 .dash-actions {
   display: grid;
-  gap: 8px;
+  border: 1px solid #efe1c4;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fffefc;
 }
 
 .dash-action {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #e4e7ec;
-  background: #ffffff;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid #f1e6d9;
+  background: transparent;
   font-weight: 700;
-  color: #374151;
+  color: #2d2a26;
+  cursor: pointer;
+}
+
+.dash-action:last-child {
+  border-bottom: 0;
+}
+
+.dash-action:hover {
+  background: #f8f1e7;
 }
 
 .action-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #f3f4f6;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: #f3e8da;
+  color: #9c6b35;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
 }
 
 .dash-link {
@@ -3216,13 +3233,14 @@ th {
 }
 
 .dash-contact {
-  display: flex;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
   align-items: center;
-  padding: 12px;
+  padding: 14px;
   border-radius: 14px;
-  border: 1px solid #e4e7ec;
-  background: #ffffff;
+  border: 1px solid #e9dfd1;
+  background: #fefbf7;
 }
 
 .dash-icon {
@@ -3232,6 +3250,23 @@ th {
   align-items: center;
   justify-content: center;
   color: #9a7b55;
+}
+
+.stage-left {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.stage-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #f3e8da;
+  color: #9c6b35;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dash-icon svg {

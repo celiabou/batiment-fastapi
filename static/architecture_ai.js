@@ -125,6 +125,15 @@
     return Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(num) + " €";
   }
 
+  function formatQuantity(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "--";
+    const num = Number(raw.replace(",", "."));
+    if (!Number.isFinite(num)) return raw;
+    const formatted = num % 1 === 0 ? num.toString() : num.toString();
+    return formatted.replace(".", ",");
+  }
+
   function updateLiveRecap() {
     const snap = readFormSnapshot();
     if (liveFields.work_item_key) {
@@ -133,9 +142,9 @@
       liveFields.work_item_key.textContent = label || snap.work_item_key || "--";
     }
     if (liveFields.work_quantity) {
-      const qty = snap.work_quantity ? snap.work_quantity : "--";
+      const qty = formatQuantity(snap.work_quantity);
       const unit = snap.work_unit ? ` ${snap.work_unit}` : "";
-      liveFields.work_quantity.textContent = snap.work_quantity ? `${qty}${unit}` : "--";
+      liveFields.work_quantity.textContent = qty !== "--" ? `${qty}${unit}` : "--";
     }
     if (liveFields.project_type) liveFields.project_type.textContent = snap.project_type || "--";
     if (liveFields.scope) liveFields.scope.textContent = snap.scope || "--";

@@ -2101,6 +2101,10 @@ h3 {
   color: #6b7280;
 }
 
+.dashboard-live {
+  margin-top: 14px;
+}
+
 .ai3d-smart-card h4 {
   margin: 14px 0 6px;
   font-size: 15px;

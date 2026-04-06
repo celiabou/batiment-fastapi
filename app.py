@@ -3065,37 +3065,16 @@ def dashboard(request: Request):
         except json.JSONDecodeError:
             fallback_recap = {}
 
-    # choose the freshest recap available
-    chosen_recap: dict = {}
-    project_updated = None
-    if has_recap:
+    # choose recap: prefer latest handoff if present; otherwise first project recap
+    recap: dict = {}
+    if fallback_recap:
+        recap = fallback_recap
+    elif has_recap:
         for p in projects:
             rec = project_recaps.get(p.id) or {}
             if rec:
-                chosen_recap = rec
-                project_updated = p.updated_at
+                recap = rec
                 break
-
-    # merge/override with fallback if fresher or missing fields
-    if fallback_recap:
-        use_fallback = False
-        if not chosen_recap:
-            use_fallback = True
-        elif fallback_recap.get("created_at") and project_updated and fallback_recap["created_at"] > project_updated:
-            use_fallback = True
-        else:
-            # if recap missing key fields, augment
-            keys = ["project_type", "scope", "style", "surface", "rooms", "budget", "city", "finishing_level", "estimate_range"]
-            missing = any(not chosen_recap.get(k) for k in keys)
-            if missing:
-                use_fallback = True
-        if use_fallback:
-            # merge, keeping existing recap values when present
-            merged = dict(fallback_recap)
-            merged.update({k: v for k, v in chosen_recap.items() if v})
-            chosen_recap = merged
-
-    recap = chosen_recap
 
     return templates.TemplateResponse(
         request,

@@ -294,6 +294,8 @@ PROJECT_TYPE_LABELS = {
     "maison": "Maison",
     "appartement": "Appartement",
     "immeuble": "Immeuble",
+    "bien_professionnel": "Bien professionnel",
+    "autre": "Autre",
 }
 
 PROJECT_TYPE_MULTIPLIER = {
@@ -301,6 +303,8 @@ PROJECT_TYPE_MULTIPLIER = {
     "maison": 1.0,
     "appartement": 0.94,
     "immeuble": 1.16,
+    "bien_professionnel": 1.1,
+    "autre": 1.0,
 }
 
 PROJECT_DEFAULT_SURFACE = {
@@ -308,6 +312,8 @@ PROJECT_DEFAULT_SURFACE = {
     "maison": 120.0,
     "appartement": 65.0,
     "immeuble": 340.0,
+    "bien_professionnel": 180.0,
+    "autre": 100.0,
 }
 
 STYLE_MULTIPLIER = {

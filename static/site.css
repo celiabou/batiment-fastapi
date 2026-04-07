@@ -1892,8 +1892,8 @@ h3 {
 .ai3d-layout {
   margin-top: 16px;
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(360px, 1fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1.9fr) minmax(340px, 1fr);
+  gap: 24px;
   align-items: start;
 }
 
@@ -2600,8 +2600,8 @@ h3 {
 }
 
 .ai3d-layout {
-  gap: 28px;
-  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.9fr) minmax(340px, 1fr);
   align-items: start;
 }
 

@@ -1892,8 +1892,8 @@ h3 {
 .ai3d-layout {
   margin-top: 16px;
   display: grid;
-  grid-template-columns: minmax(0, 2.2fr) minmax(380px, 1fr);
-  gap: 28px;
+  grid-template-columns: minmax(0, 3fr) minmax(340px, 0.85fr);
+  gap: 32px;
   align-items: start;
 }
 
@@ -2600,9 +2600,13 @@ h3 {
 }
 
 .ai3d-layout {
-  gap: 28px;
-  grid-template-columns: minmax(0, 2.2fr) minmax(380px, 1fr);
+  gap: 32px;
+  grid-template-columns: minmax(0, 3fr) minmax(340px, 0.85fr);
   align-items: start;
+}
+
+.ai3d-layout.is-wide {
+  grid-template-columns: 1fr;
 }
 
 .ai3d-form-grid {

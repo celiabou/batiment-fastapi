@@ -6,18 +6,39 @@
   <div class="wrap">
     <section class="dashboard-section">
       <div class="doc-card">
-        {% if current_docs %}
-          <div class="doc-row-list">
-            {% for doc in current_docs %}
-              <div class="doc-row-line">
-                <span class="doc-row-label">{{ doc.label or doc.name }}</span>
-                <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
-              </div>
-            {% endfor %}
+        <div class="doc-row-list">
+          <div class="doc-row-line">
+            <span class="doc-row-label">Type de bien :</span>
+            <span class="doc-row-value">{{ current_recap.get("project_type", "—") }}</span>
           </div>
-        {% else %}
-          <p class="muted">Aucun document pour le moment.</p>
-        {% endif %}
+          <div class="doc-row-line">
+            <span class="doc-row-label">Lieu estimation :</span>
+            <span class="doc-row-value">{{ current_recap.get("city", "—") }}</span>
+          </div>
+          <div class="doc-row-line">
+            <span class="doc-row-label">Date estimation :</span>
+            <span class="doc-row-value">{{ current_recap.get("updated_label", "—") }}</span>
+          </div>
+          <div class="doc-row-line">
+            <span class="doc-row-label">Estimation main d'oeuvre :</span>
+            <span class="doc-row-value">{{ current_recap.get("estimate_range", "—") }}</span>
+          </div>
+          <div class="doc-row-line">
+            <span class="doc-row-label">Documents :</span>
+            <div class="doc-row-files">
+              {% if current_docs %}
+                {% for doc in current_docs %}
+                  <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+                {% endfor %}
+              {% else %}
+                <span class="doc-row-value">Aucun document pour le moment.</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="doc-actions">
+          <a class="btn btn-ghost" href="/dashboard">retourner à l'accueil</a>
+        </div>
       </div>
     </section>
   </div>

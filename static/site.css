@@ -3401,6 +3401,22 @@ th {
   font-weight: 600;
   word-break: break-word;
 }
+
+.doc-row-value {
+  font-size: 14px;
+  color: #111827;
+}
+
+.doc-row-files {
+  display: grid;
+  gap: 6px;
+}
+
+.doc-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-start;
+}
 .doc-simple-meta {
   margin-left: 6px;
   color: #6b7280;

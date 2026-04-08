@@ -3414,11 +3414,9 @@ th {
 }
 
 .doc-grid-cards.visuals {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 16px;
-  padding-bottom: 4px;
 }
 
 .doc-card.visual {
@@ -3428,7 +3426,7 @@ th {
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
-  flex: 0 0 min(280px, 70vw);
+  width: 100%;
 }
 
 .doc-card-header {

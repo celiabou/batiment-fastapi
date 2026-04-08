@@ -7,7 +7,17 @@
     <section class="dashboard-section">
       <div class="doc-card">
         <p class="doc-card-title">Documents</p>
-        <p class="muted">Aucun document à afficher pour l’instant.</p>
+        {% if docs_flat %}
+          <ul class="doc-simple-list">
+            {% for doc in docs_flat %}
+              <li>
+                <a class="doc-simple-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted">Aucun document pour le moment.</p>
+        {% endif %}
       </div>
     </section>
   </div>

@@ -3353,6 +3353,10 @@ th {
   word-break: break-word;
 }
 
+.docs-only .doc-card {
+  max-width: 720px;
+}
+
 .doc-simple-meta {
   margin-left: 6px;
   color: #6b7280;

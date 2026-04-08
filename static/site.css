@@ -3409,9 +3409,9 @@ th {
 }
 
 .doc-grid-cards.visuals {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
 }
 
 .doc-card.visual {
@@ -3420,8 +3420,6 @@ th {
   padding: 14px;
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
-  flex: 1 1 280px;
-  min-width: 260px;
 }
 
 .doc-card-header {
@@ -3432,13 +3430,13 @@ th {
 }
 
 .doc-icon {
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  background: linear-gradient(135deg, #fef3c7, #f5e6c5);
   display: grid;
   place-items: center;
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .doc-card-title {
@@ -3463,8 +3461,8 @@ th {
 }
 
 .doc-status-pill.ok {
-  color: #065f46;
-  background: #d1fae5;
+  color: #15803d;
+  background: #dcfce7;
 }
 
 .doc-status-pill.missing {
@@ -3476,6 +3474,39 @@ th {
   color: #1f78d1;
   text-decoration: underline;
   font-weight: 600;
+}
+
+.doc-card.visual:hover {
+  box-shadow: 0 14px 32px rgba(17, 24, 39, 0.12);
+  transform: translateY(-2px);
+}
+
+.doc-card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.doc-upload-inline {
+  display: inline-block;
+}
+
+.doc-upload-input.mini {
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 8px;
+  border: 1px dashed #d1d5db;
+}
+
+.doc-page-title {
+  margin: 0 0 4px;
+  font-size: 24px;
+  color: #111827;
+}
+
+.doc-page-desc {
+  margin: 0 0 14px;
+  color: #4b5563;
 }
 
 .doc-grid-cards {

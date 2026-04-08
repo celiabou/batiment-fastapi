@@ -4,28 +4,44 @@
 {% block content %}
 <section class="dashboard-shell full-bleed docs-only">
   <div class="wrap">
+    <h2 class="doc-page-title">Documents projet</h2>
+    <p class="doc-page-desc">Séparez vos pièces par catégories. Ajoutez autant de fichiers que nécessaire.</p>
+
     {% set cards = [
-      {"key":"presentation","title":"Présentation du bien","desc":"Photos, vidéos, liens d'annonce du bien etc.","icon":"🏠"},
-      {"key":"plans","title":"Plans et conception","desc":"Plans de l'existant/projet, dossier architecte, 3D etc.","icon":"📐"},
-      {"key":"technique","title":"Documents techniques","desc":"DPE, diagnostics, audits, notes de calcul etc.","icon":"🧪"},
-      {"key":"inspirations","title":"Inspirations","desc":"Photos, liens Pinterest etc.","icon":"💡"},
-      {"key":"autres","title":"Autres documents","desc":"Devis reçus, déclaration préalable, documents de copropriété etc.","icon":"📁"}
+      {"key":"presentation","title":"Présentation du bien","desc":"Photos, vidéos, liens d'annonce","icon":"🏠"},
+      {"key":"plans","title":"Plans et conception","desc":"Plans existants, dossier architecte, 3D","icon":"📐"},
+      {"key":"technique","title":"Documents techniques","desc":"DPE, diagnostics, audits","icon":"🧪"},
+      {"key":"inspirations","title":"Inspirations","desc":"Photos, Pinterest","icon":"💡"},
+      {"key":"autres","title":"Autres documents","desc":"Devis, déclaration préalable, copropriété","icon":"📁"}
     ] %}
 
     <div class="doc-grid-cards visuals">
       {% for card in cards %}
         {% set docs = (doc_buckets.get(card.key) or []) %}
-        <div class="doc-card visual">
+        {% set has_docs = docs|length > 0 %}
+        <div class="doc-card visual" data-first-url="{{ docs[0].url if has_docs else '' }}">
           <div class="doc-card-header">
             <span class="doc-icon">{{ card.icon }}</span>
-            <div>
+            <div class="doc-card-headings">
               <p class="doc-card-title">{{ card.title }}</p>
               <p class="doc-card-desc">{{ card.desc }}</p>
             </div>
-            <span class="doc-status-pill {{ 'ok' if docs else 'missing' }}">{{ 'Présent' if docs else 'Manquant' }}</span>
+            <div class="doc-card-actions">
+              <span class="doc-status-pill {{ 'ok' if has_docs else 'missing' }}">{{ 'Présent' if has_docs else 'Manquant' }}</span>
+              {% if current_project %}
+                <form class="doc-upload-inline" method="post" action="/api/project-document" enctype="multipart/form-data">
+                  <input type="hidden" name="project_id" value="{{ current_project.id }}">
+                  <input type="hidden" name="label" value="{{ card.title }}">
+                  <label class="doc-upload-input mini">
+                    + Ajouter
+                    <input type="file" name="file" required multiple accept="image/*,application/pdf,video/mp4,video/quicktime,video/webm">
+                  </label>
+                </form>
+              {% endif %}
+            </div>
           </div>
 
-          {% if docs %}
+          {% if has_docs %}
             <div class="doc-row-files">
               {% for doc in docs %}
                 <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
@@ -34,21 +50,22 @@
           {% else %}
             <p class="doc-status">Aucun document ajouté.</p>
           {% endif %}
-
-          {% if current_project %}
-            <form class="doc-upload" method="post" action="/api/project-document" enctype="multipart/form-data">
-              <input type="hidden" name="project_id" value="{{ current_project.id }}">
-              <input type="hidden" name="label" value="{{ card.title }}">
-              <label class="doc-upload-input">
-                Ajouter
-                <input type="file" name="file" required multiple accept="image/*,application/pdf,video/mp4,video/quicktime,video/webm">
-              </label>
-              <button class="btn btn-ghost" type="submit">Envoyer</button>
-            </form>
-          {% endif %}
         </div>
       {% endfor %}
     </div>
   </div>
 </section>
+<script>
+  document.querySelectorAll('.doc-card.visual').forEach((card) => {
+    const target = card.getAttribute('data-first-url');
+    if (target) {
+      card.addEventListener('click', (e) => {
+        const tag = (e.target || {}).tagName;
+        if (tag && ['A','INPUT','LABEL','BUTTON','FORM'].includes(tag.toUpperCase())) return;
+        window.open(target, '_blank');
+      });
+      card.style.cursor = 'pointer';
+    }
+  });
+</script>
 {% endblock %}

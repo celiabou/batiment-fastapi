@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Mes documents | Espace client{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell full-bleed">
+  <div class="wrap dashboard-inner">
+    <aside class="dashboard-sidebar">
+      <p class="dashboard-title">Espace client</p>
+      <nav class="dashboard-nav">
+        <a href="/dashboard">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 11.5l8-6 8 6v7a1 1 0 0 1-1 1h-5v-5H10v5H5a1 1 0 0 1-1-1v-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+            </svg>
+          </span>
+          <span>Accueil</span>
+        </a>
+        <a href="/estimez-votre-projet">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 5h8l2 2v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+              <path d="M9 12h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Estimer mon projet</span>
+        </a>
+        <a href="#">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Chantier</span>
+        </a>
+        <a class="is-active" href="/dashboard/documents">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M6 4h9l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6"></path>
+            </svg>
+          </span>
+          <span>Documents</span>
+        </a>
+        <a href="#">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M5 6h14M5 10h14M5 14h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Guides</span>
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main">
+      {% if request.query_params.get("error") == "missing_file" %}
+        <div class="form-alert">Ajoutez un fichier avant de valider.</div>
+      {% elif request.query_params.get("error") == "invalid_project" %}
+        <div class="form-alert">Projet introuvable ou non autorisé.</div>
+      {% elif request.query_params.get("error") == "empty_file" %}
+        <div class="form-alert">Fichier vide ou illisible.</div>
+      {% elif request.query_params.get("success") == "uploaded" %}
+        <div class="form-success">Document ajouté avec succès.</div>
+      {% endif %}
+
+      <section class="dashboard-section">
+        <h2>Documents du projet</h2>
+        <p class="section-sub">Retrouvez automatiquement les photos, vidéos et DPE envoyés lors de l’estimation. Ajoutez d’autres fichiers si besoin.</p>
+        {% if projects %}
+          <form class="auth-form" method="post" action="/api/project-document" enctype="multipart/form-data">
+            <label>Projet concerné
+              <select name="project_id" required>
+                {% for project in projects %}
+                  <option value="{{ project.id }}">{{ project.title }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>Libellé (optionnel)
+              <input name="label" placeholder="Ex: Plan RDC, Devis plombier">
+            </label>
+            <label>Fichier
+              <input type="file" name="file" required accept="image/*,application/pdf,video/mp4,video/quicktime,video/webm">
+            </label>
+            <button class="btn btn-solid" type="submit">Ajouter un document</button>
+          </form>
+        {% else %}
+          <p class="muted">Aucun projet trouvé. Créez une estimation pour commencer.</p>
+        {% endif %}
+      </section>
+
+      {% for project in projects %}
+        {% set docs = docs_by_project.get(project.id, []) %}
+        <section class="dashboard-section">
+          <div class="dash-card">
+            <div>
+              <p class="dash-card-title">{{ project.title }}</p>
+              <p class="muted">Documents liés à ce projet.</p>
+            </div>
+          </div>
+          {% if docs %}
+            <div class="dash-summary">
+              {% for doc in docs %}
+                <div>
+                  <span>{{ doc.label }}</span>
+                  <strong><a href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a></strong>
+                  <p class="muted">{{ doc.created_at }}</p>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="muted">Aucun document pour le moment.</p>
+          {% endif %}
+        </section>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

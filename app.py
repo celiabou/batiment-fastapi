@@ -1154,7 +1154,7 @@ def _build_contextual_short_reply(
 
 def _safe_suffix(filename: str) -> str:
     suffix = Path(filename or "").suffix.lower()
-    if suffix in {".jpg", ".jpeg", ".png", ".webp"}:
+    if suffix in {".jpg", ".jpeg", ".png", ".webp", ".pdf"}:
         return suffix
     return ".jpg"
 
@@ -1169,6 +1169,31 @@ def _safe_video_suffix(filename: str) -> str:
 def _public_static_url(path: Path) -> str:
     rel = path.relative_to(STATIC_DIR).as_posix()
     return f"/static/{rel}"
+
+
+def _document_public_url(stored_name: str) -> str:
+    if not stored_name:
+        return ""
+    stored_path = Path(stored_name)
+    # If stored_name already looks like a relative path inside /static, try it directly.
+    if not stored_path.is_absolute() and "/" in stored_name:
+        direct = STATIC_DIR / stored_path
+        if direct.exists():
+            return _public_static_url(direct)
+
+    candidates = [
+        STATIC_DIR / stored_path,
+        ESTIMATE_UPLOAD_DIR / stored_path.name,
+        CLIENT_DOCS_DIR / stored_path.name,
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            try:
+                return _public_static_url(candidate)
+            except ValueError:
+                continue
+    # Fallback guess to estimate upload path
+    return f"/static/estimate/uploads/{stored_path.name}"
 
 
 def _compose_architecture_prompt(
@@ -3114,6 +3139,57 @@ def dashboard(request: Request):
     )
 
 
+@app.get("/dashboard/documents", response_class=HTMLResponse)
+def dashboard_documents(request: Request):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/documents", status_code=303)
+    if user.get("role") == "admin":
+        return RedirectResponse("/admin", status_code=303)
+
+    db = SessionLocal()
+    try:
+        projects = (
+            db.query(ClientProject)
+            .filter(ClientProject.client_id == user["id"])
+            .order_by(ClientProject.updated_at.desc(), ClientProject.created_at.desc())
+            .all()
+        )
+        documents = (
+            db.query(ProjectDocument)
+            .filter(ProjectDocument.client_id == user["id"])
+            .order_by(ProjectDocument.created_at.desc())
+            .all()
+        )
+    finally:
+        db.close()
+
+    docs_by_project: dict[int, list[dict]] = {}
+    for doc in documents:
+        url = _document_public_url(doc.stored_name)
+        entry = {
+            "id": doc.id,
+            "label": doc.label or "Document",
+            "name": doc.original_name,
+            "url": url,
+            "mime_type": doc.mime_type or "",
+            "created_at": doc.created_at.strftime("%d/%m/%Y %H:%M") if doc.created_at else "",
+            "stored_name": doc.stored_name,
+        }
+        docs_by_project.setdefault(doc.project_id, []).append(entry)
+
+    return templates.TemplateResponse(
+        request,
+        "dashboard_documents.html",
+        {
+            "user": user,
+            "projects": projects,
+            "docs_by_project": docs_by_project,
+            "hide_public_header": True,
+        },
+    )
+
+
 @app.post("/api/devis-final")
 def request_final_quote(
     request: Request,
@@ -3155,6 +3231,64 @@ def request_final_quote(
             _send_email_message(to_email=internal_recipient, subject=subject, text_body=body)
 
     return RedirectResponse("/dashboard?success=devis_final", status_code=303)
+
+
+def _safe_doc_suffix(filename: str) -> str:
+    suffix = Path(filename or "").suffix.lower()
+    if suffix in {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".mp4", ".mov", ".webm"}:
+        return suffix
+    return ".pdf"
+
+
+@app.post("/api/project-document")
+async def upload_project_document(
+    request: Request,
+    project_id: int = Form(...),
+    label: str = Form("Document client"),
+    file: UploadFile = File(...),
+):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/documents", status_code=303)
+
+    if not file or not file.filename:
+        return RedirectResponse("/dashboard/documents?error=missing_file", status_code=303)
+
+    db = SessionLocal()
+    try:
+        project = (
+            db.query(ClientProject)
+            .filter(ClientProject.id == project_id, ClientProject.client_id == user["id"])
+            .first()
+        )
+        if not project:
+            return RedirectResponse("/dashboard/documents?error=invalid_project", status_code=303)
+
+        suffix = _safe_doc_suffix(file.filename)
+        CLIENT_DOCS_DIR.mkdir(parents=True, exist_ok=True)
+        filename = f"client_doc_{_utc_file_stamp()}_{uuid.uuid4().hex[:8]}{suffix}"
+        dst = CLIENT_DOCS_DIR / filename
+        content = await file.read()
+        if not content:
+            return RedirectResponse("/dashboard/documents?error=empty_file", status_code=303)
+        dst.write_bytes(content)
+
+        db.add(
+            ProjectDocument(
+                client_id=user["id"],
+                project_id=project.id,
+                label=label or "Document client",
+                original_name=file.filename,
+                stored_name=filename,
+                mime_type=file.content_type,
+            )
+        )
+        project.updated_at = _utc_now()
+        db.commit()
+    finally:
+        db.close()
+
+    return RedirectResponse("/dashboard/documents?success=uploaded", status_code=303)
 
 
 @app.get("/admin", response_class=HTMLResponse)
@@ -3637,6 +3771,15 @@ async def devis_intelligent(
         if content:
             dst.write_bytes(content)
             photo_urls.append(_public_static_url(dst))
+            document_refs.append(
+                {
+                    "label": "Photo du bien",
+                    "original_name": upload.filename,
+                    "stored_name": filename,
+                    "mime_type": upload.content_type,
+                    "path": dst,
+                }
+            )
 
     video_urls: list[str] = []
     for upload in project_videos or []:
@@ -3649,6 +3792,15 @@ async def devis_intelligent(
         if content:
             dst.write_bytes(content)
             video_urls.append(_public_static_url(dst))
+            document_refs.append(
+                {
+                    "label": "Video du bien",
+                    "original_name": upload.filename,
+                    "stored_name": filename,
+                    "mime_type": upload.content_type,
+                    "path": dst,
+                }
+            )
 
     document_refs: list[dict] = []
     if project_dpe and project_dpe.filename:

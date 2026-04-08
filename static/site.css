@@ -1227,6 +1227,10 @@ h3 {
   grid-template-columns: 1fr;
 }
 
+.before-after-images.triple {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .before-after-images figure {
   margin: 0;
   position: relative;

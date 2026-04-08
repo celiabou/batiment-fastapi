@@ -7,24 +7,22 @@
     <section class="dashboard-section">
       <div class="doc-card">
         <p class="doc-card-title">Documents</p>
-        <div class="doc-details">
-          <p><strong>Type de bien :</strong> {{ current_recap.get("project_type", "—") }}</p>
-          <p><strong>Lieu estimation :</strong> {{ current_recap.get("city", "—") }}</p>
-          <p><strong>Date estimation :</strong> {{ current_recap.get("updated_label", "—") }}</p>
-          <p><strong>Estimation main d'oeuvre :</strong> {{ current_recap.get("estimate_range", "—") }}</p>
+        <div class="doc-lines">
+          <p>Type de bien : {{ current_recap.get("project_type", "—") }}</p>
+          <p>Lieu estimation : {{ current_recap.get("city", "—") }}</p>
+          <p>Date estimation : {{ current_recap.get("updated_label", "—") }}</p>
+          <p>Estimation main d'oeuvre : {{ current_recap.get("estimate_range", "—") }}</p>
+          <p>Documents :</p>
+          {% if current_docs %}
+            <div class="doc-file-list">
+              {% for doc in current_docs %}
+                <a href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="muted">Aucun document pour le moment.</p>
+          {% endif %}
         </div>
-        <hr>
-        {% if current_docs %}
-          <ul class="doc-simple-list">
-            {% for doc in current_docs %}
-              <li>
-                <a class="doc-simple-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="muted">Aucun document pour le moment.</p>
-        {% endif %}
       </div>
     </section>
   </div>

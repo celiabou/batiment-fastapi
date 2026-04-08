@@ -20,7 +20,7 @@ from urllib import request as urlrequest
 from urllib.parse import parse_qs, urlparse
 
 from fastapi import Body, FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -3200,7 +3200,6 @@ def dashboard_documents(request: Request):
     docs_flat: list[dict] = []
     for doc in documents:
         resolved_path = _resolve_document_path(doc.stored_name)
-        url = _document_public_url(doc.stored_name)
         size_label = ""
         if resolved_path and resolved_path.exists():
             try:
@@ -3215,9 +3214,10 @@ def dashboard_documents(request: Request):
                 size_label = ""
         entry = {
             "id": doc.id,
-            "label": doc.label or "Document",
+            "label": (doc.label or "Document").split("|", 1)[1] if (doc.label or "").startswith("cat:") and "|" in (doc.label or "") else (doc.label or "Document"),
+            "raw_label": doc.label or "Document",
             "name": doc.original_name,
-            "url": url,
+            "url": f"/api/project-document/{doc.id}/open",
             "mime_type": doc.mime_type or "",
             "created_at": doc.created_at.strftime("%d/%m/%Y %H:%M") if doc.created_at else "",
             "stored_name": doc.stored_name,
@@ -3230,13 +3230,30 @@ def dashboard_documents(request: Request):
     current_docs = docs_by_project.get(current_project.id, []) if current_project else []
     current_recap = project_recaps.get(current_project.id, {}) if current_project else {}
 
+    allowed_keys = {"presentation", "plans", "technique", "inspirations", "autres"}
+
+    def _normalize_txt(value: str) -> str:
+        raw = unicodedata.normalize("NFKD", value or "")
+        return "".join(ch for ch in raw if not unicodedata.combining(ch)).lower().strip()
+
     def _bucket(doc_label: str) -> str:
-        lbl = (doc_label or "").lower()
+        raw = (doc_label or "").strip()
+        if raw.startswith("cat:") and "|" in raw:
+            key = raw.split("|", 1)[0].replace("cat:", "", 1).strip().lower()
+            if key in allowed_keys:
+                return key
+        lbl = _normalize_txt(raw)
+        if "presentation du bien" in lbl:
+            return "presentation"
+        if "documents techniques" in lbl:
+            return "technique"
+        if "autres documents" in lbl:
+            return "autres"
         if any(k in lbl for k in ["photo", "video", "annonce"]):
             return "presentation"
         if any(k in lbl for k in ["plan", "3d", "dossier"]):
             return "plans"
-        if any(k in lbl for k in ["dpe", "diagnostic", "audit", "calcul"]):
+        if any(k in lbl for k in ["dpe", "diagnostic", "audit", "calcul", "technique"]):
             return "technique"
         if any(k in lbl for k in ["inspiration", "pinterest", "mood"]):
             return "inspirations"
@@ -3244,7 +3261,7 @@ def dashboard_documents(request: Request):
 
     buckets: dict[str, list[dict]] = {"presentation": [], "plans": [], "technique": [], "inspirations": [], "autres": []}
     for doc in current_docs:
-        cat = _bucket(doc.get("label") or doc.get("name"))
+        cat = _bucket(doc.get("raw_label") or doc.get("label") or doc.get("name"))
         buckets.setdefault(cat, []).append(doc)
 
     return templates.TemplateResponse(
@@ -3317,17 +3334,25 @@ def request_final_quote(
     return RedirectResponse("/dashboard?success=devis_final", status_code=303)
 
 
-def _safe_doc_suffix(filename: str) -> str:
+def _safe_doc_suffix(filename: str, mime_type: str = "") -> str:
     suffix = Path(filename or "").suffix.lower()
-    if suffix in {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".mp4", ".mov", ".webm"}:
+    if suffix in {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic", ".heif", ".mp4", ".mov", ".webm"}:
         return suffix
-    return ".pdf"
+    mime = (mime_type or "").lower()
+    if mime.startswith("image/"):
+        return ".jpg"
+    if mime.startswith("video/"):
+        return ".mp4"
+    if "pdf" in mime:
+        return ".pdf"
+    return ".bin"
 
 
 @app.post("/api/project-document")
 async def upload_project_document(
     request: Request,
     project_id: int | None = Form(None),
+    category_key: str = Form(""),
     label: str = Form("Document client"),
     file: list[UploadFile] = File(...),
 ):
@@ -3341,6 +3366,10 @@ async def upload_project_document(
 
     db = SessionLocal()
     try:
+        safe_category = (category_key or "").strip().lower()
+        if safe_category not in {"presentation", "plans", "technique", "inspirations", "autres"}:
+            safe_category = ""
+
         project = None
         if project_id:
             project = (
@@ -3372,18 +3401,20 @@ async def upload_project_document(
         CLIENT_DOCS_DIR.mkdir(parents=True, exist_ok=True)
         saved_any = False
         for upload in uploads:
-            suffix = _safe_doc_suffix(upload.filename)
+            suffix = _safe_doc_suffix(upload.filename, upload.content_type or "")
             filename = f"client_doc_{_utc_file_stamp()}_{uuid.uuid4().hex[:8]}{suffix}"
             dst = CLIENT_DOCS_DIR / filename
             content = await upload.read()
             if not content:
                 continue
             dst.write_bytes(content)
+            clean_label = (label or "Document client").strip()
+            stored_label = f"cat:{safe_category}|{clean_label}" if safe_category else clean_label
             db.add(
                 ProjectDocument(
                     client_id=user["id"],
                     project_id=project.id,
-                    label=label or "Document client",
+                    label=stored_label,
                     original_name=upload.filename,
                     stored_name=filename,
                     mime_type=upload.content_type,
@@ -3399,6 +3430,67 @@ async def upload_project_document(
         db.close()
 
     return RedirectResponse("/dashboard/documents?success=uploaded", status_code=303)
+
+
+@app.get("/api/project-document/{doc_id}/open")
+def open_project_document(request: Request, doc_id: int):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/documents", status_code=303)
+
+    db = SessionLocal()
+    try:
+        doc = (
+            db.query(ProjectDocument)
+            .filter(ProjectDocument.id == doc_id, ProjectDocument.client_id == user["id"])
+            .first()
+        )
+    finally:
+        db.close()
+
+    if not doc:
+        return RedirectResponse("/dashboard/documents?error=document_missing", status_code=303)
+
+    path = _resolve_document_path(doc.stored_name)
+    if not path or not path.exists():
+        return RedirectResponse("/dashboard/documents?error=document_missing", status_code=303)
+
+    return FileResponse(
+        path=str(path),
+        media_type=(doc.mime_type or None),
+        filename=(doc.original_name or path.name),
+    )
+
+
+@app.post("/api/project-document/delete")
+def delete_project_document(request: Request, doc_id: int = Form(...)):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/documents", status_code=303)
+
+    db = SessionLocal()
+    try:
+        doc = (
+            db.query(ProjectDocument)
+            .filter(ProjectDocument.id == doc_id, ProjectDocument.client_id == user["id"])
+            .first()
+        )
+        if not doc:
+            return RedirectResponse("/dashboard/documents?error=document_missing", status_code=303)
+
+        path = _resolve_document_path(doc.stored_name)
+        db.delete(doc)
+        db.commit()
+
+        if path and path.exists():
+            try:
+                path.unlink()
+            except OSError:
+                pass
+    finally:
+        db.close()
+
+    return RedirectResponse("/dashboard/documents?success=deleted", status_code=303)
 
 
 @app.get("/admin", response_class=HTMLResponse)

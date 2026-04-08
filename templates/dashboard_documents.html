@@ -6,6 +6,19 @@
   <div class="wrap">
     <h2 class="doc-page-title">Documents projet</h2>
     <p class="doc-page-desc">Categories en colonne. Bouton Ajouter sur chaque bloc avec upload multiple sans limite.</p>
+    {% if request.query_params.get("success") == "uploaded" %}
+      <div class="form-success">Documents ajoutes avec succes.</div>
+    {% elif request.query_params.get("success") == "deleted" %}
+      <div class="form-success">Document supprime avec succes.</div>
+    {% elif request.query_params.get("error") == "missing_file" %}
+      <div class="form-alert">Ajoute au moins un fichier.</div>
+    {% elif request.query_params.get("error") == "empty_file" %}
+      <div class="form-alert">Le fichier est vide ou invalide.</div>
+    {% elif request.query_params.get("error") == "invalid_project" %}
+      <div class="form-alert">Projet introuvable pour cet upload.</div>
+    {% elif request.query_params.get("error") == "document_missing" %}
+      <div class="form-alert">Document introuvable.</div>
+    {% endif %}
 
     {% set cards = [
       {"key":"presentation","title":"Présentation du bien","desc":"Photos, vidéos, liens d'annonce","icon":"🏠"},
@@ -33,7 +46,10 @@
                 <button class="doc-action-btn disabled" type="button" disabled>Visualise</button>
               {% endif %}
               <form class="doc-upload-inline" method="post" action="/api/project-document" enctype="multipart/form-data">
-                <input type="hidden" name="project_id" value="{{ current_project.id if current_project else '' }}">
+                {% if current_project %}
+                  <input type="hidden" name="project_id" value="{{ current_project.id }}">
+                {% endif %}
+                <input type="hidden" name="category_key" value="{{ card.key }}">
                 <input type="hidden" name="label" value="{{ card.title }}">
                 <label class="doc-upload-input mini">
                   Ajouter
@@ -46,7 +62,13 @@
           {% if has_docs %}
             <div class="doc-row-files is-hidden" id="doc-files-{{ card.key }}">
               {% for doc in docs %}
-                <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+                <div class="doc-file-row">
+                  <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+                  <form class="doc-delete-form" method="post" action="/api/project-document/delete" onsubmit="return confirm('Supprimer ce document ?')">
+                    <input type="hidden" name="doc_id" value="{{ doc.id }}">
+                    <button class="doc-delete-btn" type="submit">Supprimer</button>
+                  </form>
+                </div>
               {% endfor %}
             </div>
           {% else %}

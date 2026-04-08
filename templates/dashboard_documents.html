@@ -6,11 +6,13 @@
   <div class="wrap">
     <section class="dashboard-section">
       <div class="doc-card">
-        <p class="doc-card-title">Documents</p>
         {% if current_docs %}
-          <div class="doc-file-list">
+          <div class="doc-row-list">
             {% for doc in current_docs %}
-              <a href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+              <div class="doc-row-line">
+                <span class="doc-row-label">{{ doc.label or doc.name }}</span>
+                <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+              </div>
             {% endfor %}
           </div>
         {% else %}

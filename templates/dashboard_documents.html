@@ -27,6 +27,11 @@
               <p class="doc-card-desc">{{ card.desc }}</p>
             </div>
             <div class="doc-card-actions">
+              {% if has_docs %}
+                <button class="doc-action-btn view js-doc-toggle" type="button" data-target="doc-files-{{ card.key }}">Visualiser</button>
+              {% else %}
+                <button class="doc-action-btn disabled" type="button" disabled>Visualiser</button>
+              {% endif %}
               {% if current_project %}
                 <form class="doc-upload-inline" method="post" action="/api/project-document" enctype="multipart/form-data">
                   <input type="hidden" name="project_id" value="{{ current_project.id }}">
@@ -37,16 +42,11 @@
                   </label>
                 </form>
               {% endif %}
-              {% if has_docs %}
-                <a class="doc-action-btn view" href="{{ docs[0].url }}" target="_blank" rel="noopener">Visualiser</a>
-              {% else %}
-                <button class="doc-action-btn disabled" type="button" disabled>Visualiser</button>
-              {% endif %}
             </div>
           </div>
 
           {% if has_docs %}
-            <div class="doc-row-files">
+            <div class="doc-row-files is-hidden" id="doc-files-{{ card.key }}">
               {% for doc in docs %}
                 <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
               {% endfor %}
@@ -59,4 +59,16 @@
     </div>
   </div>
 </section>
+<script>
+  document.querySelectorAll('.js-doc-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-target');
+      if (!targetId) return;
+      const files = document.getElementById(targetId);
+      if (!files) return;
+      files.classList.toggle('is-hidden');
+      btn.textContent = files.classList.contains('is-hidden') ? 'Visualiser' : 'Masquer';
+    });
+  });
+</script>
 {% endblock %}

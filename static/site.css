@@ -3498,10 +3498,9 @@ th {
 
 .doc-card-actions {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
+  align-items: flex-end;
 }
 
 .doc-upload-inline {
@@ -3509,7 +3508,7 @@ th {
 }
 
 .doc-upload-input.mini {
-  padding: 6px 10px;
+  padding: 7px 12px;
   font-size: 12px;
   border-radius: 10px;
   border: 1px solid #f59e0b;
@@ -3524,7 +3523,7 @@ th {
 }
 
 .doc-action-btn {
-  padding: 6px 10px;
+  padding: 7px 12px;
   border-radius: 10px;
   font-size: 12px;
   font-weight: 700;
@@ -3558,15 +3557,18 @@ th {
   color: #4b5563;
 }
 
+.doc-row-files.is-hidden {
+  display: none;
+}
+
 @media (max-width: 720px) {
   .doc-card-header {
     grid-template-columns: 1fr;
     gap: 8px;
   }
   .doc-card-actions {
-    justify-content: flex-start;
+    align-items: flex-start;
     gap: 6px;
-    flex-wrap: wrap;
   }
 }
 

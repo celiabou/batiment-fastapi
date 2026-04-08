@@ -57,31 +57,20 @@
       {% for project in projects %}
         {% set docs = docs_by_project.get(project.id, []) %}
         <section class="dashboard-section">
-          <p class="muted doc-project-title">{{ project.title }}</p>
-          {% if docs %}
-            <div class="doc-stack">
-              {% for doc in docs %}
-                <div class="doc-item">
-                  <div class="doc-item-body">
-                    <p class="doc-item-title">{{ doc.label or "Document" }}</p>
-                    <p class="doc-item-sub">{{ doc.name }}</p>
-                  </div>
-                  <div class="doc-item-meta">
-                    <span>{{ doc.mime_type or "Fichier" }}</span>
-                    <span>·</span>
-                    <span>{{ doc.size or "Taille inconnue" }}</span>
-                    <span>·</span>
-                    <span>{{ doc.created_at or "—" }}</span>
-                  </div>
-                  <div class="doc-item-actions">
-                    <a class="btn btn-ghost" href="{{ doc.url }}" target="_blank" rel="noopener">Télécharger / Ouvrir</a>
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <p class="muted">Aucun document pour le moment.</p>
-          {% endif %}
+          <div class="doc-card">
+            <p class="doc-card-title">{{ project.title }}</p>
+            {% if docs %}
+              <ul class="doc-simple-list">
+                {% for doc in docs %}
+                  <li>
+                    <a class="doc-simple-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="muted">Aucun document pour le moment.</p>
+            {% endif %}
+          </div>
         </section>
       {% endfor %}
     </div>

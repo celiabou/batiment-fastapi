@@ -3324,71 +3324,19 @@ th {
   color: #e4572e;
 }
 
-.doc-list {
+.doc-simple-list {
   list-style: disc;
-  padding-left: 18px;
+  padding-left: 20px;
   margin: 0;
   display: grid;
   gap: 6px;
 }
 
-.doc-list li {
-  font-size: 14px;
-  color: #111827;
-}
-
-.doc-list a {
-  color: #0f766e;
+.doc-simple-link {
+  color: #1f78d1;
   text-decoration: underline;
   font-weight: 600;
-}
-
-.doc-list strong {
-  margin-right: 6px;
-}
-
-.doc-project-title {
-  margin: 0 0 6px;
-  font-weight: 700;
-  color: #6b7280;
-}
-
-.doc-stack {
-  display: grid;
-  gap: 10px;
-}
-
-.doc-item {
-  border: 1px solid #e4e7ec;
-  border-radius: 12px;
-  padding: 12px;
-  background: #fff;
-  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.05);
-}
-
-.doc-item-title {
-  margin: 0 0 2px;
-  font-weight: 800;
-  color: #e4572e;
-}
-
-.doc-item-sub {
-  margin: 0;
-  color: #111827;
-  font-size: 14px;
-}
-
-.doc-item-meta {
-  margin-top: 6px;
-  color: #6b7280;
-  font-size: 12px;
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.doc-item-actions {
-  margin-top: 8px;
+  word-break: break-word;
 }
 
 .dash-contact {

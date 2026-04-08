@@ -3353,10 +3353,6 @@ th {
   word-break: break-word;
 }
 
-.docs-only .doc-card {
-  max-width: 720px;
-}
-
 .doc-lines {
   display: grid;
   gap: 6px;
@@ -3413,9 +3409,9 @@ th {
 }
 
 .doc-grid-cards.visuals {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: flex;
   gap: 14px;
+  flex-wrap: wrap;
 }
 
 .doc-card.visual {
@@ -3424,6 +3420,8 @@ th {
   padding: 14px;
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
+  flex: 1 1 280px;
+  min-width: 260px;
 }
 
 .doc-card-header {

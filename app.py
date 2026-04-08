@@ -3329,13 +3329,14 @@ async def upload_project_document(
     request: Request,
     project_id: int = Form(...),
     label: str = Form("Document client"),
-    file: UploadFile = File(...),
+    file: list[UploadFile] = File(...),
 ):
     user = _require_user(request)
     if not user:
         return RedirectResponse("/login?next=/dashboard/documents", status_code=303)
 
-    if not file or not file.filename:
+    uploads = [f for f in (file or []) if f and f.filename]
+    if not uploads:
         return RedirectResponse("/dashboard/documents?error=missing_file", status_code=303)
 
     db = SessionLocal()
@@ -3348,27 +3349,32 @@ async def upload_project_document(
         if not project:
             return RedirectResponse("/dashboard/documents?error=invalid_project", status_code=303)
 
-        suffix = _safe_doc_suffix(file.filename)
         CLIENT_DOCS_DIR.mkdir(parents=True, exist_ok=True)
-        filename = f"client_doc_{_utc_file_stamp()}_{uuid.uuid4().hex[:8]}{suffix}"
-        dst = CLIENT_DOCS_DIR / filename
-        content = await file.read()
-        if not content:
-            return RedirectResponse("/dashboard/documents?error=empty_file", status_code=303)
-        dst.write_bytes(content)
-
-        db.add(
-            ProjectDocument(
-                client_id=user["id"],
-                project_id=project.id,
-                label=label or "Document client",
-                original_name=file.filename,
-                stored_name=filename,
-                mime_type=file.content_type,
+        saved_any = False
+        for upload in uploads:
+            suffix = _safe_doc_suffix(upload.filename)
+            filename = f"client_doc_{_utc_file_stamp()}_{uuid.uuid4().hex[:8]}{suffix}"
+            dst = CLIENT_DOCS_DIR / filename
+            content = await upload.read()
+            if not content:
+                continue
+            dst.write_bytes(content)
+            db.add(
+                ProjectDocument(
+                    client_id=user["id"],
+                    project_id=project.id,
+                    label=label or "Document client",
+                    original_name=upload.filename,
+                    stored_name=filename,
+                    mime_type=upload.content_type,
+                )
             )
-        )
-        project.updated_at = _utc_now()
-        db.commit()
+            saved_any = True
+        if saved_any:
+            project.updated_at = _utc_now()
+            db.commit()
+        else:
+            return RedirectResponse("/dashboard/documents?error=empty_file", status_code=303)
     finally:
         db.close()
 

@@ -2713,6 +2713,12 @@ h3 {
   .ai3d-compare-grid {
     grid-template-columns: 1fr;
   }
+  .dash-flex {
+    grid-template-columns: 1fr;
+  }
+  .doc-row {
+    grid-template-columns: 1fr;
+  }
 
   .ai3d-compare-head,
   .ai3d-compare-cell {
@@ -3273,6 +3279,59 @@ th {
 .dash-summary strong {
   font-size: 14px;
   color: #1f2937;
+}
+
+.dash-flex {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.dash-panel {
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
+}
+
+.dash-panel.secondary {
+  background: #f9fafb;
+}
+
+.doc-table {
+  width: 100%;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.doc-row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr 1fr 0.8fr;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e4e7ec;
+}
+
+.doc-row:last-child {
+  border-bottom: 0;
+}
+
+.doc-head {
+  background: #f6f7fb;
+  font-weight: 600;
+}
+
+.doc-row span {
+  display: block;
+  font-size: 14px;
+  color: #1f2933;
+}
+
+.doc-row a.btn.btn-ghost {
+  padding: 6px 12px;
 }
 
 .dash-contact {

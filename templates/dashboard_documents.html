@@ -63,25 +63,39 @@
       {% endif %}
 
       <section class="dashboard-section">
-        <h2>Documents du projet</h2>
-        <p class="section-sub">Retrouvez automatiquement les photos, vidéos et DPE envoyés lors de l’estimation. Ajoutez d’autres fichiers si besoin.</p>
+        <div class="dash-card">
+          <div>
+            <p class="dash-card-title">Documents du projet</p>
+            <p class="muted">Les fichiers (photos, vidéos, DPE, plans) déposés dans “Estimation du projet” s’affichent ici automatiquement.</p>
+          </div>
+          <div class="muted">Formats acceptés : PDF, JPG, PNG, WEBP, MP4, MOV.</div>
+        </div>
         {% if projects %}
-          <form class="auth-form" method="post" action="/api/project-document" enctype="multipart/form-data">
-            <label>Projet concerné
-              <select name="project_id" required>
-                {% for project in projects %}
-                  <option value="{{ project.id }}">{{ project.title }}</option>
-                {% endfor %}
-              </select>
-            </label>
-            <label>Libellé (optionnel)
-              <input name="label" placeholder="Ex: Plan RDC, Devis plombier">
-            </label>
-            <label>Fichier
-              <input type="file" name="file" required accept="image/*,application/pdf,video/mp4,video/quicktime,video/webm">
-            </label>
-            <button class="btn btn-solid" type="submit">Ajouter un document</button>
-          </form>
+          <div class="dash-flex">
+            <div class="dash-panel">
+              <p class="muted">Ajouter un document</p>
+              <form class="auth-form" method="post" action="/api/project-document" enctype="multipart/form-data">
+                <label>Projet concerné
+                  <select name="project_id" required>
+                    {% for project in projects %}
+                      <option value="{{ project.id }}">{{ project.title }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <label>Libellé (optionnel)
+                  <input name="label" placeholder="Ex: Plan RDC, Devis plombier">
+                </label>
+                <label>Fichier
+                  <input type="file" name="file" required accept="image/*,application/pdf,video/mp4,video/quicktime,video/webm">
+                </label>
+                <button class="btn btn-solid" type="submit">Téléverser</button>
+              </form>
+            </div>
+            <div class="dash-panel secondary">
+              <p class="muted">Astuce</p>
+              <p class="muted">Déposez vos photos, vidéos ou DPE dans l’estimation : elles arrivent ici automatiquement, classées par projet.</p>
+            </div>
+          </div>
         {% else %}
           <p class="muted">Aucun projet trouvé. Créez une estimation pour commencer.</p>
         {% endif %}
@@ -97,12 +111,24 @@
             </div>
           </div>
           {% if docs %}
-            <div class="dash-summary">
+            <div class="doc-table">
+              <div class="doc-row doc-head">
+                <span>Fichier</span>
+                <span>Type</span>
+                <span>Taille</span>
+                <span>Ajouté le</span>
+                <span></span>
+              </div>
               {% for doc in docs %}
-                <div>
-                  <span>{{ doc.label }}</span>
-                  <strong><a href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a></strong>
-                  <p class="muted">{{ doc.created_at }}</p>
+                <div class="doc-row">
+                  <span>
+                    <strong>{{ doc.label }}</strong><br>
+                    <a href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+                  </span>
+                  <span>{{ doc.mime_type or "—" }}</span>
+                  <span>{{ doc.size or "—" }}</span>
+                  <span>{{ doc.created_at or "—" }}</span>
+                  <span><a class="btn btn-ghost" href="{{ doc.url }}" target="_blank" rel="noopener">Ouvrir</a></span>
                 </div>
               {% endfor %}
             </div>

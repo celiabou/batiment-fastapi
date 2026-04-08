@@ -1196,6 +1196,21 @@ def _document_public_url(stored_name: str) -> str:
     return f"/static/estimate/uploads/{stored_path.name}"
 
 
+def _resolve_document_path(stored_name: str) -> Path | None:
+    if not stored_name:
+        return None
+    stored_path = Path(stored_name)
+    candidates = [
+        STATIC_DIR / stored_path,
+        ESTIMATE_UPLOAD_DIR / stored_path.name,
+        CLIENT_DOCS_DIR / stored_path.name,
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def _compose_architecture_prompt(
     project_type: str,
     style: str,
@@ -3167,7 +3182,20 @@ def dashboard_documents(request: Request):
 
     docs_by_project: dict[int, list[dict]] = {}
     for doc in documents:
+        resolved_path = _resolve_document_path(doc.stored_name)
         url = _document_public_url(doc.stored_name)
+        size_label = ""
+        if resolved_path and resolved_path.exists():
+            try:
+                size_bytes = resolved_path.stat().st_size
+                if size_bytes >= 1_000_000:
+                    size_label = f"{size_bytes/1_000_000:.1f} Mo"
+                elif size_bytes >= 1_000:
+                    size_label = f"{size_bytes/1_000:.0f} Ko"
+                else:
+                    size_label = f"{size_bytes} o"
+            except OSError:
+                size_label = ""
         entry = {
             "id": doc.id,
             "label": doc.label or "Document",
@@ -3176,6 +3204,7 @@ def dashboard_documents(request: Request):
             "mime_type": doc.mime_type or "",
             "created_at": doc.created_at.strftime("%d/%m/%Y %H:%M") if doc.created_at else "",
             "stored_name": doc.stored_name,
+            "size": size_label,
         }
         docs_by_project.setdefault(doc.project_id, []).append(entry)
 

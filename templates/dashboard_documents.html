@@ -26,18 +26,18 @@
               <p class="doc-card-title">{{ card.title }}</p>
               <p class="doc-card-desc">{{ card.desc }}</p>
             </div>
-            <div class="doc-card-actions">
+            <div class="doc-card-actions doc-card-actions-stack">
               {% if has_docs %}
-                <button class="doc-action-btn view js-doc-toggle" type="button" data-target="doc-files-{{ card.key }}">Visualiser</button>
+                <button class="doc-action-btn view js-doc-toggle" type="button" data-target="doc-files-{{ card.key }}">Visualise</button>
               {% else %}
-                <button class="doc-action-btn disabled" type="button" disabled>Visualiser</button>
+                <button class="doc-action-btn disabled" type="button" disabled>Visualise</button>
               {% endif %}
               {% if current_project %}
                 <form class="doc-upload-inline" method="post" action="/api/project-document" enctype="multipart/form-data">
                   <input type="hidden" name="project_id" value="{{ current_project.id }}">
                   <input type="hidden" name="label" value="{{ card.title }}">
                   <label class="doc-upload-input mini">
-                    + Ajouter
+                    Ajouter
                     <input type="file" name="file" required multiple accept="image/*,application/pdf,video/mp4,video/quicktime,video/webm" onchange="this.form.submit()">
                   </label>
                 </form>
@@ -67,7 +67,7 @@
       const files = document.getElementById(targetId);
       if (!files) return;
       files.classList.toggle('is-hidden');
-      btn.textContent = files.classList.contains('is-hidden') ? 'Visualiser' : 'Masquer';
+      btn.textContent = files.classList.contains('is-hidden') ? 'Visualise' : 'Masquer';
     });
   });
 </script>

@@ -3503,6 +3503,12 @@ th {
   align-items: flex-end;
 }
 
+.doc-card-actions-stack .doc-action-btn,
+.doc-card-actions-stack .doc-upload-input.mini {
+  min-width: 112px;
+  text-align: center;
+}
+
 .doc-upload-inline {
   display: inline-block;
 }
@@ -3511,15 +3517,22 @@ th {
   padding: 7px 12px;
   font-size: 12px;
   border-radius: 10px;
-  border: 1px solid #f59e0b;
-  background: #fff7ed;
+  border: 1px solid #f5c388;
+  background: #fffbf5;
   color: #92400e;
   font-weight: 700;
   cursor: pointer;
+  position: relative;
+}
+
+.doc-upload-input.mini::before {
+  content: "+ ";
+  font-weight: 800;
 }
 
 .doc-upload-input.mini:hover {
   border-color: #d97706;
+  background: #fff7ed;
 }
 
 .doc-action-btn {

@@ -3059,6 +3059,10 @@ th {
   background: #fbfaf7;
 }
 
+.docs-only {
+  background: #f7f7f7;
+}
+
 .dashboard-inner {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
@@ -3410,7 +3414,7 @@ th {
 
 .doc-grid-cards.visuals {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
 }
 
@@ -3420,6 +3424,7 @@ th {
   padding: 14px;
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .doc-card-header {
@@ -3433,7 +3438,7 @@ th {
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #fef3c7, #f5e6c5);
+  background: linear-gradient(135deg, #fef8eb, #f5e6c5);
   display: grid;
   place-items: center;
   font-size: 20px;
@@ -3470,6 +3475,14 @@ th {
   background: #fef3c7;
 }
 
+.doc-status-empty {
+  color: #b45309;
+  background: #fff7ed;
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin: 6px 0 0;
+}
+
 .doc-card.visual .doc-row-link {
   color: #1f78d1;
   text-decoration: underline;
@@ -3498,6 +3511,10 @@ th {
   border: 1px dashed #d1d5db;
 }
 
+.doc-upload-input.mini:hover {
+  border-color: #9ca3af;
+}
+
 .doc-page-title {
   margin: 0 0 4px;
   font-size: 24px;
@@ -3507,6 +3524,18 @@ th {
 .doc-page-desc {
   margin: 0 0 14px;
   color: #4b5563;
+}
+
+@media (max-width: 720px) {
+  .doc-card-header {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .doc-card-actions {
+    justify-content: flex-start;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
 }
 
 .doc-grid-cards {

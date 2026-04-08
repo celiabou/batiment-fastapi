@@ -40,11 +40,7 @@
               <p class="doc-card-desc">{{ card.desc }}</p>
             </div>
             <div class="doc-card-actions doc-card-actions-stack">
-              {% if has_docs %}
-                <button class="doc-action-btn view js-doc-toggle" type="button" data-target="doc-files-{{ card.key }}">Visualise</button>
-              {% else %}
-                <button class="doc-action-btn disabled" type="button" disabled>Visualise</button>
-              {% endif %}
+              <button class="doc-action-btn view js-doc-toggle" type="button" data-target="doc-files-{{ card.key }}">Visualise</button>
               <form class="doc-upload-inline" method="post" action="/api/project-document" enctype="multipart/form-data">
                 {% if current_project %}
                   <input type="hidden" name="project_id" value="{{ current_project.id }}">
@@ -59,8 +55,8 @@
             </div>
           </div>
 
-          {% if has_docs %}
-            <div class="doc-row-files is-hidden" id="doc-files-{{ card.key }}">
+          <div class="doc-row-files is-hidden" id="doc-files-{{ card.key }}">
+            {% if has_docs %}
               {% for doc in docs %}
                 <div class="doc-file-row">
                   <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
@@ -70,10 +66,10 @@
                   </form>
                 </div>
               {% endfor %}
-            </div>
-          {% else %}
-            <p class="doc-status doc-status-empty">Aucun document ajoute.</p>
-          {% endif %}
+            {% else %}
+              <p class="doc-status doc-status-empty">Aucun document ajoute.</p>
+            {% endif %}
+          </div>
         </div>
       {% endfor %}
     </div>

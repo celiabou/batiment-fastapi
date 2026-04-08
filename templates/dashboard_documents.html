@@ -111,25 +111,17 @@
             </div>
           </div>
           {% if docs %}
-            <div class="doc-table">
-              <div class="doc-row doc-head">
-                <span>Fichier</span>
-                <span>Type</span>
-                <span>Taille</span>
-                <span>Ajouté le</span>
-                <span></span>
-              </div>
+            <div class="dash-docs">
               {% for doc in docs %}
-                <div class="doc-row">
-                  <span>
-                    <strong>{{ doc.label }}</strong><br>
-                    <a href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
-                  </span>
-                  <span>{{ doc.mime_type or "—" }}</span>
-                  <span>{{ doc.size or "—" }}</span>
-                  <span>{{ doc.created_at or "—" }}</span>
-                  <span><a class="btn btn-ghost" href="{{ doc.url }}" target="_blank" rel="noopener">Ouvrir</a></span>
-                </div>
+                <a class="dash-doc" href="{{ doc.url }}" target="_blank" rel="noopener">
+                  <div>
+                    <p class="dash-doc-title">{{ doc.label }}</p>
+                    <p class="dash-doc-meta">{{ doc.name }}</p>
+                  </div>
+                  <div class="dash-doc-meta">
+                    {{ doc.mime_type or "Fichier" }} • {{ doc.size or "Taille inconnue" }} • {{ doc.created_at or "—" }}
+                  </div>
+                </a>
               {% endfor %}
             </div>
           {% else %}

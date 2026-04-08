@@ -3300,38 +3300,10 @@ th {
   background: #f9fafb;
 }
 
-.doc-table {
-  width: 100%;
-  border: 1px solid #e4e7ec;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.doc-row {
-  display: grid;
-  grid-template-columns: 2fr 1.2fr 1fr 1fr 0.8fr;
-  gap: 12px;
-  padding: 12px 14px;
-  border-bottom: 1px solid #e4e7ec;
-}
-
-.doc-row:last-child {
-  border-bottom: 0;
-}
-
+.doc-table,
+.doc-row,
 .doc-head {
-  background: #f6f7fb;
-  font-weight: 600;
-}
-
-.doc-row span {
-  display: block;
-  font-size: 14px;
-  color: #1f2933;
-}
-
-.doc-row a.btn.btn-ghost {
-  padding: 6px 12px;
+  display: none;
 }
 
 .dash-contact {

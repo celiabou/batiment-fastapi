@@ -3191,6 +3191,15 @@ def dashboard_documents(request: Request):
     )
 
 
+@app.get("/documents", response_class=HTMLResponse)
+@app.get("/documents/", response_class=HTMLResponse)
+def documents_redirect(request: Request):
+    user = _get_current_user(request)
+    if user:
+        return RedirectResponse("/dashboard/documents", status_code=303)
+    return RedirectResponse("/login?next=/dashboard/documents", status_code=303)
+
+
 @app.post("/api/devis-final")
 def request_final_quote(
     request: Request,

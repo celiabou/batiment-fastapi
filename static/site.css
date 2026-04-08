@@ -3412,6 +3412,49 @@ th {
   gap: 6px;
 }
 
+.doc-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.doc-card-desc {
+  margin: 0 0 8px;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.doc-status {
+  margin: 0 0 10px;
+  color: #b45309;
+  font-weight: 700;
+}
+
+.doc-upload {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.doc-upload-input {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+  padding: 6px 10px;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #4b5563;
+  font-size: 13px;
+}
+
+.doc-upload-input input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
 .doc-actions {
   margin-top: 12px;
   display: flex;

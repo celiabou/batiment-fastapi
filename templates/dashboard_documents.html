@@ -4,43 +4,42 @@
 {% block content %}
 <section class="dashboard-shell full-bleed docs-only">
   <div class="wrap">
-    <section class="dashboard-section">
-      <div class="doc-card">
-        <div class="doc-row-list">
-          <div class="doc-row-line">
-            <span class="doc-row-label">Type de bien :</span>
-            <span class="doc-row-value">{{ current_recap.get("project_type", "—") }}</span>
-          </div>
-          <div class="doc-row-line">
-            <span class="doc-row-label">Lieu estimation :</span>
-            <span class="doc-row-value">{{ current_recap.get("city", "—") }}</span>
-          </div>
-          <div class="doc-row-line">
-            <span class="doc-row-label">Date estimation :</span>
-            <span class="doc-row-value">{{ current_recap.get("updated_label", "—") }}</span>
-          </div>
-          <div class="doc-row-line">
-            <span class="doc-row-label">Estimation main d'oeuvre :</span>
-            <span class="doc-row-value">{{ current_recap.get("estimate_range", "—") }}</span>
-          </div>
-          <div class="doc-row-line">
-            <span class="doc-row-label">Documents :</span>
+    {% set cards = [
+      {"key":"presentation","title":"Présentation du bien","desc":"Photos, vidéos, liens d'annonce du bien etc."},
+      {"key":"plans","title":"Plans et conception","desc":"Plans de l'existant/projet, dossier architecte, 3D etc."},
+      {"key":"technique","title":"Documents techniques","desc":"DPE, diagnostics, audits, notes de calcul etc."},
+      {"key":"inspirations","title":"Inspirations","desc":"Photos, liens Pinterest etc."},
+      {"key":"autres","title":"Autres documents","desc":"Devis reçus, déclaration préalable, documents de copropriété etc."}
+    ] %}
+
+    <div class="doc-grid-cards">
+      {% for card in cards %}
+        {% set docs = (doc_buckets.get(card.key) or []) %}
+        <div class="doc-card">
+          <p class="doc-card-title">{{ card.title }}</p>
+          <p class="doc-card-desc">{{ card.desc }}</p>
+          {% if docs %}
             <div class="doc-row-files">
-              {% if current_docs %}
-                {% for doc in current_docs %}
-                  <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
-                {% endfor %}
-              {% else %}
-                <span class="doc-row-value">Aucun document pour le moment.</span>
-              {% endif %}
+              {% for doc in docs %}
+                <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+              {% endfor %}
             </div>
-          </div>
+          {% else %}
+            <p class="doc-status">Manquant</p>
+          {% endif %}
+          {% if current_project %}
+            <form class="doc-upload" method="post" action="/api/project-document" enctype="multipart/form-data">
+              <input type="hidden" name="project_id" value="{{ current_project.id }}">
+              <input type="hidden" name="label" value="{{ card.title }}">
+              <label class="doc-upload-input">Ajouter
+                <input type="file" name="file" required accept="image/*,application/pdf,video/mp4,video/quicktime,video/webm">
+              </label>
+              <button class="btn btn-ghost" type="submit">Envoyer</button>
+            </form>
+          {% endif %}
         </div>
-        <div class="doc-actions">
-          <a class="btn btn-ghost" href="/dashboard">retourner à l'accueil</a>
-        </div>
-      </div>
-    </section>
+      {% endfor %}
+    </div>
   </div>
 </section>
 {% endblock %}

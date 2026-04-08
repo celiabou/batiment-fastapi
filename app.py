@@ -3230,6 +3230,23 @@ def dashboard_documents(request: Request):
     current_docs = docs_by_project.get(current_project.id, []) if current_project else []
     current_recap = project_recaps.get(current_project.id, {}) if current_project else {}
 
+    def _bucket(doc_label: str) -> str:
+        lbl = (doc_label or "").lower()
+        if any(k in lbl for k in ["photo", "video", "annonce"]):
+            return "presentation"
+        if any(k in lbl for k in ["plan", "3d", "dossier"]):
+            return "plans"
+        if any(k in lbl for k in ["dpe", "diagnostic", "audit", "calcul"]):
+            return "technique"
+        if any(k in lbl for k in ["inspiration", "pinterest", "mood"]):
+            return "inspirations"
+        return "autres"
+
+    buckets: dict[str, list[dict]] = {"presentation": [], "plans": [], "technique": [], "inspirations": [], "autres": []}
+    for doc in current_docs:
+        cat = _bucket(doc.get("label") or doc.get("name"))
+        buckets.setdefault(cat, []).append(doc)
+
     return templates.TemplateResponse(
         request,
         "dashboard_documents.html",
@@ -3243,6 +3260,7 @@ def dashboard_documents(request: Request):
             "project_recaps": project_recaps,
             "hide_public_header": True,
             "current_docs": current_docs,
+            "doc_buckets": buckets,
         },
     )
 

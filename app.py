@@ -131,6 +131,12 @@ def _humanize(value: str | None) -> str:
         return "—"
     return str(value).replace("_", " ").strip().title()
 
+def _is_recap_empty(recap: dict | None) -> bool:
+    if not recap:
+        return True
+    keys = ["project_type", "scope", "surface", "city", "budget", "style", "timeline"]
+    return not any(recap.get(k) for k in keys)
+
 
 def _hash_password(raw_password: str) -> str:
     salt = secrets.token_bytes(16)
@@ -3047,45 +3053,56 @@ def dashboard(request: Request):
     for doc in documents:
         documents_by_project.setdefault(doc.project_id, []).append(doc)
 
+    # build project recap map
     project_recaps = {}
     for project in projects:
         recap = _parse_project_summary(project.summary)
+        if recap:
+            if not recap.get("updated_label") and project.updated_at:
+                recap["updated_at"] = project.updated_at
+                recap["updated_label"] = project.updated_at.strftime("%d/%m/%Y %H:%M")
         project_recaps[project.id] = recap
 
-    has_recap = any(bool(r) for r in project_recaps.values())
-
-    fallback_recap = {}
-    if (not has_recap) and latest_handoff:
+    # latest handoff recap enriched with columns
+    handoff_recap = {}
+    if latest_handoff:
         try:
             payload = json.loads(latest_handoff.conversation or "{}")
-            if isinstance(payload, dict):
-                fallback_recap = {
-                    "project_type": payload.get("project_type") or payload.get("work_type"),
-                    "scope": payload.get("scope"),
-                    "style": payload.get("style"),
-                    "surface": payload.get("surface"),
-                    "rooms": payload.get("rooms"),
-                    "budget": payload.get("budget"),
-                    "city": payload.get("city"),
-                    "finishing_level": payload.get("finishing_level"),
-                    "estimate_range": payload.get("quote", {}).get("estimate_range") if isinstance(payload.get("quote"), dict) else None,
-                    "appointment_status": payload.get("appointment_status"),
-                    "created_at": latest_handoff.created_at,
-                    "title": payload.get("quote", {}).get("title") if isinstance(payload.get("quote"), dict) else None,
-                }
         except json.JSONDecodeError:
-            fallback_recap = {}
+            payload = {}
+        if isinstance(payload, dict):
+            handoff_recap = {
+                "project_type": payload.get("project_type") or payload.get("work_type") or "",
+                "scope": payload.get("scope") or "",
+                "style": payload.get("style") or "",
+                "surface": payload.get("surface") or (latest_handoff.surface or ""),
+                "rooms": payload.get("rooms") or "",
+                "budget": payload.get("budget") or "",
+                "city": payload.get("city") or (latest_handoff.city or ""),
+                "finishing_level": payload.get("finishing_level") or "",
+                "estimate_range": payload.get("quote", {}).get("estimate_range") if isinstance(payload.get("quote"), dict) else None,
+                "appointment_status": payload.get("appointment_status") or latest_handoff.status or "Non planifie",
+                "timeline": payload.get("timeline") or "",
+                "work_item_key": payload.get("work_item_key") or "",
+                "work_quantity": payload.get("work_quantity") or "",
+                "work_unit": payload.get("work_unit") or "",
+                "updated_at": latest_handoff.created_at,
+                "updated_label": latest_handoff.created_at.strftime("%d/%m/%Y %H:%M") if latest_handoff.created_at else "",
+            }
 
-    # choose recap: prefer latest handoff if present; otherwise first project recap
+    # merge preference: projet si non vide, sinon handoff; si handoff plus récent, on remplace
     recap: dict = {}
-    if fallback_recap:
-        recap = fallback_recap
-    elif has_recap:
-        for p in projects:
-            rec = project_recaps.get(p.id) or {}
-            if rec:
-                recap = rec
-                break
+    project_recap = project_recaps.get(projects[0].id) if projects else {}
+    project_ts = projects[0].updated_at if projects else None
+    handoff_ts = handoff_recap.get("updated_at") if handoff_recap else None
+
+    if project_recap and not _is_recap_empty(project_recap):
+        recap = project_recap
+    if handoff_recap:
+        if _is_recap_empty(recap):
+            recap = handoff_recap
+        elif handoff_ts and project_ts and handoff_ts > project_ts:
+            recap = handoff_recap
 
     return templates.TemplateResponse(
         request,
@@ -3499,35 +3516,8 @@ async def devis_intelligent(
         )
 
     smtp_cfg = _smtp_settings()
-    if not _smtp_ready(smtp_cfg):
-        smtp_host = (smtp_cfg.get("host") or "").strip()
-        smtp_user = (smtp_cfg.get("user") or "").strip()
-        provider_hint = "Gmail" if "gmail" in smtp_host.lower() or "gmail" in smtp_user.lower() else "SMTP"
-        return JSONResponse(
-            {
-                "ok": False,
-                "error": (
-                    f"Envoi email indisponible: configuration {provider_hint} incomplete. "
-                    "Renseignez SMTP_HOST, SMTP_USER, SMTP_FROM_EMAIL et surtout SMTP_PASSWORD."
-                ),
-                "setup_steps": [
-                    "Lancez ./run_gmail.sh si vous utilisez divclass72@gmail.com.",
-                    "Saisissez le mot de passe d'application Gmail (16 caracteres).",
-                    "Relancez l'envoi du devis intelligent.",
-                ],
-            },
-            status_code=503,
-        )
-
+    email_enabled = _smtp_ready(smtp_cfg)
     internal_recipient = (INTERNAL_REPORT_EMAIL or smtp_cfg.get("from_email") or "").strip()
-    if not internal_recipient:
-        return JSONResponse(
-            {
-                "ok": False,
-                "error": "Destinataire interne indisponible. Configurez INTERNAL_REPORT_EMAIL.",
-            },
-            status_code=503,
-        )
 
     tracking_context = _extract_tracking_context(
         request,
@@ -3571,6 +3561,10 @@ async def devis_intelligent(
                 "city": city or "",
                 "finishing_level": finishing_level or "",
                 "estimate_range": f"{quote['low_label']} - {quote['high_label']}",
+                "timeline": timeline or "",
+                "work_item_key": work_item_key or "",
+                "work_quantity": work_quantity or "",
+                "work_unit": work_unit or "",
                 "appointment_status": "Non",
             }
             # update latest project if exists, else create
@@ -3750,6 +3744,19 @@ async def devis_intelligent(
             handoff_id = handoff.id
         finally:
             db.close()
+
+    # si SMTP non config, on renvoie quand même l'estimation
+    if not email_enabled or not internal_recipient:
+        return {
+            "ok": True,
+            "message": "Estimation sauvegardee (email non envoye - SMTP non configure).",
+            "quote": quote,
+            "handoff_id": handoff_id,
+            "delivery": {
+                "client_email_sent": False,
+                "internal_email_sent": False,
+            },
+        }
 
     client_subject, client_body = _compose_client_devis_email(
         name=name,
@@ -4819,32 +4826,202 @@ def admin_dashboard_view(request: Request):
             .filter(HandoffRequest.created_at >= week_ago)
             .count()
         )
+        
+        pending_count = (
+            db.query(HandoffRequest)
+            .filter(HandoffRequest.status == "new")
+            .count()
+        )
+        
+        # Get contact form leads from legacy SQLite
+        from db import DB_PATH
+        import sqlite3
+        contacts = []
+        try:
+            with sqlite3.connect(DB_PATH) as con:
+                con.row_factory = sqlite3.Row
+                contacts = con.execute(
+                    "SELECT * FROM leads ORDER BY created_at DESC"
+                ).fetchall()
+        except Exception:
+            contacts = []
+        
+        # Build estimate list with parsed recaps
+        estimates = []
+        for h in handoffs:
+            recap = _parse_handoff_conversation(h)
+            estimates.append({
+                "id": h.id,
+                "created_at": h.created_at,
+                "status": h.status,
+                "priority": h.priority,
+                "name": h.name,
+                "email": h.email,
+                "phone": h.phone,
+                "city": h.city,
+                "surface": h.surface,
+                "recap": recap,
+            })
+        
+        # Build chart data - estimations per day for last 30 days
+        chart_labels = []
+        chart_values = []
+        for i in range(29, -1, -1):
+            day = now - timedelta(days=i)
+            day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end = day_start + timedelta(days=1)
+            count = (
+                db.query(HandoffRequest)
+                .filter(HandoffRequest.created_at >= day_start)
+                .filter(HandoffRequest.created_at < day_end)
+                .count()
+            )
+            chart_labels.append(day.strftime("%d/%m"))
+            chart_values.append(count)
+        
+        # Build project types data
+        project_type_counts = {}
+        for h in handoffs:
+            recap = _parse_handoff_conversation(h)
+            ptype = recap.get("project_type", "Autre")
+            project_type_counts[ptype] = project_type_counts.get(ptype, 0) + 1
+        
+        project_types_labels = list(project_type_counts.keys()) if project_type_counts else ["Aucun"]
+        project_types_values = list(project_type_counts.values()) if project_type_counts else [0]
+        
     finally:
         db.close()
-
-    # Build estimate list with parsed recaps
-    estimates = []
-    for h in handoffs:
-        recap = _parse_handoff_conversation(h)
-        estimates.append({
-            "id": h.id,
-            "created_at": h.created_at,
-            "status": h.status,
-            "priority": h.priority,
-            "name": h.name,
-            "email": h.email,
-            "phone": h.phone,
-            "recap": recap,
-        })
 
     return templates.TemplateResponse(
         request,
         "admin_dashboard.html",
         {
             "user": user,
+            "active_page": "dashboard",
+            "hide_public_header": True,
             "estimates": estimates,
             "users": users,
             "recent_estimates_count": recent_count,
+            "pending_estimations": pending_count,
+            "total_contacts": len(contacts),
+            "chart_data": {
+                "labels": chart_labels,
+                "values": chart_values,
+            },
+            "project_types_data": {
+                "labels": project_types_labels,
+                "values": project_types_values,
+            },
+        },
+    )
+
+
+@app.get("/admin/estimations", response_class=HTMLResponse)
+def admin_estimations_view(request: Request):
+    user = _require_admin(request)
+    if not user:
+        return RedirectResponse("/admin/login?next=/admin/estimations", status_code=303)
+
+    db = SessionLocal()
+    try:
+        handoffs = (
+            db.query(HandoffRequest)
+            .order_by(HandoffRequest.created_at.desc())
+            .all()
+        )
+        
+        now = _utc_now()
+        week_ago = now - timedelta(days=7)
+        this_week_count = (
+            db.query(HandoffRequest)
+            .filter(HandoffRequest.created_at >= week_ago)
+            .count()
+        )
+        
+        new_count = (
+            db.query(HandoffRequest)
+            .filter(HandoffRequest.status == "new")
+            .count()
+        )
+        
+        # Build estimate list with parsed recaps
+        estimates = []
+        for h in handoffs:
+            recap = _parse_handoff_conversation(h)
+            estimates.append({
+                "id": h.id,
+                "created_at": h.created_at,
+                "status": h.status,
+                "priority": h.priority,
+                "name": h.name,
+                "email": h.email,
+                "phone": h.phone,
+                "city": h.city,
+                "surface": h.surface,
+                "recap": recap,
+            })
+    finally:
+        db.close()
+
+    return templates.TemplateResponse(
+        request,
+        "admin_estimations.html",
+        {
+            "user": user,
+            "active_page": "estimations",
+            "hide_public_header": True,
+            "estimations": estimates,
+            "total_estimations": len(estimates),
+            "new_count": new_count,
+            "this_week_count": this_week_count,
+        },
+    )
+
+
+@app.get("/admin/contacts", response_class=HTMLResponse)
+def admin_contacts_view(request: Request):
+    user = _require_admin(request)
+    if not user:
+        return RedirectResponse("/admin/login?next=/admin/contacts", status_code=303)
+
+    # Get contact form leads from legacy SQLite
+    from db import DB_PATH
+    import sqlite3
+    contacts = []
+    try:
+        with sqlite3.connect(DB_PATH) as con:
+            con.row_factory = sqlite3.Row
+            contacts = con.execute(
+                "SELECT * FROM leads ORDER BY created_at DESC"
+            ).fetchall()
+    except Exception:
+        contacts = []
+
+    # Convert to dict for template
+    contacts_list = []
+    for contact in contacts:
+        try:
+            created_at = datetime.fromisoformat(contact["created_at"].replace("Z", "+00:00")) if contact["created_at"] else None
+        except Exception:
+            created_at = None
+        
+        contacts_list.append({
+            "id": contact["id"],
+            "name": contact["name"],
+            "email": contact["email"],
+            "phone": contact["phone"],
+            "message": contact["message"],
+            "created_at": created_at,
+        })
+
+    return templates.TemplateResponse(
+        request,
+        "admin_contacts.html",
+        {
+            "user": user,
+            "active_page": "contacts",
+            "hide_public_header": True,
+            "contacts": contacts_list,
         },
     )
 
@@ -4876,6 +5053,7 @@ def admin_estimate_detail(estimate_id: int, request: Request):
         "admin_estimate_detail.html",
         {
             "user": user,
+            "hide_public_header": True,
             "estimate": handoff,
             "recap": recap,
             "raw": raw,
@@ -4933,6 +5111,7 @@ def admin_users_view(request: Request):
         "admin_users.html",
         {
             "user": user,
+            "hide_public_header": True,
             "users": users,
             "estimate_counts": estimate_counts,
         },
@@ -5008,6 +5187,7 @@ def admin_user_detail(request: Request):
         "admin_user_detail.html",
         {
             "user": user,
+            "hide_public_header": True,
             "user_account": user_account,
             "estimates": estimates,
             "projects": projects,

@@ -2,82 +2,375 @@
 {% block title %}Administration | Tableau de bord{% endblock %}
 
 {% block content %}
-<section class="section admin-hero">
-  <div class="admin-hero-inner">
-    <p class="kicker">Administration</p>
-    <h1>Tableau de bord</h1>
-    <p class="lead">Vue d'ensemble des estimations, clients et activite.</p>
-    <nav class="admin-nav-links">
-      <a href="/admin/dashboard" class="is-active">Estimations</a>
-      <a href="/admin/dashboard/users">Clients</a>
-      <a href="/admin">Gestion clients</a>
+<link rel="stylesheet" href="/static/admin-crm.css">
+
+<div class="admin-crm-layout">
+  <!-- Sidebar -->
+  <aside class="admin-crm-sidebar" id="adminSidebar">
+    <div class="admin-crm-sidebar-header">
+      <a href="/admin/dashboard" class="admin-crm-logo">
+        <div class="admin-crm-logo-icon">RB</div>
+        <div>
+          <div class="admin-crm-logo-text">Renovation CRM</div>
+          <div class="admin-crm-logo-subtitle">Gestion d'activite</div>
+        </div>
+      </a>
+      <a href="/admin/logout" class="admin-crm-logout-btn" title="Deconnexion">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+        </svg>
+      </a>
+    </div>
+
+    <nav class="admin-crm-nav">
+      <div class="admin-crm-nav-section">
+        <div class="admin-crm-nav-label">Principal</div>
+        <a href="/admin/dashboard" class="admin-crm-nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          Tableau de bord
+        </a>
+        <a href="/admin/dashboard/users" class="admin-crm-nav-item {% if active_page == 'clients' %}active{% endif %}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
+          Clients
+        </a>
+        <a href="/admin/estimations" class="admin-crm-nav-item {% if active_page == 'estimations' %}active{% endif %}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+          </svg>
+          Estimations
+        </a>
+        <a href="/admin/contacts" class="admin-crm-nav-item {% if active_page == 'contacts' %}active{% endif %}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+          </svg>
+          Contacts
+        </a>
+      </div>
+
+      <div class="admin-crm-nav-section">
+        <div class="admin-crm-nav-label">Navigation</div>
+        <a href="/" class="admin-crm-nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+          </svg>
+          Retour au site
+        </a>
+      </div>
     </nav>
-  </div>
-</section>
 
-<section class="section admin-section">
-  <!-- Overview Cards -->
-  <div class="admin-stats-grid">
-    <div class="admin-stat-card">
-      <span class="stat-number">{{ estimates|length }}</span>
-      <span class="stat-label">Estimations</span>
+    <div class="admin-crm-sidebar-footer">
+      <div class="admin-crm-user-card">
+        <div class="admin-crm-user-avatar">
+          {% if user and user.name %}
+            {{ user.name[:2]|upper }}
+          {% else %}
+            AD
+          {% endif %}
+        </div>
+        <div class="admin-crm-user-info">
+          <div class="admin-crm-user-name">{{ user.name if user and user.name else 'Admin' }}</div>
+          <div class="admin-crm-user-role">Administrateur</div>
+        </div>
+      </div>
     </div>
-    <div class="admin-stat-card">
-      <span class="stat-number">{{ users|length }}</span>
-      <span class="stat-label">Clients</span>
-    </div>
-    <div class="admin-stat-card">
-      <span class="stat-number">{{ recent_estimates_count }}</span>
-      <span class="stat-label">7 derniers jours</span>
-    </div>
-  </div>
-</section>
+  </aside>
 
-<section class="section admin-section">
-  <h2>Toutes les estimations</h2>
-  {% if estimates %}
-    <div class="admin-table-shell">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Client</th>
-            <th>Type de projet</th>
-            <th>Portee</th>
-            <th>Budget</th>
-            <th>Ville</th>
-            <th>Statut</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for est in estimates %}
+  <!-- Sidebar Overlay for Mobile -->
+  <div class="admin-crm-sidebar-overlay" id="adminOverlay"></div>
+
+  <!-- Main Content -->
+  <main class="admin-crm-main">
+    <!-- Header -->
+    <header class="admin-crm-header">
+      <div class="admin-crm-header-left">
+        <button class="admin-crm-menu-toggle" id="adminMenuToggle" aria-label="Toggle menu">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+        <h1 class="admin-crm-page-title">Tableau de bord</h1>
+      </div>
+      <div class="admin-crm-header-right">
+        <span style="font-size: 13px; color: var(--crm-text-muted); font-weight: 600;">
+          {{ estimates|length }} estimations
+        </span>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="admin-crm-content">
+      <!-- Stats Grid -->
+      <div class="admin-crm-stats-grid">
+        <div class="admin-crm-stat-card">
+          <div class="admin-crm-stat-header">
+            <div class="admin-crm-stat-icon primary">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="admin-crm-stat-value">{{ estimates|length }}</div>
+          <div class="admin-crm-stat-label">Total Estimations</div>
+          {% if recent_estimates_count > 0 %}
+          <div class="admin-crm-stat-change positive">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>
+            </svg>
+            {{ recent_estimates_count }} cette semaine
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="admin-crm-stat-card">
+          <div class="admin-crm-stat-header">
+            <div class="admin-crm-stat-icon accent">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="admin-crm-stat-value">{{ users|length }}</div>
+          <div class="admin-crm-stat-label">Total Clients</div>
+        </div>
+
+        <div class="admin-crm-stat-card">
+          <div class="admin-crm-stat-header">
+            <div class="admin-crm-stat-icon success">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="admin-crm-stat-value">{{ total_contacts }}</div>
+          <div class="admin-crm-stat-label">Contacts</div>
+        </div>
+
+        <div class="admin-crm-stat-card">
+          <div class="admin-crm-stat-header">
+            <div class="admin-crm-stat-icon warning">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="admin-crm-stat-value">{{ pending_estimations }}</div>
+          <div class="admin-crm-stat-label">En attente</div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="admin-crm-charts-grid">
+        <div class="admin-crm-chart-card">
+          <div class="admin-crm-chart-header">
+            <div>
+              <h3 class="admin-crm-chart-title">Tendance des Estimations</h3>
+              <p class="admin-crm-chart-subtitle">Nombre d'estimations par jour</p>
+            </div>
+          </div>
+          <div class="admin-crm-chart-container">
+            <canvas id="estimationsChart"></canvas>
+          </div>
+        </div>
+
+        <div class="admin-crm-chart-card">
+          <div class="admin-crm-chart-header">
+            <div>
+              <h3 class="admin-crm-chart-title">Répartition par Type</h3>
+              <p class="admin-crm-chart-subtitle">Types de projets</p>
+            </div>
+          </div>
+          <div class="admin-crm-chart-container">
+            <canvas id="projectTypesChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Estimations Table -->
+      <div class="admin-crm-table-card">
+        <div class="admin-crm-table-header">
+          <h3 class="admin-crm-table-title">Dernières Estimations</h3>
+          <div class="admin-crm-table-actions">
+            <span style="font-size: 13px; color: var(--crm-text-muted); font-weight: 600;">
+              5 plus recentes
+            </span>
+          </div>
+        </div>
+
+        {% if estimates %}
+        <table class="admin-crm-table">
+          <thead>
             <tr>
-              <td>{{ est.created_at.strftime("%d/%m/%Y %H:%M") if est.created_at else "—" }}</td>
+              <th>Date</th>
+              <th>Client</th>
+              <th>Type de projet</th>
+              <th>Surface</th>
+              <th>Ville</th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for est in estimates[:5] %}
+            <tr>
+              <td>{{ est.created_at.strftime("%d/%m/%Y") if est.created_at else "—" }}</td>
               <td>
-                {% if est.email %}
-                  <a href="/admin/dashboard/users?email={{ est.email }}">{{ est.email }}</a>
-                {% elif est.name %}
-                  {{ est.name }}
+                {% if est.name %}
+                  <a href="/admin/dashboard/users?email={{ est.email }}" class="admin-crm-table-link">{{ est.name }}</a>
+                {% elif est.email %}
+                  <a href="/admin/dashboard/users?email={{ est.email }}" class="admin-crm-table-link">{{ est.email }}</a>
                 {% else %}
                   <span class="muted">Anonyme</span>
                 {% endif %}
               </td>
-              <td>{{ humanize(est.recap.get("project_type")) }}</td>
-              <td>{{ humanize(est.recap.get("scope")) }}</td>
-              <td>{{ est.recap.get("budget", "—") or "—" }}</td>
-              <td>{{ est.recap.get("city", "—") or "—" }}</td>
-              <td><span class="status-badge status-{{ est.status or 'new' }}">{{ humanize(est.status) }}</span></td>
+              <td>{{ humanize(est.recap.get("project_type")) if est.recap else "—" }}</td>
+              <td>{{ est.surface or "—" }}</td>
+              <td>{{ est.city or est.recap.get("city", "—") if est.recap else "—" }}</td>
               <td>
-                <a href="/admin/dashboard/estimate/{{ est.id }}" class="btn btn-sm" title="Voir le detail">Détail</a>
+                <span class="admin-crm-status-badge {{ est.status or 'new' }}">
+                  {{ humanize(est.status) if est.status else 'Nouveau' }}
+                </span>
+              </td>
+              <td>
+                <a href="/admin/dashboard/estimate/{{ est.id }}" class="admin-crm-btn admin-crm-btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                  Détails
+                </a>
               </td>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="admin-crm-empty-state">
+          <div class="admin-crm-empty-state-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+          <h4 class="admin-crm-empty-state-title">Aucune estimation</h4>
+          <p class="admin-crm-empty-state-text">Les estimations apparaîtront ici dès qu'elles seront créées.</p>
+        </div>
+        {% endif %}
+      </div>
     </div>
-  {% else %}
-    <p class="muted">Aucune estimation enregistree.</p>
-  {% endif %}
-</section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  // Mobile sidebar toggle
+  const menuToggle = document.getElementById('adminMenuToggle');
+  const sidebar = document.getElementById('adminSidebar');
+  const overlay = document.getElementById('adminOverlay');
+
+  if (menuToggle && sidebar && overlay) {
+    menuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('active');
+    });
+
+    overlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+    });
+  }
+
+  // Chart data from backend
+  const chartData = {{ chart_data|tojson }};
+  const projectTypesData = {{ project_types_data|tojson }};
+
+  // Estimations Trend Chart
+  const estimationsCtx = document.getElementById('estimationsChart');
+  if (estimationsCtx && chartData.labels && chartData.values) {
+    new Chart(estimationsCtx, {
+      type: 'line',
+      data: {
+        labels: chartData.labels,
+        datasets: [{
+          label: 'Estimations',
+          data: chartData.values,
+          borderColor: '#0f766e',
+          backgroundColor: 'rgba(15, 118, 110, 0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#0f766e',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: { size: 13, weight: '600' },
+            bodyFont: { size: 12 }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, font: { size: 11 } },
+            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+          },
+          x: {
+            ticks: { font: { size: 11 } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  // Project Types Chart
+  const projectTypesCtx = document.getElementById('projectTypesChart');
+  if (projectTypesCtx && projectTypesData.labels && projectTypesData.values) {
+    new Chart(projectTypesCtx, {
+      type: 'doughnut',
+      data: {
+        labels: projectTypesData.labels,
+        datasets: [{
+          data: projectTypesData.values,
+          backgroundColor: [
+            '#0f766e', '#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'
+          ],
+          borderWidth: 0,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              padding: 16,
+              font: { size: 12, weight: '600' },
+              usePointStyle: true,
+              pointStyleWidth: 12
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: { size: 13, weight: '600' },
+            bodyFont: { size: 12 }
+          }
+        }
+      }
+    });
+  }
+</script>
 {% endblock %}

@@ -7,13 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700;800&family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/site.css?v=20260403-18">
+  <link rel="stylesheet" href="/static/site.css?v=20260407-4">
 </head>
 <body>
   <div class="bg-aura bg-aura-1"></div>
   <div class="bg-aura bg-aura-2"></div>
   <div class="bg-grid"></div>
 
+  {% if not hide_public_header %}
   <div class="topline">
     <div class="wrap topline-row">
       <span>Renovation maison & appartement en Ile-de-France</span>
@@ -54,11 +55,13 @@
       </div>
     </div>
   </header>
+  {% endif %}
 
   <main class="wrap page">
     {% block content %}{% endblock %}
   </main>
 
+  {% if not hide_public_header %}
   <footer class="footer">
     <div class="wrap footer-main">
       <div class="footer-brand">
@@ -76,11 +79,14 @@
       </div>
     </div>
   </footer>
+  {% endif %}
 
+  {% if not hide_public_header %}
   <script>
     window.APP_CONFIG = {{ {"agenda_url": AGENDA_URL}|tojson }};
   </script>
   <script src="/static/visitor_tracking.js?v=20260222-1"></script>
   <script src="/static/chat.js?v=20260401-1"></script>
+  {% endif %}
 </body>
 </html>

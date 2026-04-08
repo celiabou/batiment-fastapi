@@ -3412,6 +3412,74 @@ th {
   gap: 6px;
 }
 
+.doc-grid-cards.visuals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.doc-card.visual {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
+}
+
+.doc-card-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.doc-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+
+.doc-card-title {
+  margin: 0;
+  font-weight: 800;
+  color: #111827;
+}
+
+.doc-card-desc {
+  margin: 2px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.doc-status-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1f2937;
+  background: #f3f4f6;
+}
+
+.doc-status-pill.ok {
+  color: #065f46;
+  background: #d1fae5;
+}
+
+.doc-status-pill.missing {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.doc-card.visual .doc-row-link {
+  color: #1f78d1;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
 .doc-grid-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

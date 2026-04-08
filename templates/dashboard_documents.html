@@ -5,19 +5,26 @@
 <section class="dashboard-shell full-bleed docs-only">
   <div class="wrap">
     {% set cards = [
-      {"key":"presentation","title":"Présentation du bien","desc":"Photos, vidéos, liens d'annonce du bien etc."},
-      {"key":"plans","title":"Plans et conception","desc":"Plans de l'existant/projet, dossier architecte, 3D etc."},
-      {"key":"technique","title":"Documents techniques","desc":"DPE, diagnostics, audits, notes de calcul etc."},
-      {"key":"inspirations","title":"Inspirations","desc":"Photos, liens Pinterest etc."},
-      {"key":"autres","title":"Autres documents","desc":"Devis reçus, déclaration préalable, documents de copropriété etc."}
+      {"key":"presentation","title":"Présentation du bien","desc":"Photos, vidéos, liens d'annonce du bien etc.","icon":"🏠"},
+      {"key":"plans","title":"Plans et conception","desc":"Plans de l'existant/projet, dossier architecte, 3D etc.","icon":"📐"},
+      {"key":"technique","title":"Documents techniques","desc":"DPE, diagnostics, audits, notes de calcul etc.","icon":"🧪"},
+      {"key":"inspirations","title":"Inspirations","desc":"Photos, liens Pinterest etc.","icon":"💡"},
+      {"key":"autres","title":"Autres documents","desc":"Devis reçus, déclaration préalable, documents de copropriété etc.","icon":"📁"}
     ] %}
 
-    <div class="doc-grid-cards">
+    <div class="doc-grid-cards visuals">
       {% for card in cards %}
         {% set docs = (doc_buckets.get(card.key) or []) %}
-        <div class="doc-card">
-          <p class="doc-card-title">{{ card.title }}</p>
-          <p class="doc-card-desc">{{ card.desc }}</p>
+        <div class="doc-card visual">
+          <div class="doc-card-header">
+            <span class="doc-icon">{{ card.icon }}</span>
+            <div>
+              <p class="doc-card-title">{{ card.title }}</p>
+              <p class="doc-card-desc">{{ card.desc }}</p>
+            </div>
+            <span class="doc-status-pill {{ 'ok' if docs else 'missing' }}">{{ 'Présent' if docs else 'Manquant' }}</span>
+          </div>
+
           {% if docs %}
             <div class="doc-row-files">
               {% for doc in docs %}
@@ -25,13 +32,15 @@
               {% endfor %}
             </div>
           {% else %}
-            <p class="doc-status">Manquant</p>
+            <p class="doc-status">Aucun document ajouté.</p>
           {% endif %}
+
           {% if current_project %}
             <form class="doc-upload" method="post" action="/api/project-document" enctype="multipart/form-data">
               <input type="hidden" name="project_id" value="{{ current_project.id }}">
               <input type="hidden" name="label" value="{{ card.title }}">
-              <label class="doc-upload-input">Ajouter
+              <label class="doc-upload-input">
+                Ajouter
                 <input type="file" name="file" required accept="image/*,application/pdf,video/mp4,video/quicktime,video/webm">
               </label>
               <button class="btn btn-ghost" type="submit">Envoyer</button>

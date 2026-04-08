@@ -1234,12 +1234,13 @@ h3 {
 .before-after-images figure {
   margin: 0;
   position: relative;
+  background: #f8fafc;
 }
 
 .before-after-images img {
   width: 100%;
-  height: 170px;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
   display: block;
 }
 

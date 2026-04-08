@@ -3180,6 +3180,11 @@ def dashboard_documents(request: Request):
     finally:
         db.close()
 
+    project_recaps: dict[int, dict] = {}
+    for project in projects:
+        recap = _parse_project_summary(project.summary)
+        project_recaps[project.id] = recap or {}
+
     docs_by_project: dict[int, list[dict]] = {}
     for doc in documents:
         resolved_path = _resolve_document_path(doc.stored_name)
@@ -3215,6 +3220,7 @@ def dashboard_documents(request: Request):
             "user": user,
             "projects": projects,
             "docs_by_project": docs_by_project,
+            "project_recaps": project_recaps,
             "hide_public_header": True,
         },
     )

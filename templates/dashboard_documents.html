@@ -103,30 +103,26 @@
 
       {% for project in projects %}
         {% set docs = docs_by_project.get(project.id, []) %}
+        {% set recap = project_recaps.get(project.id, {}) %}
         <section class="dashboard-section">
-          <div class="dash-card">
-            <div>
-              <p class="dash-card-title">{{ project.title }}</p>
-              <p class="muted">Documents liés à ce projet.</p>
-            </div>
+          <div class="doc-card">
+            <p class="doc-card-title">{{ project.title }}</p>
+            <ul class="doc-list">
+              <li><strong>Type de bien:</strong> {{ recap.get("project_type", "—") }}</li>
+              <li><strong>Type de travaux:</strong> {{ recap.get("scope", "—") }}</li>
+              <li><strong>Surface:</strong> {{ recap.get("surface", "—") }} m2</li>
+              <li><strong>Ville:</strong> {{ recap.get("city", "—") }}</li>
+              <li><strong>Fichier:</strong>
+                {% if docs %}
+                  {% for doc in docs %}
+                    <a href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>{% if not loop.last %}, {% endif %}
+                  {% endfor %}
+                {% else %}
+                  — 
+                {% endif %}
+              </li>
+            </ul>
           </div>
-          {% if docs %}
-            <div class="dash-docs">
-              {% for doc in docs %}
-                <a class="dash-doc" href="{{ doc.url }}" target="_blank" rel="noopener">
-                  <div>
-                    <p class="dash-doc-title">{{ doc.label }}</p>
-                    <p class="dash-doc-meta">{{ doc.name }}</p>
-                  </div>
-                  <div class="dash-doc-meta">
-                    {{ doc.mime_type or "Fichier" }} • {{ doc.size or "Taille inconnue" }} • {{ doc.created_at or "—" }}
-                  </div>
-                </a>
-              {% endfor %}
-            </div>
-          {% else %}
-            <p class="muted">Aucun document pour le moment.</p>
-          {% endif %}
         </section>
       {% endfor %}
     </div>

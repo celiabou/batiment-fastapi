@@ -3339,6 +3339,12 @@ th {
   word-break: break-word;
 }
 
+.doc-simple-meta {
+  margin-left: 6px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
 .dash-contact {
   display: flex;
   gap: 12px;

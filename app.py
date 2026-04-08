@@ -3186,6 +3186,7 @@ def dashboard_documents(request: Request):
         project_recaps[project.id] = recap or {}
 
     docs_by_project: dict[int, list[dict]] = {}
+    docs_flat: list[dict] = []
     for doc in documents:
         resolved_path = _resolve_document_path(doc.stored_name)
         url = _document_public_url(doc.stored_name)
@@ -3212,6 +3213,7 @@ def dashboard_documents(request: Request):
             "size": size_label,
         }
         docs_by_project.setdefault(doc.project_id, []).append(entry)
+        docs_flat.append(entry)
 
     return templates.TemplateResponse(
         request,
@@ -3220,6 +3222,7 @@ def dashboard_documents(request: Request):
             "user": user,
             "projects": projects,
             "docs_by_project": docs_by_project,
+            "docs_flat": docs_flat,
             "project_recaps": project_recaps,
             "hide_public_header": True,
         },

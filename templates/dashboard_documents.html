@@ -3,24 +3,48 @@
 
 {% block content %}
 <section class="dashboard-shell full-bleed docs-only">
-  <div class="wrap dashboard-inner">
-    <div class="dashboard-main">
-      {% if request.query_params.get("error") == "missing_file" %}
-        <div class="form-alert">Ajoutez un fichier avant de valider.</div>
-      {% elif request.query_params.get("error") == "invalid_project" %}
-        <div class="form-alert">Projet introuvable ou non autorisé.</div>
-      {% elif request.query_params.get("error") == "empty_file" %}
-        <div class="form-alert">Fichier vide ou illisible.</div>
-      {% elif request.query_params.get("success") == "uploaded" %}
-        <div class="form-success">Document ajouté avec succès.</div>
-      {% endif %}
+  <div class="wrap">
+    <div class="docs-main">
+      <div class="doc-hero">
+        <div>
+          <h2>Documents</h2>
+          <p class="muted">Retrouvez ici vos documents associés à votre estimation.</p>
+        </div>
+      </div>
+
+      <div class="doc-grid">
+        <div class="doc-card">
+          <p class="doc-card-label">Bien</p>
+          <p class="doc-card-value">{{ current_recap.get("project_type", "—") }}</p>
+        </div>
+        <div class="doc-card">
+          <p class="doc-card-label">Travaux</p>
+          <p class="doc-card-value">{{ current_recap.get("scope", "—") }}</p>
+        </div>
+        <div class="doc-card">
+          <p class="doc-card-label">Lieu</p>
+          <p class="doc-card-value">{{ current_recap.get("city", "—") }}</p>
+        </div>
+        <div class="doc-card">
+          <p class="doc-card-label">Surface</p>
+          <p class="doc-card-value">{{ current_recap.get("surface", "—") }} m2</p>
+        </div>
+        <div class="doc-card">
+          <p class="doc-card-label">Date de l'estimation</p>
+          <p class="doc-card-value">{{ current_recap.get("updated_label", "—") }}</p>
+        </div>
+        <div class="doc-card">
+          <p class="doc-card-label">Estimation main d'oeuvre</p>
+          <p class="doc-card-value">{{ current_recap.get("estimate_range", current_recap.get("budget", "—")) }}</p>
+        </div>
+      </div>
 
       <section class="dashboard-section">
         <div class="doc-card">
           <p class="doc-card-title">Documents</p>
-          {% if docs_flat %}
+          {% if current_docs %}
             <ul class="doc-simple-list">
-              {% for doc in docs_flat %}
+              {% for doc in current_docs %}
                 <li>
                   <a class="doc-simple-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
                   <span class="doc-simple-meta">{{ doc.created_at or "" }}</span>

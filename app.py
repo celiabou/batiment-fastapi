@@ -3215,6 +3215,10 @@ def dashboard_documents(request: Request):
         docs_by_project.setdefault(doc.project_id, []).append(entry)
         docs_flat.append(entry)
 
+    current_project = projects[0] if projects else None
+    current_docs = docs_by_project.get(current_project.id, []) if current_project else []
+    current_recap = project_recaps.get(current_project.id, {}) if current_project else {}
+
     return templates.TemplateResponse(
         request,
         "dashboard_documents.html",
@@ -3223,8 +3227,11 @@ def dashboard_documents(request: Request):
             "projects": projects,
             "docs_by_project": docs_by_project,
             "docs_flat": docs_flat,
+            "current_project": current_project,
+            "current_recap": current_recap,
             "project_recaps": project_recaps,
             "hide_public_header": True,
+            "current_docs": current_docs,
         },
     )
 

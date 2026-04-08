@@ -3324,6 +3324,20 @@ th {
   color: #e4572e;
 }
 
+.doc-card-label {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doc-card-value {
+  margin: 0;
+  font-weight: 800;
+  color: #111827;
+}
+
 .doc-simple-list {
   list-style: disc;
   padding-left: 20px;
@@ -3343,6 +3357,27 @@ th {
   margin-left: 6px;
   color: #6b7280;
   font-size: 12px;
+}
+
+.doc-hero h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.doc-hero .muted {
+  margin: 4px 0 0;
+}
+
+.doc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 16px 0 20px;
+}
+
+.docs-main {
+  display: grid;
+  gap: 12px;
 }
 
 .dash-contact {

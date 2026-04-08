@@ -4,6 +4,7 @@ import binascii
 import hashlib
 import hmac
 import json
+import mimetypes
 import os
 import re
 import secrets
@@ -3223,6 +3224,16 @@ def dashboard_documents(request: Request):
             "stored_name": doc.stored_name,
             "size": size_label,
         }
+        mime = (entry["mime_type"] or "").lower()
+        name_lower = (entry["name"] or "").lower()
+        kind = "other"
+        if mime.startswith("image/") or name_lower.endswith((".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic", ".heif")):
+            kind = "image"
+        elif mime.startswith("video/") or name_lower.endswith((".mp4", ".mov", ".webm")):
+            kind = "video"
+        elif "pdf" in mime or name_lower.endswith(".pdf"):
+            kind = "pdf"
+        entry["kind"] = kind
         docs_by_project.setdefault(doc.project_id, []).append(entry)
         docs_flat.append(entry)
 
@@ -3455,10 +3466,14 @@ def open_project_document(request: Request, doc_id: int):
     if not path or not path.exists():
         return RedirectResponse("/dashboard/documents?error=document_missing", status_code=303)
 
+    media_type = (doc.mime_type or "").strip()
+    if not media_type:
+        guessed, _ = mimetypes.guess_type(str(path))
+        media_type = guessed or "application/octet-stream"
+
     return FileResponse(
         path=str(path),
-        media_type=(doc.mime_type or None),
-        filename=(doc.original_name or path.name),
+        media_type=media_type,
     )
 
 
@@ -3962,6 +3977,7 @@ async def devis_intelligent(
         finally:
             db.close()
 
+    document_refs: list[dict] = []
     photo_urls: list[str] = []
     for upload in project_photos or []:
         if not upload or not upload.filename:
@@ -4004,7 +4020,6 @@ async def devis_intelligent(
                 }
             )
 
-    document_refs: list[dict] = []
     if project_dpe and project_dpe.filename:
         suffix = _safe_suffix(project_dpe.filename)
         filename = f"dpe_{_utc_file_stamp()}_{uuid.uuid4().hex[:8]}{suffix}"

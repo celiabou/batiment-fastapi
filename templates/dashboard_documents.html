@@ -59,7 +59,18 @@
             {% if has_docs %}
               {% for doc in docs %}
                 <div class="doc-file-row">
-                  <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+                  <div class="doc-file-main">
+                    {% if doc.kind == "image" %}
+                      <a href="{{ doc.url }}" target="_blank" rel="noopener">
+                        <img class="doc-preview-image" src="{{ doc.url }}" alt="{{ doc.name }}">
+                      </a>
+                    {% elif doc.kind == "video" %}
+                      <video class="doc-preview-video" controls preload="metadata">
+                        <source src="{{ doc.url }}" type="{{ doc.mime_type or 'video/mp4' }}">
+                      </video>
+                    {% endif %}
+                    <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+                  </div>
                   <form class="doc-delete-form" method="post" action="/api/project-document/delete" onsubmit="return confirm('Supprimer ce document ?')">
                     <input type="hidden" name="doc_id" value="{{ doc.id }}">
                     <button class="doc-delete-btn" type="submit">Supprimer</button>

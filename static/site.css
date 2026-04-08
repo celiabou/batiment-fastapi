@@ -3415,13 +3415,38 @@ th {
 
 .doc-file-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
   border: 1px solid #eef0f3;
   border-radius: 10px;
   padding: 8px 10px;
   background: #fafafa;
+}
+
+.doc-file-main {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.doc-preview-image {
+  display: block;
+  width: min(360px, 100%);
+  max-height: 220px;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.doc-preview-video {
+  display: block;
+  width: min(360px, 100%);
+  max-height: 240px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #000;
 }
 
 .doc-delete-form {
@@ -3613,6 +3638,13 @@ th {
   .doc-card-actions {
     align-items: flex-start;
     gap: 6px;
+  }
+  .doc-file-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .doc-delete-form {
+    justify-self: end;
   }
 }
 

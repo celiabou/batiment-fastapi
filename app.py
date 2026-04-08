@@ -3140,6 +3140,7 @@ def dashboard(request: Request):
 
 
 @app.get("/dashboard/documents", response_class=HTMLResponse)
+@app.get("/dashboard/documents/", response_class=HTMLResponse)
 def dashboard_documents(request: Request):
     user = _require_user(request)
     if not user:

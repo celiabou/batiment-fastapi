@@ -3410,21 +3410,25 @@ th {
 .doc-row-files {
   display: grid;
   gap: 6px;
+  margin-top: 10px;
 }
 
 .doc-grid-cards.visuals {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   gap: 16px;
+  padding-bottom: 4px;
 }
 
 .doc-card.visual {
   border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 14px;
+  border-radius: 16px;
+  padding: 18px;
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
+  flex: 0 0 min(280px, 70vw);
 }
 
 .doc-card-header {
@@ -3498,6 +3502,8 @@ th {
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .doc-upload-inline {
@@ -3505,14 +3511,42 @@ th {
 }
 
 .doc-upload-input.mini {
-  padding: 4px 8px;
+  padding: 6px 10px;
   font-size: 12px;
-  border-radius: 8px;
-  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  border: 1px solid #f59e0b;
+  background: #fff7ed;
+  color: #92400e;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .doc-upload-input.mini:hover {
-  border-color: #9ca3af;
+  border-color: #d97706;
+}
+
+.doc-action-btn {
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #cfd4dc;
+  background: #f8fafc;
+  color: #334155;
+  text-decoration: none;
+}
+
+.doc-action-btn.view {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.doc-action-btn.disabled {
+  border-color: #e5e7eb;
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
 }
 
 .doc-page-title {

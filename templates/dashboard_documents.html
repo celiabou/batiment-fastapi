@@ -7,9 +7,16 @@
     <section class="dashboard-section">
       <div class="doc-card">
         <p class="doc-card-title">Documents</p>
-        {% if docs_flat %}
+        <div class="doc-details">
+          <p><strong>Type de bien :</strong> {{ current_recap.get("project_type", "—") }}</p>
+          <p><strong>Lieu estimation :</strong> {{ current_recap.get("city", "—") }}</p>
+          <p><strong>Date estimation :</strong> {{ current_recap.get("updated_label", "—") }}</p>
+          <p><strong>Estimation main d'oeuvre :</strong> {{ current_recap.get("estimate_range", "—") }}</p>
+        </div>
+        <hr>
+        {% if current_docs %}
           <ul class="doc-simple-list">
-            {% for doc in docs_flat %}
+            {% for doc in current_docs %}
               <li>
                 <a class="doc-simple-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
               </li>

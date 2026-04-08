@@ -3357,6 +3357,18 @@ th {
   max-width: 720px;
 }
 
+.doc-details {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.doc-details p {
+  margin: 0;
+  font-size: 14px;
+  color: #111827;
+}
+
 .doc-simple-meta {
   margin-left: 6px;
   color: #6b7280;

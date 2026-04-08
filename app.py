@@ -3327,7 +3327,7 @@ def _safe_doc_suffix(filename: str) -> str:
 @app.post("/api/project-document")
 async def upload_project_document(
     request: Request,
-    project_id: int = Form(...),
+    project_id: int | None = Form(None),
     label: str = Form("Document client"),
     file: list[UploadFile] = File(...),
 ):
@@ -3341,11 +3341,31 @@ async def upload_project_document(
 
     db = SessionLocal()
     try:
-        project = (
-            db.query(ClientProject)
-            .filter(ClientProject.id == project_id, ClientProject.client_id == user["id"])
-            .first()
-        )
+        project = None
+        if project_id:
+            project = (
+                db.query(ClientProject)
+                .filter(ClientProject.id == project_id, ClientProject.client_id == user["id"])
+                .first()
+            )
+        if not project:
+            project = (
+                db.query(ClientProject)
+                .filter(ClientProject.client_id == user["id"])
+                .order_by(ClientProject.updated_at.desc(), ClientProject.created_at.desc())
+                .first()
+            )
+        if not project:
+            project = ClientProject(
+                client_id=user["id"],
+                title="Projet documents",
+                summary="{}",
+                status="Documents",
+            )
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+
         if not project:
             return RedirectResponse("/dashboard/documents?error=invalid_project", status_code=303)
 

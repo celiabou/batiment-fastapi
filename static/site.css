@@ -3065,6 +3065,10 @@ th {
   gap: 24px;
 }
 
+.dashboard-shell.docs-only .dashboard-inner {
+  grid-template-columns: 1fr;
+}
+
 .dashboard-sidebar {
   background: #f7f3ec;
   border: 1px solid #efe3d5;

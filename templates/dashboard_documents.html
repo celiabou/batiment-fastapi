@@ -4,59 +4,12 @@
 {% block content %}
 <section class="dashboard-shell full-bleed docs-only">
   <div class="wrap">
-    <div class="docs-main">
-      <div class="doc-hero">
-        <div>
-          <h2>Documents</h2>
-          <p class="muted">Retrouvez ici vos documents associés à votre estimation.</p>
-        </div>
+    <section class="dashboard-section">
+      <div class="doc-card">
+        <p class="doc-card-title">Documents</p>
+        <p class="muted">Aucun document à afficher pour l’instant.</p>
       </div>
-
-      <div class="doc-grid">
-        <div class="doc-card">
-          <p class="doc-card-label">Bien</p>
-          <p class="doc-card-value">{{ current_recap.get("project_type", "—") }}</p>
-        </div>
-        <div class="doc-card">
-          <p class="doc-card-label">Travaux</p>
-          <p class="doc-card-value">{{ current_recap.get("scope", "—") }}</p>
-        </div>
-        <div class="doc-card">
-          <p class="doc-card-label">Lieu</p>
-          <p class="doc-card-value">{{ current_recap.get("city", "—") }}</p>
-        </div>
-        <div class="doc-card">
-          <p class="doc-card-label">Surface</p>
-          <p class="doc-card-value">{{ current_recap.get("surface", "—") }} m2</p>
-        </div>
-        <div class="doc-card">
-          <p class="doc-card-label">Date de l'estimation</p>
-          <p class="doc-card-value">{{ current_recap.get("updated_label", "—") }}</p>
-        </div>
-        <div class="doc-card">
-          <p class="doc-card-label">Estimation main d'oeuvre</p>
-          <p class="doc-card-value">{{ current_recap.get("estimate_range", current_recap.get("budget", "—")) }}</p>
-        </div>
-      </div>
-
-      <section class="dashboard-section">
-        <div class="doc-card">
-          <p class="doc-card-title">Documents</p>
-          {% if current_docs %}
-            <ul class="doc-simple-list">
-              {% for doc in current_docs %}
-                <li>
-                  <a class="doc-simple-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
-                  <span class="doc-simple-meta">{{ doc.created_at or "" }}</span>
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="muted">Aucun document pour le moment.</p>
-          {% endif %}
-        </div>
-      </section>
-    </div>
+    </section>
   </div>
 </section>
 {% endblock %}

@@ -1223,6 +1223,10 @@ h3 {
   background: #e9f1f8;
 }
 
+.before-after-images.one-up {
+  grid-template-columns: 1fr;
+}
+
 .before-after-images figure {
   margin: 0;
   position: relative;

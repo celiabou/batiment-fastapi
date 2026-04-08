@@ -2725,6 +2725,17 @@ def home(request: Request):
     )
 
 
+@app.head("/", include_in_schema=False)
+def home_head():
+    return Response(status_code=200)
+
+
+@app.get("/health", include_in_schema=False)
+@app.head("/health", include_in_schema=False)
+def health_check():
+    return Response(status_code=200)
+
+
 @app.get("/services", response_class=HTMLResponse)
 def list_services(request: Request):
     return templates.TemplateResponse(

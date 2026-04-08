@@ -7,22 +7,15 @@
     <section class="dashboard-section">
       <div class="doc-card">
         <p class="doc-card-title">Documents</p>
-        <div class="doc-lines">
-          <p>Type de bien : {{ current_recap.get("project_type", "—") }}</p>
-          <p>Lieu estimation : {{ current_recap.get("city", "—") }}</p>
-          <p>Date estimation : {{ current_recap.get("updated_label", "—") }}</p>
-          <p>Estimation main d'oeuvre : {{ current_recap.get("estimate_range", "—") }}</p>
-          <p>Documents :</p>
-          {% if current_docs %}
-            <div class="doc-file-list">
-              {% for doc in current_docs %}
-                <a href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
-              {% endfor %}
-            </div>
-          {% else %}
-            <p class="muted">Aucun document pour le moment.</p>
-          {% endif %}
-        </div>
+        {% if current_docs %}
+          <div class="doc-file-list">
+            {% for doc in current_docs %}
+              <a href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">Aucun document pour le moment.</p>
+        {% endif %}
       </div>
     </section>
   </div>

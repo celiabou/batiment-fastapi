@@ -3379,7 +3379,7 @@ th {
 
 .doc-file-list {
   display: grid;
-  gap: 4px;
+  gap: 8px;
   padding-left: 0;
 }
 

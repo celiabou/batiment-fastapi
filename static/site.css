@@ -1173,8 +1173,8 @@ h3 {
 .before-after-grid {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
   align-items: start;
 }
 
@@ -1208,6 +1208,8 @@ h3 {
 }
 
 .before-after-card {
+  display: flex;
+  flex-direction: column;
   border: 1px solid #dbe5ee;
   border-radius: 16px;
   background: var(--surface);
@@ -1221,7 +1223,7 @@ h3 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   background: #e9f1f8;
 }
 
@@ -1243,7 +1245,8 @@ h3 {
 .before-after-images.one-up figure {
   display: grid;
   place-items: center;
-  min-height: 320px;
+  min-height: 280px;
+  padding: 12px;
 }
 
 .before-after-images img {
@@ -1254,9 +1257,9 @@ h3 {
 }
 
 .before-after-images.one-up img {
-  max-height: 420px;
   width: auto;
   max-width: 100%;
+  max-height: 360px;
 }
 
 .before-after-images figcaption {
@@ -1273,12 +1276,18 @@ h3 {
 
 .before-after-card h3,
 .before-after-card p {
-  margin-left: 12px;
-  margin-right: 12px;
+  margin-left: 14px;
+  margin-right: 14px;
+}
+
+.before-after-card h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
 }
 
 .before-after-card p {
   margin-top: 0;
+  min-height: 52px;
   color: var(--muted);
 }
 

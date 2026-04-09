@@ -1173,7 +1173,7 @@ h3 {
 .before-after-grid {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
   align-items: start;
 }
@@ -1238,28 +1238,30 @@ h3 {
 .before-after-images figure {
   margin: 0;
   position: relative;
+  display: grid;
+  place-items: center;
+  height: 168px;
+  padding: 6px;
   background: #f8fafc;
   overflow: hidden;
 }
 
 .before-after-images.one-up figure {
-  display: grid;
-  place-items: center;
-  min-height: 280px;
-  padding: 12px;
+  height: 220px;
+  padding: 10px;
 }
 
 .before-after-images img {
-  width: 100%;
+  width: auto;
   height: auto;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
   display: block;
 }
 
 .before-after-images.one-up img {
-  width: auto;
-  max-width: 100%;
-  max-height: 360px;
+  max-height: 100%;
 }
 
 .before-after-images figcaption {
@@ -1287,7 +1289,7 @@ h3 {
 
 .before-after-card p {
   margin-top: 0;
-  min-height: 52px;
+  min-height: 64px;
   color: var(--muted);
 }
 

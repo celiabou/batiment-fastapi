@@ -3149,6 +3149,96 @@ th {
   gap: 18px;
 }
 
+.chantier-dashboard-main {
+  min-height: 72vh;
+  align-content: start;
+}
+
+.chantier-empty-shell {
+  min-height: 68vh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 32px 20px 10px;
+}
+
+.chantier-empty-icon {
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+}
+
+.chantier-empty-icon svg {
+  width: 92px;
+  height: 92px;
+}
+
+.chantier-empty-shell h2 {
+  margin: 0;
+  font-size: 28px;
+  color: #2d2a26;
+}
+
+.chantier-empty-shell > p {
+  margin: 0;
+  color: #7a746d;
+  max-width: 520px;
+}
+
+.chantier-feature-strip {
+  width: min(820px, 100%);
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  background: #ffffff;
+  border: 1px solid #ebe5db;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(30, 24, 16, 0.06);
+  overflow: hidden;
+}
+
+.chantier-feature {
+  padding: 18px 20px 16px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.chantier-feature + .chantier-feature {
+  border-left: 1px solid #efe7dc;
+}
+
+.chantier-feature-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: #b08149;
+}
+
+.chantier-feature-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.chantier-feature strong {
+  font-size: 15px;
+  line-height: 1.3;
+  color: #2d2a26;
+}
+
+.chantier-feature p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #7a746d;
+}
+
 .dashboard-banner {
   display: flex;
   gap: 14px;
@@ -3814,5 +3904,14 @@ th {
 
   .dashboard-sidebar {
     position: static;
+  }
+
+  .chantier-feature-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .chantier-feature + .chantier-feature {
+    border-left: 0;
+    border-top: 1px solid #efe7dc;
   }
 }

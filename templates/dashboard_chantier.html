@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Mon chantier | Espace client{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell full-bleed chantier-only">
+  <div class="wrap dashboard-inner">
+    <aside class="dashboard-sidebar">
+      <p class="dashboard-title">Espace client</p>
+      <nav class="dashboard-nav">
+        <a href="/dashboard">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 11.5l8-6 8 6v7a1 1 0 0 1-1 1h-5v-5H10v5H5a1 1 0 0 1-1-1v-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+            </svg>
+          </span>
+          <span>Accueil</span>
+        </a>
+        <a href="/estimation-projet">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 5h8l2 2v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+              <path d="M9 12h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Estimer mon projet</span>
+        </a>
+        <a class="is-active" href="/dashboard/chantier">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M5 7h14M5 12h14M5 17h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Chantier</span>
+        </a>
+        <a href="/dashboard/documents">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M6 4h9l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6"></path>
+            </svg>
+          </span>
+          <span>Documents</span>
+        </a>
+        <a href="/ressources">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M5 6h14M5 10h14M5 14h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Guides</span>
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main chantier-dashboard-main">
+      <section class="chantier-empty-shell">
+        <div class="chantier-empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 96 96" fill="none">
+            <path d="M24 36h48l6 10v24a6 6 0 0 1-6 6H24a6 6 0 0 1-6-6V46l6-10z" fill="#b48956"></path>
+            <path d="M20 42h56l-6-10H26l-6 10z" fill="#d7b48b"></path>
+            <path d="M48 42v34" stroke="#916738" stroke-width="4" stroke-linecap="round"></path>
+            <path d="M34 24l10-4 5 13-10 4z" fill="#8b5e34"></path>
+            <path d="M58 18l8 8-8 8" stroke="#8b5e34" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M56 18l12 12" stroke="#8b5e34" stroke-width="5" stroke-linecap="round"></path>
+          </svg>
+        </div>
+        <h2>Aucun chantier en cours</h2>
+        <p>Signez un devis travaux avec une entreprise pour demarrer votre chantier</p>
+
+        <div class="chantier-feature-strip">
+          <article class="chantier-feature">
+            <span class="chantier-feature-icon">
+              <svg viewBox="0 0 24 24" fill="none">
+                <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.8"></circle>
+                <path d="M20 20l-4.2-4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+              </svg>
+            </span>
+            <strong>Suivi de l'avancement par lot</strong>
+            <p>Retrouvez l'avancement detaille pour chaque lot de votre chantier</p>
+          </article>
+          <article class="chantier-feature">
+            <span class="chantier-feature-icon">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </span>
+            <strong>Controle sur la liberation des fonds</strong>
+            <p>Validez les etats d'avancement du chantier pour liberer les fonds</p>
+          </article>
+          <article class="chantier-feature">
+            <span class="chantier-feature-icon">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M7 7h4V3M17 17h-4v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M17 7a7 7 0 0 0-11.95 4M7 17a7 7 0 0 0 11.95-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+              </svg>
+            </span>
+            <strong>Suivi des modifications</strong>
+            <p>Le recapitulatif de votre chantier se met a jour en fonction des avenants signes</p>
+          </article>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+{% endblock %}

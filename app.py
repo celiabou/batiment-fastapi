@@ -3166,6 +3166,25 @@ def dashboard(request: Request):
     )
 
 
+@app.get("/dashboard/chantier", response_class=HTMLResponse)
+@app.get("/dashboard/chantier/", response_class=HTMLResponse)
+def dashboard_chantier(request: Request):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/chantier", status_code=303)
+    if user.get("role") == "admin":
+        return RedirectResponse("/admin", status_code=303)
+
+    return templates.TemplateResponse(
+        request,
+        "dashboard_chantier.html",
+        {
+            "user": user,
+            "hide_public_header": True,
+        },
+    )
+
+
 @app.get("/dashboard/documents", response_class=HTMLResponse)
 @app.get("/dashboard/documents/", response_class=HTMLResponse)
 def dashboard_documents(request: Request):

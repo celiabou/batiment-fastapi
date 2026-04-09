@@ -187,7 +187,7 @@
     <div>
       <p class="kicker">Avant / Après</p>
       <h2>Transformation reelle de nos chantiers</h2>
-      <p class="section-sub">Visualisez des transformations et finitions reelles avant de lancer votre projet.</p>
+      <p class="section-sub">Comparez les resultats avant/apres et projetez-vous clairement avant de lancer vos travaux.</p>
     </div>
   </div>
   <div class="before-after-tabs" role="tablist" aria-label="Onglets avant apres">
@@ -493,25 +493,39 @@
 
 <script>
   (function () {
-    const tabs = document.querySelectorAll(".before-after-tab");
-    const cards = document.querySelectorAll(".before-after-card");
-    if (!tabs.length || !cards.length) return;
+    const sections = document.querySelectorAll(".before-after-shell");
+    if (!sections.length) return;
 
-    function activate(category) {
+    sections.forEach((section) => {
+      const tabs = section.querySelectorAll(".before-after-tab");
+      const cards = section.querySelectorAll(".before-after-card");
+      if (!tabs.length || !cards.length) return;
+
+      function activate(category) {
+        tabs.forEach((tab) => {
+          const isActive = tab.dataset.category === category;
+          tab.classList.toggle("is-active", isActive);
+          tab.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+        cards.forEach((card) => {
+          const show = category === "all" || card.dataset.category === category;
+          card.hidden = !show;
+        });
+      }
+
       tabs.forEach((tab) => {
-        const isActive = tab.dataset.category === category;
-        tab.classList.toggle("is-active", isActive);
-        tab.setAttribute("aria-selected", isActive ? "true" : "false");
+        tab.addEventListener("click", function () {
+          activate(tab.dataset.category || "all");
+        });
       });
-      cards.forEach((card) => {
-        const show = category === "all" || card.dataset.category === category;
-        card.hidden = !show;
-      });
-    }
 
-    tabs.forEach((tab) => {
-      tab.addEventListener("click", function () {
-        activate(tab.dataset.category || "all");
+      const defaultTab = section.querySelector(".before-after-tab.is-active");
+      activate((defaultTab && defaultTab.dataset.category) || "all");
+    });
+
+    document.querySelectorAll(".before-after-images img").forEach((img) => {
+      img.addEventListener("click", () => {
+        if (img.src) window.open(img.src, "_blank", "noopener");
       });
     });
   })();

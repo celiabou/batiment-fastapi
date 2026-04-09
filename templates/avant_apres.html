@@ -5,7 +5,7 @@
 <section class="page-hero">
   <p class="kicker">Avant / Après</p>
   <h1>Transformations reelles de nos chantiers</h1>
-  <p class="lead">Visualisez des transformations et finitions reelles avant de lancer votre projet.</p>
+  <p class="lead">Comparez les resultats avant/apres et projetez-vous clairement avant de lancer vos travaux.</p>
 </section>
 
 <section class="section section-shell before-after-shell">
@@ -82,8 +82,10 @@
 
 <script>
   (function () {
-    const tabs = document.querySelectorAll(".before-after-tab");
-    const cards = document.querySelectorAll(".before-after-card");
+    const section = document.querySelector(".before-after-shell");
+    if (!section) return;
+    const tabs = section.querySelectorAll(".before-after-tab");
+    const cards = section.querySelectorAll(".before-after-card");
     if (!tabs.length || !cards.length) return;
 
     function activate(category) {
@@ -101,6 +103,15 @@
     tabs.forEach((tab) => {
       tab.addEventListener("click", function () {
         activate(tab.dataset.category || "all");
+      });
+    });
+
+    const defaultTab = section.querySelector(".before-after-tab.is-active");
+    activate((defaultTab && defaultTab.dataset.category) || "all");
+
+    section.querySelectorAll(".before-after-images img").forEach((img) => {
+      img.addEventListener("click", () => {
+        if (img.src) window.open(img.src, "_blank", "noopener");
       });
     });
   })();

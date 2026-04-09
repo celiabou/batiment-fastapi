@@ -1275,6 +1275,14 @@ h3 {
   object-position: center center;
 }
 
+.before-after-images img.media-cover {
+  object-fit: cover;
+}
+
+.before-after-images img.media-bottom {
+  object-position: center bottom;
+}
+
 .before-after-images figcaption {
   position: absolute;
   left: 8px;

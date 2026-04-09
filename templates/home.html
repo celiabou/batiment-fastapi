@@ -604,6 +604,8 @@
     });
 
     document.querySelectorAll(".before-after-images img").forEach((img) => {
+      img.style.objectFit = "contain";
+      img.style.objectPosition = "center center";
       img.addEventListener("click", () => {
         if (img.src) window.open(img.src, "_blank", "noopener");
       });

@@ -1275,6 +1275,12 @@ h3 {
   object-position: center center;
 }
 
+/* Force full-image display inside Avant/Apres cards, even if another global rule applies. */
+.before-after-shell .before-after-images img {
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+
 .before-after-images figcaption {
   position: absolute;
   left: 8px;

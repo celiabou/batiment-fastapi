@@ -187,60 +187,159 @@
     <div>
       <p class="kicker">Avant / Après</p>
       <h2>Transformation reelle de nos chantiers</h2>
-      <p class="section-sub">Visualisez des resultats concrets avant de lancer votre projet.</p>
+      <p class="section-sub">Comparez les resultats avant/apres et projetez-vous clairement avant de lancer vos travaux.</p>
     </div>
   </div>
   <div class="before-after-tabs" role="tablist" aria-label="Onglets avant apres">
     <button class="before-after-tab is-active" type="button" data-category="all" aria-selected="true">Tout</button>
     <button class="before-after-tab" type="button" data-category="salle-bain" aria-selected="false">Salle de bain</button>
+    <button class="before-after-tab" type="button" data-category="wc" aria-selected="false">WC</button>
+    <button class="before-after-tab" type="button" data-category="dressing" aria-selected="false">Dressing</button>
     <button class="before-after-tab" type="button" data-category="cuisine" aria-selected="false">Cuisine</button>
-    <button class="before-after-tab" type="button" data-category="sejour" aria-selected="false">Sejour</button>
   </div>
   <div id="beforeAfterGrid" class="before-after-grid">
     <article class="before-after-card" data-category="salle-bain">
-      <div class="before-after-images">
+      <div class="before-after-images triple">
         <figure>
           <img src="/static/before-after/sdb-avant.jpg" alt="Avant renovation salle de bain">
-          <figcaption>Avant</figcaption>
+          <figcaption>Avant 1</figcaption>
         </figure>
         <figure>
           <img src="/static/before-after/sdb-apres.jpg" alt="Apres renovation salle de bain">
+          <figcaption>Avant 2</figcaption>
+        </figure>
+        <figure>
+          <img src="/static/before-after/sdb-apres-final.jpg" alt="Apres renovation salle de bain terminee">
           <figcaption>Apres</figcaption>
         </figure>
       </div>
-      <h3>Salle de bain</h3>
-      <p>Optimisation complete des volumes et des finitions.</p>
+      <div class="before-after-card-body">
+        <h3>Salle de bain</h3>
+        <p>Transformation complete avec douche italienne et finitions grand format.</p>
+      </div>
+    </article>
+    <article class="before-after-card" data-category="salle-bain">
+      <div class="before-after-images one-up">
+        <figure>
+          <img src="/static/before-after/sdb-couleur-apres.jpg" alt="Salle de bain finie avec ambiance couleur">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <div class="before-after-card-body">
+        <h3>Salle de bain ambiance couleur</h3>
+        <p>Renovation complete avec douche, vasque et eclairage decoratif pour une ambiance personnalisee.</p>
+      </div>
+    </article>
+    <article class="before-after-card" data-category="salle-bain">
+      <div class="before-after-images one-up">
+        <figure>
+          <img src="/static/before-after/sdb-premium-apres.jpg" alt="Salle de bain premium terminee">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <div class="before-after-card-body">
+        <h3>Salle de bain premium</h3>
+        <p>Materiaux premium, lignes epurees et finitions haut de gamme pour un rendu hotelier.</p>
+      </div>
+    </article>
+    <article class="before-after-card" data-category="wc">
+      <div class="before-after-images one-up">
+        <figure>
+          <img src="/static/before-after/wc-apres.jpg" alt="WC suspendu avec finitions bois et marbre">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <div class="before-after-card-body">
+        <h3>WC suspendu</h3>
+        <p>Ambiance epuree avec habillage bois, marbre et finitions haut de gamme.</p>
+      </div>
+    </article>
+    <article class="before-after-card" data-category="dressing">
+      <div class="before-after-images">
+        <figure>
+          <img src="/static/before-after/dressing-ferme.jpg" alt="Dressing sur mesure vu de face">
+          <figcaption>Facade</figcaption>
+        </figure>
+        <figure>
+          <img src="/static/before-after/dressing-interieur.jpg" alt="Interieur dressing sur mesure">
+          <figcaption>Interieur</figcaption>
+        </figure>
+      </div>
+      <div class="before-after-card-body">
+        <h3>Dressing sur mesure</h3>
+        <p>Rangements integres, eclairage decoratif et optimisation complete du volume.</p>
+      </div>
+    </article>
+    <article class="before-after-card" data-category="dressing">
+      <div class="before-after-images one-up">
+        <figure>
+          <img src="/static/before-after/boutique-premium.jpg" alt="Amenagement interieur de boutique">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <div class="before-after-card-body">
+        <h3>Amenagement boutique</h3>
+        <p>Agencement interieur professionnel avec mobilier sur mesure et eclairage architectural.</p>
+      </div>
     </article>
     <article class="before-after-card" data-category="cuisine">
       <div class="before-after-images">
         <figure>
-          <img src="/static/before-after/cuisine-avant.jpg" alt="Avant renovation cuisine">
+          <img src="/static/before-after/cuisine-premium-avant.jpg" alt="Avant cuisine ouverte en cours de chantier">
           <figcaption>Avant</figcaption>
         </figure>
         <figure>
-          <img src="/static/before-after/cuisine-apres.jpg" alt="Apres renovation cuisine">
+          <img src="/static/before-after/cuisine-premium-apres.jpg" alt="Cuisine ouverte terminee">
           <figcaption>Apres</figcaption>
         </figure>
       </div>
-      <h3>Cuisine</h3>
-      <p>Nouveau plan de travail, rangements et circulation repensee.</p>
+      <div class="before-after-card-body">
+        <h3>Cuisine ouverte premium</h3>
+        <p>De l'espace brut a la cuisine finale, avec un rendu net et des finitions soignées.</p>
+      </div>
     </article>
-    <article class="before-after-card" data-category="sejour">
+    <article class="before-after-card" data-category="cuisine">
+      <div class="before-after-images one-up">
+        <figure>
+          <img src="/static/before-after/cuisine-comparatif.jpg" alt="Comparatif cuisine avant apres">
+          <figcaption>Comparatif Avant/Apres</figcaption>
+        </figure>
+      </div>
+      <div class="before-after-card-body">
+        <h3>Comparatif cuisine</h3>
+        <p>Vue directe avant/apres pour visualiser la transformation des volumes, des materiaux et de la fonctionnalite.</p>
+      </div>
+    </article>
+    <article class="before-after-card" data-category="cuisine">
       <div class="before-after-images">
         <figure>
-          <img src="/static/before-after/sejour-avant.jpg" alt="Avant renovation sejour">
-          <figcaption>Avant</figcaption>
+          <img src="/static/before-after/travaux-gros-oeuvre.jpg" alt="Phase gros oeuvre avant amenagement cuisine">
+          <figcaption>Phase gros oeuvre</figcaption>
         </figure>
         <figure>
-          <img src="/static/before-after/sejour-apres.jpg" alt="Apres renovation sejour">
-          <figcaption>Apres</figcaption>
+          <img src="/static/before-after/travaux-plomberie.jpg" alt="Preparation plomberie en phase travaux">
+          <figcaption>Preparation plomberie</figcaption>
         </figure>
       </div>
-      <h3>Sejour</h3>
-      <p>Ambiance lumineuse, materiaux nobles et confort quotidien.</p>
+      <div class="before-after-card-body">
+        <h3>Phase travaux cuisine</h3>
+        <p>Etapes techniques avant finitions: structure, reseaux et preparation des points d'eau.</p>
+      </div>
+    </article>
+    <article class="before-after-card" data-category="cuisine">
+      <div class="before-after-images one-up">
+        <figure>
+          <img src="/static/before-after/piece-vie-comparatif.jpg" alt="Avant apres piece de vie ouverte">
+          <figcaption>Comparatif Avant/Apres</figcaption>
+        </figure>
+      </div>
+      <div class="before-after-card-body">
+        <h3>Piece de vie avant/apres</h3>
+        <p>Transformation d'un espace ancien en piece de vie lumineuse, ouverte et contemporaine.</p>
+      </div>
     </article>
   </div>
-  <p class="before-after-note">Photos issues de la fiche PagesJaunes (Renova Home): <a href="https://www.pagesjaunes.fr/pros/61564010#1771321727;587575-rt98g_321727490115575941" target="_blank" rel="noopener">voir la source</a>.</p>
+  <p class="before-after-note">Cas reels en Ile-de-France: avant/apres et phases de travaux sur des projets de renovation.</p>
 </section>
 
 <section id="nos-metiers" class="section section-shell">
@@ -391,33 +490,38 @@
     <div class="review-track">
       <article class="bro-review-card">
         <strong>4.9/5</strong>
-        <p>"Merci à Eva, conseillère et experte en rénovation, à l’écoute, sympa."</p>
-        <span>Client - Appartement, Paris 15</span>
-      </article>
-      <article class="bro-review-card">
-        <strong>4.8/5</strong>
-        <p>"Conducteur de projet Amine, professionnelle et très clair dans le suivi."</p>
-        <span>Client - Maison, Yvelines</span>
+        <p>"Merci a Amine.B pour le suivi renovation. Equipe ponctuelle, bien organisee et tres minutieuse dans le travail."</p>
+        <span>Amine.B - Appartement, Paris 15</span>
       </article>
       <article class="bro-review-card">
         <strong>5.0/5</strong>
-        <p>"Bâtiment approche, équipe sérieuse et rassurante du début à la fin."</p>
-        <span>Client - Hauts-de-Seine</span>
+        <p>"Pour notre renovation d'immeuble, le suivi a ete tres bon du debut a la fin. Equipe serieuse, chantier propre et delais respectes."</p>
+        <span>Amaury.D - Immeuble, Saint-Ouen</span>
+      </article>
+      <article class="bro-review-card">
+        <strong>5.0/5</strong>
+        <p>"Tres satisfaite du chantier. Intervention ponctuelle, bonne coordination et finitions soignees. On se sent vraiment accompagne."</p>
+        <span>Segolene.R - Maison, Vincennes</span>
       </article>
       <article class="bro-review-card">
         <strong>4.9/5</strong>
-        <p>"Merci à Eva, conseillère et experte en rénovation, à l’écoute, sympa."</p>
-        <span>Client - Appartement, Paris 15</span>
+        <p>"Renovation de notre local commercial sur Paris. Delais respectes, chantier propre et equipe tres competente. Rien a redire."</p>
+        <span>Christophe.B - Local commercial, Paris</span>
       </article>
       <article class="bro-review-card">
         <strong>4.8/5</strong>
-        <p>"Conducteur de projet Amine, professionnelle et très clair dans le suivi."</p>
-        <span>Client - Maison, Yvelines</span>
+        <p>"Tres bonne organisation sur notre bien professionnel. Suivi clair, echanges simples et rendu final tres propre."</p>
+        <span>Xavier.P - Bien professionnel, La Defense</span>
       </article>
       <article class="bro-review-card">
         <strong>5.0/5</strong>
-        <p>"Bâtiment approche, équipe sérieuse et rassurante du début à la fin."</p>
-        <span>Client - Hauts-de-Seine</span>
+        <p>"Optimisation de l'espace incroyablement bien realisee, avec projection 3D. J'etais rassuree parce que j'ai pu voir a quoi mon studio allait ressembler avant la fin des travaux. Le rendu final etait conforme a la projection, et meme encore mieux."</p>
+        <span>Maryline.L - Studio, Paris 8e</span>
+      </article>
+      <article class="bro-review-card">
+        <strong>4.9/5</strong>
+        <p>"Renovation de facade tres bien executee. Travail minutieux, equipe rassurante et finitions vraiment propres."</p>
+        <span>Leticia.K - Facade, Argenteuil</span>
       </article>
     </div>
   </div>
@@ -469,25 +573,41 @@
 
 <script>
   (function () {
-    const tabs = document.querySelectorAll(".before-after-tab");
-    const cards = document.querySelectorAll(".before-after-card");
-    if (!tabs.length || !cards.length) return;
+    const sections = document.querySelectorAll(".before-after-shell");
+    if (!sections.length) return;
 
-    function activate(category) {
+    sections.forEach((section) => {
+      const tabs = section.querySelectorAll(".before-after-tab");
+      const cards = section.querySelectorAll(".before-after-card");
+      if (!tabs.length || !cards.length) return;
+
+      function activate(category) {
+        tabs.forEach((tab) => {
+          const isActive = tab.dataset.category === category;
+          tab.classList.toggle("is-active", isActive);
+          tab.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+        cards.forEach((card) => {
+          const show = category === "all" || card.dataset.category === category;
+          card.hidden = !show;
+        });
+      }
+
       tabs.forEach((tab) => {
-        const isActive = tab.dataset.category === category;
-        tab.classList.toggle("is-active", isActive);
-        tab.setAttribute("aria-selected", isActive ? "true" : "false");
+        tab.addEventListener("click", function () {
+          activate(tab.dataset.category || "all");
+        });
       });
-      cards.forEach((card) => {
-        const show = category === "all" || card.dataset.category === category;
-        card.hidden = !show;
-      });
-    }
 
-    tabs.forEach((tab) => {
-      tab.addEventListener("click", function () {
-        activate(tab.dataset.category || "all");
+      const defaultTab = section.querySelector(".before-after-tab.is-active");
+      activate((defaultTab && defaultTab.dataset.category) || "all");
+    });
+
+    document.querySelectorAll(".before-after-images img").forEach((img) => {
+      img.style.objectFit = "contain";
+      img.style.objectPosition = "center center";
+      img.addEventListener("click", () => {
+        if (img.src) window.open(img.src, "_blank", "noopener");
       });
     });
   })();

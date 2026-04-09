@@ -1175,6 +1175,7 @@ h3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+  align-items: start;
 }
 
 .before-after-tabs {
@@ -1213,6 +1214,7 @@ h3 {
   box-shadow: var(--shadow-card);
   overflow: hidden;
   padding-bottom: 12px;
+  height: fit-content;
 }
 
 .before-after-images {
@@ -1235,6 +1237,13 @@ h3 {
   margin: 0;
   position: relative;
   background: #f8fafc;
+  overflow: hidden;
+}
+
+.before-after-images.one-up figure {
+  display: grid;
+  place-items: center;
+  min-height: 320px;
 }
 
 .before-after-images img {
@@ -1242,6 +1251,12 @@ h3 {
   height: auto;
   object-fit: contain;
   display: block;
+}
+
+.before-after-images.one-up img {
+  max-height: 420px;
+  width: auto;
+  max-width: 100%;
 }
 
 .before-after-images figcaption {

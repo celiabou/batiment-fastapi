@@ -1173,9 +1173,10 @@ h3 {
 .before-after-grid {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .before-after-tabs {
@@ -1216,7 +1217,7 @@ h3 {
   box-shadow: 0 12px 28px rgba(17, 24, 39, 0.08);
   overflow: hidden;
   padding-bottom: 14px;
-  height: fit-content;
+  height: 100%;
   transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
 
@@ -1229,6 +1230,7 @@ h3 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2px;
+  height: 230px;
   margin-bottom: 12px;
   background: #e9f1f8;
   border-bottom: 1px solid #e3e8ef;
@@ -1247,18 +1249,18 @@ h3 {
   position: relative;
   display: grid;
   place-items: center;
-  height: 210px;
+  height: 100%;
   padding: 0;
   background: #f8fafc;
   overflow: hidden;
 }
 
 .before-after-images.one-up figure {
-  height: 340px;
+  height: 100%;
 }
 
 .before-after-images.triple figure {
-  height: 190px;
+  height: 100%;
 }
 
 .before-after-images img {
@@ -1299,23 +1301,29 @@ h3 {
 
 .before-after-card p {
   margin-top: 0;
-  min-height: 60px;
+  min-height: 84px;
   line-height: 1.45;
   color: var(--muted);
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1350px) {
   .before-after-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
+  .before-after-grid {
+    grid-template-columns: 1fr;
+  }
+  .before-after-images {
+    height: 250px;
+  }
   .before-after-images.one-up figure {
-    height: 260px;
+    height: 100%;
   }
   .before-after-images.triple figure {
-    height: 150px;
+    height: 100%;
   }
 }
 

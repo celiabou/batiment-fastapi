@@ -5176,6 +5176,7 @@ def admin_login_post(
     return response
 
 
+@app.get("/admin/logout")
 @app.post("/admin/logout")
 def admin_logout(request: Request):
     token = request.cookies.get(SESSION_COOKIE_NAME)

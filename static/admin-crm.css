@@ -12,8 +12,8 @@
   --crm-text-muted: #64748b;
   --crm-success: #22c55e;
   --crm-warning: #f59e0b;
-  --crm-danger: #ef4444;
-  --crm-sidebar-width: 260px;
+  --crm-danger: hwb(0 27% 6%);
+  --crm-sidebar-width: 200px;
   --crm-header-height: 64px;
 }
 
@@ -208,7 +208,7 @@
 /* Main Content */
 .admin-crm-main {
   flex: 1;
-  /* margin-left: var(--crm-sidebar-width); */
+  margin-left: calc(var(--crm-sidebar-width) - 100px);
   display: flex;
   flex-direction: column;
   min-height: 100vh;

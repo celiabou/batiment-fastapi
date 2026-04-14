@@ -6,6 +6,8 @@
    * @typedef {{
    *   low_label?: string,
    *   high_label?: string,
+   *   calculation_mode?: string,
+   *   calculation_note?: string,
    *   pricing_context?: string,
    *   project_type_label?: string,
    *   scope_label?: string,
@@ -46,6 +48,7 @@
 
   const quoteRangeEl = document.getElementById("smartQuoteRange");
   const quoteMetaEl = document.getElementById("smartQuoteMeta");
+  const quoteRuleEl = document.getElementById("smartQuoteRule");
   const quoteBudgetEl = document.getElementById("smartQuoteBudget");
   const quoteBreakdownEl = document.getElementById("smartQuoteBreakdown");
   const quoteAssumptionsEl = document.getElementById("smartQuoteAssumptions");
@@ -87,6 +90,7 @@
   const workUnitTags = Array.from(document.querySelectorAll(".js-work-unit"));
   const workUnitHidden = document.getElementById("workUnitHidden");
   const workUnitOverride = document.getElementById("workUnitOverride");
+  const catalogRuleHintEl = document.getElementById("catalogRuleHint");
 
   let quoteSubmitted = false;
   let quoteSubmitting = false;
@@ -354,10 +358,13 @@
       if (quote.scope_label) metaParts.push(quote.scope_label);
     }
     setText(quoteMetaEl, metaParts.join(" • ") || "Calcul catalogue en attente.");
+    if (quoteRuleEl) {
+      quoteRuleEl.textContent = quote.calculation_note || "Calcul catalogue en attente.";
+    }
 
     /** @type {BudgetFit} */
     const budgetFit = quote.budget_fit || {};
-    quoteBudgetEl.textContent = budgetFit.message || "Budget non analysé.";
+    quoteBudgetEl.textContent = budgetFit.message || "Budget non renseigne. Il n'entre pas dans le calcul catalogue.";
     quoteBudgetEl.className = `ai3d-budget-hint ai3d-budget-${budgetFit.status || "unknown"}`;
 
     quoteBreakdownEl.innerHTML = "";
@@ -471,6 +478,44 @@
         }
       }
     });
+    updateCatalogRuleHint();
+  }
+
+  function updateCatalogRuleHint() {
+    if (!catalogRuleHintEl || !quoteForm) return;
+    const formData = new FormData(quoteForm);
+    const workItemKey = String(formData.get("work_item_key") || "").trim();
+    const workQuantity = String(formData.get("work_quantity") || "").trim();
+    const surface = String(formData.get("surface") || "").trim();
+    const selected = workItemSelects[0]?.selectedOptions?.[0];
+    const unit = selected ? String(selected.getAttribute("data-unit") || "").trim() : "";
+
+    if (!workItemKey) {
+      catalogRuleHintEl.textContent = "Sans poste catalogue sélectionné, le calcul utilisera le type de travaux avec la surface renseignée.";
+      return;
+    }
+
+    if (unit === "forfait") {
+      catalogRuleHintEl.textContent = "Le calcul utilisera le poste catalogue sélectionné. La quantité est ignorée pour un forfait.";
+      return;
+    }
+
+    if (workQuantity && surface && unit === "m2" && workQuantity === surface) {
+      catalogRuleHintEl.textContent = `Le calcul utilisera la quantité du poste (${workQuantity} ${unit}) une seule fois. Ici elle est identique à la surface, il n'y a donc pas de double calcul.`;
+      return;
+    }
+
+    if (workQuantity && surface && workQuantity !== surface) {
+      catalogRuleHintEl.textContent = `Le calcul utilisera la quantité du poste (${workQuantity} ${unit || ""}). La surface (${surface} m2) reste informative et n'entre pas dans le prix.`;
+      return;
+    }
+
+    if (workQuantity) {
+      catalogRuleHintEl.textContent = `Le calcul utilisera la quantité du poste (${workQuantity} ${unit || ""}).`;
+      return;
+    }
+
+    catalogRuleHintEl.textContent = "Renseignez la quantité du poste catalogue sélectionné pour calculer le prix.";
   }
 
   async function submitQuote(event) {

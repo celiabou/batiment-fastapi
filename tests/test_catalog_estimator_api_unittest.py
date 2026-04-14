@@ -188,6 +188,110 @@ class CatalogEstimatorApiTest(unittest.TestCase):
         self.assertEqual(payload["quote"]["high"], 37500)
         self.assertEqual(payload["quote"]["pricing_context"], "Catalogue Eurobat • Rénovation légère • 50 m2")
 
+    def test_devis_intelligent_sends_pdf_attachment_to_client(self):
+        class DummySession:
+            def add(self, _obj):
+                return None
+
+            def commit(self):
+                return None
+
+            def refresh(self, obj):
+                obj.id = 456
+
+            def close(self):
+                return None
+
+        request = Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": "/api/devis-intelligent",
+                "headers": [],
+                "client": ("127.0.0.1", 12345),
+                "query_string": b"",
+                "scheme": "http",
+                "server": ("127.0.0.1", 8081),
+            }
+        )
+        sent_messages = []
+
+        def fake_send_email_message(**kwargs):
+            sent_messages.append(kwargs)
+            return True, None
+
+        with ExitStack() as stack:
+            stack.enter_context(mock.patch.object(self.module, "_get_current_user", return_value=None))
+            stack.enter_context(
+                mock.patch.object(
+                    self.module,
+                    "_smtp_settings",
+                    return_value={
+                        "host": "smtp.example.com",
+                        "port": 587,
+                        "starttls": True,
+                        "user": "user@example.com",
+                        "password": "secret",
+                        "from_email": "noreply@example.com",
+                        "from_name": "Eurobat",
+                    },
+                )
+            )
+            stack.enter_context(mock.patch.object(self.module, "_smtp_ready", return_value=True))
+            stack.enter_context(mock.patch.object(self.module, "INTERNAL_REPORT_EMAIL", "internal@example.com"))
+            stack.enter_context(mock.patch.object(self.module, "SessionLocal", return_value=DummySession()))
+            stack.enter_context(
+                mock.patch.object(
+                    self.module,
+                    "HandoffRequest",
+                    side_effect=lambda **kwargs: SimpleNamespace(**kwargs),
+                )
+            )
+            stack.enter_context(mock.patch.object(self.module, "_send_email_message", side_effect=fake_send_email_message))
+
+            response = asyncio.run(
+                self.module.devis_intelligent(
+                    request=request,
+                    project_type="appartement",
+                    style="dubai",
+                    scope="renovation_complete",
+                    timeline="3_mois",
+                    finishing_level="standard",
+                    work_item_key="renovation_complete",
+                    work_quantity="80",
+                    work_unit="m2",
+                    city="Champigny sur marne",
+                    surface="80",
+                    rooms="3",
+                    budget="20000",
+                    notes="APPRT",
+                    name="LAURA CHRIS",
+                    phone="0769410395",
+                    email="Boudrahemcelia@gmail.com",
+                    project_photos=[],
+                    project_videos=[],
+                    project_dpe=None,
+                    project_plans=[],
+                    visitor_id="",
+                    visitor_landing="",
+                    visitor_referrer="",
+                    visitor_utm="",
+                )
+            )
+
+        payload = response if isinstance(response, dict) else json.loads(response.body)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(len(sent_messages), 2)
+        client_message = sent_messages[0]
+        self.assertEqual(client_message["to_email"], "Boudrahemcelia@gmail.com")
+        self.assertEqual(len(client_message["attachments"]), 1)
+        attachment = client_message["attachments"][0]
+        self.assertEqual(attachment["mime_type"], "application/pdf")
+        self.assertTrue(str(attachment["filename"]).endswith(".pdf"))
+        self.assertTrue(bytes(attachment["content"]).startswith(b"%PDF-1.4"))
+        internal_message = sent_messages[1]
+        self.assertFalse(internal_message.get("attachments"))
+
 
 if __name__ == "__main__":
     unittest.main()

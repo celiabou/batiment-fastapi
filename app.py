@@ -9,6 +9,7 @@ import os
 import re
 import secrets
 import smtplib
+import textwrap
 import unicodedata
 import uuid
 from contextlib import asynccontextmanager
@@ -1869,6 +1870,7 @@ def _send_email_message(
     subject: str,
     text_body: str,
     html_body: str | None = None,
+    attachments: list[dict[str, object]] | None = None,
 ) -> tuple[bool, str | None]:
     cfg = _smtp_settings()
     recipient = (to_email or "").strip()
@@ -1884,6 +1886,14 @@ def _send_email_message(
     msg.set_content(text_body)
     if html_body:
         msg.add_alternative(html_body, subtype="html")
+    for attachment in attachments or []:
+        filename = str(attachment.get("filename") or "").strip()
+        content = attachment.get("content")
+        mime_type = str(attachment.get("mime_type") or "application/octet-stream").strip()
+        if not filename or not isinstance(content, (bytes, bytearray)) or not content:
+            continue
+        maintype, subtype = (mime_type.split("/", 1) + ["octet-stream"])[:2] if "/" in mime_type else ("application", "octet-stream")
+        msg.add_attachment(bytes(content), maintype=maintype, subtype=subtype, filename=filename)
 
     try:
         with smtplib.SMTP(cfg["host"], cfg["port"], timeout=25) as server:
@@ -1984,6 +1994,176 @@ def _compose_client_quote_email(
     )
 
     return subject, "\n".join(lines)
+
+
+def _quote_pdf_filename(name: str, project_type: str) -> str:
+    client_name = (name or "").strip().lower()
+    client_slug = re.sub(r"[^a-z0-9]+", "_", client_name).strip("_")
+    project_slug = re.sub(r"[^a-z0-9]+", "_", (project_type or "projet").strip().lower()).strip("_") or "projet"
+    suffix = client_slug or project_slug
+    return f"pre_devis_{suffix}.pdf"
+
+
+def _quote_pdf_lines(
+    *,
+    name: str,
+    city: str,
+    project_type: str,
+    scope: str,
+    style: str,
+    quote: dict,
+) -> list[str]:
+    project_label = PROJECT_TYPE_LABELS.get(project_type, project_type or "Projet")
+    scope_label = SMART_SCOPE_LABELS.get(scope, SMART_SCOPE_LABELS["renovation_complete"])
+    client_name = (name or "").strip() or "Client"
+    lines = [
+        "EUROBAT SERVICES",
+        "Pre-devis renovation",
+        "",
+        f"Client: {client_name}",
+        f"Ville: {city or 'A confirmer'}",
+        f"Type de bien: {project_label}",
+        f"Perimetre: {scope_label}",
+        f"Style: {(style or 'moderne').capitalize()}",
+        f"Base de calcul: {(quote or {}).get('pricing_context', 'Catalogue Eurobat')}",
+        "",
+        "Estimation main-d'oeuvre HT",
+        f"Montant estime: {(quote or {}).get('low_label', 'A confirmer')} - {(quote or {}).get('high_label', 'A confirmer')}",
+        f"Mention: {LABOR_ONLY_MENTION}",
+        "",
+        "Detail catalogue",
+    ]
+
+    for item in (quote or {}).get("breakdown", [])[:12]:
+        detail = str(item.get("detail") or "").strip()
+        amount = f"{item.get('low_label', '?')} - {item.get('high_label', '?')}"
+        if detail:
+            lines.append(f"- {item.get('label', 'Poste')}: {amount} | {detail}")
+        else:
+            lines.append(f"- {item.get('label', 'Poste')}: {amount}")
+
+    assumptions = [str(line or "").strip() for line in (quote or {}).get("assumptions", []) if str(line or "").strip()]
+    if assumptions:
+        lines.extend(["", "Hypotheses"])
+        lines.extend([f"- {line}" for line in assumptions[:8]])
+
+    lines.extend(
+        [
+            "",
+            "Important",
+            "- Ce pre-devis est calcule uniquement a partir du catalogue Eurobat.",
+            "- Les fournitures, materiaux, equipements et contraintes specifiques du chantier ne sont pas inclus.",
+            "- Le devis final detaille est etabli apres echange expert et validation technique.",
+        ]
+    )
+    return lines
+
+
+def _pdf_escape_text(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def _build_simple_pdf(title: str, lines: list[str]) -> bytes:
+    wrapped_lines: list[str] = []
+    wrapped_lines.extend(textwrap.wrap(title, width=80) or [title])
+    wrapped_lines.append("")
+    for raw_line in lines:
+        current = str(raw_line or "")
+        chunks = textwrap.wrap(current, width=92) or [""]
+        wrapped_lines.extend(chunks)
+
+    page_height = 842
+    start_x = 50
+    start_y = 790
+    line_height = 15
+    max_lines_per_page = 46
+    pages = [
+        wrapped_lines[index:index + max_lines_per_page]
+        for index in range(0, len(wrapped_lines), max_lines_per_page)
+    ] or [[]]
+
+    objects: list[bytes] = []
+    objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
+
+    page_refs = []
+    page_object_numbers: list[int] = []
+    content_object_numbers: list[int] = []
+    next_object_number = 4
+    for _ in pages:
+        page_object_numbers.append(next_object_number)
+        content_object_numbers.append(next_object_number + 1)
+        page_refs.append(f"{next_object_number} 0 R")
+        next_object_number += 2
+
+    pages_object = f"<< /Type /Pages /Count {len(pages)} /Kids [{' '.join(page_refs)}] >>".encode("latin-1")
+    objects.append(pages_object)
+    objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+
+    for page_lines, page_obj_num, content_obj_num in zip(pages, page_object_numbers, content_object_numbers):
+        page_obj = (
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 {page_height}] "
+            f"/Resources << /Font << /F1 3 0 R >> >> /Contents {content_obj_num} 0 R >>"
+        ).encode("latin-1")
+        objects.append(page_obj)
+
+        commands = ["BT", "/F1 11 Tf", f"{line_height} TL", f"{start_x} {start_y} Td"]
+        for index, line in enumerate(page_lines):
+            if index:
+                commands.append("T*")
+            commands.append(f"({_pdf_escape_text(line)}) Tj")
+        commands.append("ET")
+        content_stream = "\n".join(commands).encode("latin-1", "replace")
+        content_obj = (
+            f"<< /Length {len(content_stream)} >>\nstream\n".encode("latin-1")
+            + content_stream
+            + b"\nendstream"
+        )
+        objects.append(content_obj)
+
+    output = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets = [0]
+    for index, obj in enumerate(objects, start=1):
+        offsets.append(len(output))
+        output.extend(f"{index} 0 obj\n".encode("latin-1"))
+        output.extend(obj)
+        output.extend(b"\nendobj\n")
+
+    xref_offset = len(output)
+    output.extend(f"xref\n0 {len(objects) + 1}\n".encode("latin-1"))
+    output.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        output.extend(f"{offset:010d} 00000 n \n".encode("latin-1"))
+    output.extend(
+        (
+            f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF"
+        ).encode("latin-1")
+    )
+    return bytes(output)
+
+
+def _build_quote_pdf_attachment(
+    *,
+    name: str,
+    city: str,
+    project_type: str,
+    scope: str,
+    style: str,
+    quote: dict,
+) -> dict[str, object]:
+    pdf_lines = _quote_pdf_lines(
+        name=name,
+        city=city,
+        project_type=project_type,
+        scope=scope,
+        style=style,
+        quote=quote,
+    )
+    pdf_bytes = _build_simple_pdf("Pre-devis renovation Eurobat", pdf_lines)
+    return {
+        "filename": _quote_pdf_filename(name, project_type),
+        "content": pdf_bytes,
+        "mime_type": "application/pdf",
+    }
 
 
 def _compose_client_devis_email(
@@ -2363,24 +2543,16 @@ def _build_smart_quote(
             }
         )
 
-    budget_fit = {"status": "unknown", "message": "Budget non renseigne."}
+    budget_fit = {
+        "status": "info",
+        "message": "Budget non renseigne. Il n'entre pas dans le calcul catalogue.",
+    }
     if budget_value and budget_value > 0:
         budget_amount = int(round(budget_value))
-        if budget_amount < low * 0.85:
-            budget_fit = {
-                "status": "under_budget",
-                "message": "Budget probablement trop serre: prioriser les postes essentiels.",
-            }
-        elif budget_amount > high * 1.3:
-            budget_fit = {
-                "status": "over_budget",
-                "message": "Budget confortable: possibilite de finitions premium.",
-            }
-        else:
-            budget_fit = {
-                "status": "aligned",
-                "message": "Budget coherent avec l'estimation actuelle.",
-            }
+        budget_fit = {
+            "status": "info",
+            "message": f"Budget renseigne: {_format_eur(budget_amount)}. Il n'entre pas dans le calcul catalogue.",
+        }
 
     primary_line = breakdown[0] if breakdown else {}
     quantity_hint = ""
@@ -2397,6 +2569,18 @@ def _build_smart_quote(
         pricing_context_parts.append(str(primary_line["label"]))
     if quantity_hint:
         pricing_context_parts.append(quantity_hint)
+
+    primary_catalog_line = (catalog_result.get("lines") or [{}])[0] if catalog_result.get("lines") else {}
+    primary_unit = str(primary_catalog_line.get("unit") or "")
+    calculation_mode = "scope"
+    if work_item_key:
+        calculation_mode = "work_item"
+    calculation_note = "Calcul basé sur le type de travaux et la surface renseignée."
+    if calculation_mode == "work_item":
+        if primary_unit == "forfait":
+            calculation_note = "Calcul basé sur le poste catalogue sélectionné. La quantité est ignorée car ce poste est au forfait."
+        else:
+            calculation_note = "Calcul basé sur le poste catalogue sélectionné et sa quantité. La surface sert uniquement d'information complémentaire."
 
     assumptions = [
         "Calcul strictement base sur le catalogue Eurobat.",
@@ -2416,6 +2600,8 @@ def _build_smart_quote(
 
     return {
         "pricing_basis": "catalog",
+        "calculation_mode": calculation_mode,
+        "calculation_note": calculation_note,
         "pricing_context": " • ".join(part for part in pricing_context_parts if part),
         "project_type_label": PROJECT_TYPE_LABELS.get(project_key, project_key),
         "scope_label": SMART_SCOPE_LABELS.get(scope_key, scope_key),
@@ -4253,10 +4439,19 @@ async def devis_intelligent(
         style=style_key,
         quote=quote,
     )
+    client_pdf_attachment = _build_quote_pdf_attachment(
+        name=name,
+        city=city,
+        project_type=project_key,
+        scope=scope_key,
+        style=style_key,
+        quote=quote,
+    )
     client_email_sent, client_error = _send_email_message(
         to_email=client_email,
         subject=client_subject,
         text_body=client_body,
+        attachments=[client_pdf_attachment],
     )
 
     internal_subject, internal_body = _compose_internal_report_email(
@@ -5040,10 +5235,19 @@ async def architecture_3d(
         renders=render_urls,
         source_photos=photo_urls,
     )
+    client_pdf_attachment = _build_quote_pdf_attachment(
+        name=name,
+        city=city,
+        project_type=project_type,
+        scope=scope,
+        style=style,
+        quote=quote,
+    )
     client_email_sent, client_error = _send_email_message(
         to_email=client_email,
         subject=client_subject,
         text_body=client_body,
+        attachments=[client_pdf_attachment],
     )
     internal_subject, internal_body = _compose_internal_report_email(
         name=name,

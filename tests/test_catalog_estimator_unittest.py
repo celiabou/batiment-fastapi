@@ -182,6 +182,37 @@ class CatalogEstimatorTest(unittest.TestCase):
 
         self.assertEqual(quote, {"error": "Renseignez la surface en m2 pour calculer cette estimation catalogue."})
 
+    def test_quote_pdf_attachment_is_generated(self):
+        module = _load_app_module()
+        quote = module._build_smart_quote(
+            project_type="maison",
+            style="moderne",
+            scope="renovation_complete",
+            timeline="6_mois",
+            surface="50",
+            rooms="",
+            budget="",
+            city="Paris",
+            notes="",
+            work_item_key="",
+            work_quantity="",
+            work_unit="",
+        )
+
+        attachment = module._build_quote_pdf_attachment(
+            name="Laura Chris",
+            city="Paris",
+            project_type="maison",
+            scope="renovation_complete",
+            style="moderne",
+            quote=quote,
+        )
+
+        self.assertEqual(attachment["mime_type"], "application/pdf")
+        self.assertEqual(attachment["filename"], "pre_devis_laura_chris.pdf")
+        self.assertTrue(bytes(attachment["content"]).startswith(b"%PDF-1.4"))
+        self.assertGreater(len(bytes(attachment["content"])), 500)
+
 
 if __name__ == "__main__":
     unittest.main()

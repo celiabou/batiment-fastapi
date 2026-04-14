@@ -11,7 +11,7 @@
 <section class="ai3d-layout">
   <form id="aiQuoteForm" class="form ai3d-form" enctype="multipart/form-data">
     <h3>Estimez votre projet</h3>
-    <p class="section-sub">Décrivez votre besoin pour obtenir une estimation indicative de la main-d'œuvre.</p>
+    <p class="section-sub">Le calcul est base uniquement sur le catalogue Eurobat. Selectionnez un poste avec sa quantite, ou laissez vide pour utiliser le type de travaux avec la surface renseignee.</p>
     <div class="ai3d-form-grid">
       <label>Type de bien
         <select name="project_type" required>
@@ -130,8 +130,8 @@
     <div class="box">
       <h3>Ce que vous recevez</h3>
       <ol class="ai3d-steps">
-        <li>Fourchette budgetaire et delai indicatif.</li>
-        <li>Points techniques principaux identifies.</li>
+        <li>Montant min/max calcule depuis le catalogue.</li>
+        <li>Detail du poste ou du code catalogue utilise.</li>
         <li>Preparation de l'echange avec un expert.</li>
       </ol>
     </div>
@@ -147,7 +147,7 @@
       <h3 id="smartQuoteRange">En attente d'estimation</h3>
       <p class="ai3d-disclaimer">Main-d'œuvre uniquement</p>
       <p class="ai3d-disclaimer">Hors matériaux et fournitures</p>
-      <p id="smartQuoteMeta" class="section-sub">Remplissez le formulaire pour obtenir une estimation.</p>
+      <p id="smartQuoteMeta" class="section-sub">Selectionnez un poste catalogue avec quantite, ou un type de travaux avec surface.</p>
       <p class="ai3d-disclaimer">Cette estimation est donnée à titre indicatif. Un devis détaillé nécessite une étude personnalisée.</p>
       <p id="smartQuoteBudget" class="ai3d-budget-hint">Budget non analyse.</p>
       <div id="smartQuoteBreakdown" class="ai3d-breakdown"></div>
@@ -158,5 +158,5 @@
   </div>
 </section>
 
-<script src="{{ url_for('static', path='architecture_ai.js') }}?v=20260401-1"></script>
+<script src="{{ url_for('static', path='architecture_ai.js') }}?v=20260414-catalog"></script>
 {% endblock %}

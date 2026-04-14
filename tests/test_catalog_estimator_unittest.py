@@ -18,6 +18,19 @@ def _load_module(relative_path: str):
     return module
 
 
+def _load_app_module():
+    path = ROOT / "app.py"
+    sys.path.insert(0, str(ROOT))
+    try:
+        spec = importlib.util.spec_from_file_location("app_module", path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        sys.path.pop(0)
+
+
 class CatalogEstimatorTest(unittest.TestCase):
     def test_scope_ranges_follow_catalogue(self):
         expected = {
@@ -105,6 +118,69 @@ class CatalogEstimatorTest(unittest.TestCase):
                     module.estimate_catalog_lines(payload),
                     {"error": "Invalid service code or quantity"},
                 )
+
+    def test_smart_quote_ignores_non_catalogue_coefficients(self):
+        module = _load_app_module()
+        quote = module._build_smart_quote(
+            project_type="bien_professionnel",
+            style="contemporain",
+            scope="rafraichissement",
+            timeline="urgent",
+            surface="50",
+            rooms="8",
+            budget="100000",
+            city="Paris",
+            notes="Mur porteur plomberie sur mesure",
+            work_item_key="",
+            work_quantity="",
+            work_unit="",
+        )
+
+        self.assertEqual(quote["pricing_basis"], "catalog")
+        self.assertEqual(quote["low"], 12500)
+        self.assertEqual(quote["high"], 37500)
+        self.assertEqual(quote["pricing_context"], "Catalogue Eurobat • Rénovation légère • 50 m2")
+        self.assertIn("Aucun coefficient type de bien, style, delai, nombre de pieces ou complexite n'est applique.", quote["assumptions"])
+
+    def test_smart_quote_uses_selected_catalogue_item_only(self):
+        module = _load_app_module()
+        quote = module._build_smart_quote(
+            project_type="bien_professionnel",
+            style="contemporain",
+            scope="renovation_complete",
+            timeline="urgent",
+            surface="250",
+            rooms="12",
+            budget="5000",
+            city="Paris",
+            notes="Tout le bureau",
+            work_item_key="carrelage",
+            work_quantity="10",
+            work_unit="m2",
+        )
+
+        self.assertEqual(quote["low"], 600)
+        self.assertEqual(quote["high"], 1900)
+        self.assertEqual(quote["breakdown"][0]["code"], "carrelage")
+
+    def test_smart_quote_requires_surface_for_scope_estimate(self):
+        module = _load_app_module()
+        quote = module._build_smart_quote(
+            project_type="maison",
+            style="moderne",
+            scope="renovation_complete",
+            timeline="6_mois",
+            surface="",
+            rooms="",
+            budget="",
+            city="",
+            notes="",
+            work_item_key="",
+            work_quantity="",
+            work_unit="",
+        )
+
+        self.assertEqual(quote, {"error": "Renseignez la surface en m2 pour calculer cette estimation catalogue."})
 
 
 if __name__ == "__main__":

@@ -83,7 +83,7 @@
 <section id="devis-intelligent" class="ai3d-layout">
   <form id="aiQuoteForm" class="form ai3d-form">
     <h3>1) Estimation du projet</h3>
-    <p class="section-sub">Cette etape envoie une estimation par email (client + copie interne).</p>
+    <p class="section-sub">Cette etape envoie une estimation calculee uniquement a partir du catalogue Eurobat.</p>
     <div class="ai3d-form-grid">
       <label>Type de projet
         <select name="project_type" required>
@@ -183,9 +183,9 @@
     <div class="box">
       <h3>Sortie devis</h3>
       <ol class="ai3d-steps">
-        <li>Fourchette budget détaillée et délai indicatif.</li>
+        <li>Montant min/max calcule depuis le catalogue.</li>
         <li>Compte rendu interne avant appel conseiller.</li>
-        <li>Activation du rendu 3D sur demande après devis.</li>
+        <li>Activation du rendu 3D sur demande apres devis.</li>
       </ol>
     </div>
   </aside>
@@ -313,7 +313,7 @@
       <h3 id="smartQuoteRange">En attente de simulation</h3>
       <p class="ai3d-disclaimer">Main-d'œuvre uniquement</p>
       <p class="ai3d-disclaimer">Hors matériaux et fournitures</p>
-      <p id="smartQuoteMeta" class="section-sub">Remplissez le formulaire pour obtenir une estimation.</p>
+      <p id="smartQuoteMeta" class="section-sub">Selectionnez un poste catalogue avec quantite, ou un type de travaux avec surface.</p>
       <p class="ai3d-disclaimer">Cette estimation est donnée à titre indicatif. Un devis détaillé nécessite une étude personnalisée.</p>
       <p id="smartQuoteBudget" class="ai3d-budget-hint">Budget non analysé.</p>
       <div id="smartQuoteBreakdown" class="ai3d-breakdown"></div>
@@ -337,4 +337,4 @@
   <div id="ai3dRenders" class="ai3d-gallery ai3d-renders"></div>
 </section>
 
-<script src="{{ url_for('static', path='architecture_ai.js') }}?v=20260401-1"></script>
+<script src="{{ url_for('static', path='architecture_ai.js') }}?v=20260414-catalog"></script>

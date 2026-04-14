@@ -1,10 +1,19 @@
 from __future__ import annotations
 
+import asyncio
 import importlib.util
+import io
 import json
 import sys
+import tempfile
+from contextlib import ExitStack
+from unittest import mock
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+
+from starlette.datastructures import Headers, UploadFile
+from starlette.requests import Request
 
 
 ROOT = Path("/Users/keythinkerscelia/PycharmProjects/PythonProject/batiment-fastapi-repo")
@@ -88,6 +97,96 @@ class CatalogEstimatorApiTest(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(json.loads(response.body), {"error": "Invalid service code or quantity"})
+
+    def test_devis_intelligent_accepts_uploaded_documents(self):
+        class DummySession:
+            def add(self, _obj):
+                return None
+
+            def commit(self):
+                return None
+
+            def refresh(self, obj):
+                obj.id = 123
+
+            def close(self):
+                return None
+
+        request = Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": "/api/devis-intelligent",
+                "headers": [],
+                "client": ("127.0.0.1", 12345),
+                "query_string": b"",
+                "scheme": "http",
+                "server": ("127.0.0.1", 8081),
+            }
+        )
+        project_photo = UploadFile(
+            file=io.BytesIO(b"fake-image-bytes"),
+            filename="photo.jpg",
+            headers=Headers({"content-type": "image/jpeg"}),
+        )
+        upload_root = self.module.STATIC_DIR / "estimate"
+        upload_root.mkdir(parents=True, exist_ok=True)
+
+        with ExitStack() as stack:
+            tmpdir = stack.enter_context(
+                tempfile.TemporaryDirectory(dir=str(upload_root))
+            )
+            stack.enter_context(mock.patch.object(self.module, "_get_current_user", return_value=None))
+            stack.enter_context(mock.patch.object(self.module, "_smtp_settings", return_value={}))
+            stack.enter_context(mock.patch.object(self.module, "_smtp_ready", return_value=False))
+            stack.enter_context(mock.patch.object(self.module, "INTERNAL_REPORT_EMAIL", ""))
+            stack.enter_context(mock.patch.object(self.module, "SessionLocal", return_value=DummySession()))
+            stack.enter_context(mock.patch.object(self.module, "ESTIMATE_UPLOAD_DIR", Path(tmpdir)))
+            stack.enter_context(
+                mock.patch.object(
+                    self.module,
+                    "HandoffRequest",
+                    side_effect=lambda **kwargs: SimpleNamespace(**kwargs),
+                )
+            )
+
+            response = asyncio.run(
+                self.module.devis_intelligent(
+                    request=request,
+                    project_type="bien_professionnel",
+                    style="contemporain",
+                    scope="rafraichissement",
+                    timeline="urgent",
+                    finishing_level="",
+                    work_item_key="",
+                    work_quantity="",
+                    work_unit="",
+                    city="Paris",
+                    surface="50",
+                    rooms="7",
+                    budget="100000",
+                    notes="Mur porteur plomberie sur mesure",
+                    name="Client Test",
+                    phone="0600000000",
+                    email="client@example.com",
+                    project_photos=[project_photo],
+                    project_videos=[],
+                    project_dpe=None,
+                    project_plans=[],
+                    visitor_id="",
+                    visitor_landing="",
+                    visitor_referrer="",
+                    visitor_utm="",
+                )
+            )
+
+        payload = response if isinstance(response, dict) else json.loads(response.body)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["delivery"]["client_email_sent"], False)
+        self.assertEqual(payload["delivery"]["internal_email_sent"], False)
+        self.assertEqual(payload["quote"]["low"], 12500)
+        self.assertEqual(payload["quote"]["high"], 37500)
+        self.assertEqual(payload["quote"]["pricing_context"], "Catalogue Eurobat • Rénovation légère • 50 m2")
 
 
 if __name__ == "__main__":

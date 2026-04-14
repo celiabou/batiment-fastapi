@@ -31,11 +31,11 @@ from intelligence.router import router as intelligence_router
 from models import Base, ClientProject, HandoffRequest, Lead, PasswordResetToken, ProjectDocument, UserAccount, UserSession
 from pricing import (
     CATALOG_ESTIMATE_ERROR,
+    COMPAT_CODE_ALIASES,
     ESTIMATE_WORK_ITEM_GROUPS,
+    SCOPE_TO_CODE,
     TARIFF_BY_KEY,
     estimate_catalog_lines,
-    estimate_from_item_key,
-    estimate_from_scope,
     estimate_from_text,
     get_tariff_item,
     has_required_quantity,
@@ -1931,8 +1931,6 @@ def _compose_client_quote_email(
 ) -> tuple[str, str]:
     project_label = PROJECT_TYPE_LABELS.get(project_type, project_type or "projet")
     scope_label = SMART_SCOPE_LABELS.get(scope, SMART_SCOPE_LABELS["renovation_complete"])
-    duration = (quote or {}).get("duration_weeks", {}) or {}
-    duration_label = f"{duration.get('min', '?')} a {duration.get('max', '?')} semaines"
     client_name = (name or "").strip() or "Bonjour"
 
     subject = f"Votre devis intelligent + rendu 3D - {project_label}"
@@ -1949,14 +1947,19 @@ def _compose_client_quote_email(
         f"- Ville: {city or 'A confirmer'}",
         f"- Budget estime: {(quote or {}).get('low_label', 'A confirmer')} - {(quote or {}).get('high_label', 'A confirmer')}",
         f"- Mention: {LABOR_ONLY_MENTION}",
-        f"- Delai indicatif: {duration_label}",
-        f"- Confiance estimation: {int(round(float((quote or {}).get('confidence', 0)) * 100))}%",
+        f"- Base de calcul: {(quote or {}).get('pricing_context', 'Catalogue Eurobat')}",
         "",
         "Postes budgetaires",
     ]
 
     for item in (quote or {}).get("breakdown", [])[:8]:
-        lines.append(f"- {item.get('label', 'Poste')}: {item.get('low_label', '?')} - {item.get('high_label', '?')}")
+        detail = item.get("detail")
+        if detail:
+            lines.append(
+                f"- {item.get('label', 'Poste')}: {item.get('low_label', '?')} - {item.get('high_label', '?')} ({detail})"
+            )
+        else:
+            lines.append(f"- {item.get('label', 'Poste')}: {item.get('low_label', '?')} - {item.get('high_label', '?')}")
 
     lines.extend(["", "Rendus 3D (liens)"])
     if renders:
@@ -1994,8 +1997,6 @@ def _compose_client_devis_email(
 ) -> tuple[str, str]:
     project_label = PROJECT_TYPE_LABELS.get(project_type, project_type or "projet")
     scope_label = SMART_SCOPE_LABELS.get(scope, SMART_SCOPE_LABELS["renovation_complete"])
-    duration = (quote or {}).get("duration_weeks", {}) or {}
-    duration_label = f"{duration.get('min', '?')} a {duration.get('max', '?')} semaines"
     client_name = (name or "").strip() or "Bonjour"
 
     subject = f"Votre devis intelligent - {project_label}"
@@ -2011,16 +2012,21 @@ def _compose_client_devis_email(
         f"- Style: {(style or 'moderne').capitalize()}",
         f"- Ville: {city or 'A confirmer'}",
         f"- Budget estime: {(quote or {}).get('low_label', 'A confirmer')} - {(quote or {}).get('high_label', 'A confirmer')}",
-        f"- Delai indicatif: {duration_label}",
-        f"- Confiance estimation: {int(round(float((quote or {}).get('confidence', 0)) * 100))}%",
+        f"- Base de calcul: {(quote or {}).get('pricing_context', 'Catalogue Eurobat')}",
         "",
         "Postes budgetaires",
     ]
 
     for item in (quote or {}).get("breakdown", [])[:8]:
-        lines.append(
-            f"- {item.get('label', 'Poste')}: {item.get('low_label', '?')} - {item.get('high_label', '?')}"
-        )
+        detail = item.get("detail")
+        if detail:
+            lines.append(
+                f"- {item.get('label', 'Poste')}: {item.get('low_label', '?')} - {item.get('high_label', '?')} ({detail})"
+            )
+        else:
+            lines.append(
+                f"- {item.get('label', 'Poste')}: {item.get('low_label', '?')} - {item.get('high_label', '?')}"
+            )
 
     lines.extend(
         [
@@ -2158,8 +2164,7 @@ def _compose_internal_report_email(
         "Devis intelligent",
         f"- Fourchette: {(quote or {}).get('low_label', 'A confirmer')} - {(quote or {}).get('high_label', 'A confirmer')}",
         f"- Mention: {LABOR_ONLY_MENTION}",
-        f"- Delai: {(quote or {}).get('duration_weeks', {}).get('min', '?')} a {(quote or {}).get('duration_weeks', {}).get('max', '?')} semaines",
-        f"- Confiance: {int(round(float((quote or {}).get('confidence', 0)) * 100))}%",
+        f"- Base de calcul: {(quote or {}).get('pricing_context', 'Catalogue Eurobat')}",
         f"- Budget fit: {(quote or {}).get('budget_fit', {}).get('message', 'A confirmer')}",
         "",
         "Compte rendu avant appel",
@@ -2249,6 +2254,50 @@ def _scope_breakdown_weights(scope: str) -> list[tuple[str, float]]:
     ]
 
 
+def _format_catalog_quantity(value: object, unit: str) -> str:
+    amount = _parse_number(value)
+    if amount is None:
+        return "Forfait"
+    if float(amount).is_integer():
+        amount_label = str(int(round(amount)))
+    else:
+        amount_label = f"{amount:.2f}".rstrip("0").rstrip(".").replace(".", ",")
+    return f"{amount_label} {unit}".strip()
+
+
+def _catalog_quote_lines(
+    *,
+    scope: str,
+    surface: str,
+    work_item_key: str,
+    work_quantity: str,
+) -> tuple[list[dict[str, object]] | None, str | None]:
+    selected_work_item = (work_item_key or "").strip()
+    if selected_work_item:
+        catalog_code = COMPAT_CODE_ALIASES.get(selected_work_item, selected_work_item)
+        item = TARIFF_BY_KEY.get(catalog_code)
+        if not item:
+            return None, "Poste de travaux invalide dans le catalogue."
+        if str(item.get("unit") or "") == "forfait":
+            return [{"code": catalog_code}], None
+
+        quantity = _parse_number(work_quantity)
+        if quantity is None or quantity <= 0:
+            return None, f"Renseignez une quantite valide pour le poste {item['label']}."
+        return [{"code": catalog_code, "quantity": quantity}], None
+
+    scope_key = scope if scope in SMART_SCOPE_CONFIG else "renovation_complete"
+    catalog_code = SCOPE_TO_CODE.get(scope_key)
+    item = TARIFF_BY_KEY.get(catalog_code or "")
+    if not item:
+        return None, "Type de travaux introuvable dans le catalogue."
+
+    quantity = _parse_number(surface)
+    if quantity is None or quantity <= 0:
+        return None, "Renseignez la surface en m2 pour calculer cette estimation catalogue."
+    return [{"code": catalog_code, "quantity": quantity}], None
+
+
 def _build_smart_quote(
     project_type: str,
     style: str,
@@ -2265,122 +2314,52 @@ def _build_smart_quote(
     work_unit: str = "",
 ) -> dict:
     scope_key = scope if scope in SMART_SCOPE_CONFIG else "renovation_complete"
-    style_key = style if style in STYLE_MULTIPLIER else "moderne"
     project_key = project_type if project_type in PROJECT_TYPE_MULTIPLIER else "maison"
-    timeline_key = timeline if timeline in TIMELINE_COST_MULTIPLIER else "6_mois"
-    finishing_key = finishing_level if finishing_level in {"standard", "premium", "haut_de_gamme", "sur_mesure"} else ""
-
-    config = SMART_SCOPE_CONFIG[scope_key]
-    surface_value = _parse_number(surface) or PROJECT_DEFAULT_SURFACE[project_key]
-    surface_value = max(18.0, min(5000.0, surface_value))
-
     room_count = int(_parse_number(rooms) or 0)
     room_count = max(0, min(60, room_count))
     budget_value = _parse_number(budget)
-    complexity = _estimate_complexity(notes)
-    quantity_value = _parse_number(work_quantity)
+    surface_value = _parse_number(surface)
 
-    room_factor = 1.0
-    if room_count:
-        room_factor += min(0.2, (room_count - 2) * 0.02)
-    if room_count == 1 and surface_value > 60:
-        room_factor += 0.05
-
-    pricing_source = "smart_scope"
-    base_from_grid = estimate_from_scope(scope_key, project_key, surface_value, finishing_key)
-    if work_item_key:
-        base_from_grid = estimate_from_item_key(work_item_key, quantity_value, (work_unit or "").strip() or None)
-        if base_from_grid:
-            pricing_source = "tariff_item"
-
-    if base_from_grid:
-        if pricing_source == "smart_scope":
-            pricing_source = "tariff_grid"
-        low_raw = (
-            base_from_grid["low"]
-            * PROJECT_TYPE_MULTIPLIER[project_key]
-            * STYLE_MULTIPLIER[style_key]
-            * TIMELINE_COST_MULTIPLIER[timeline_key]
-            * complexity
-            * room_factor
-        )
-        high_raw = (
-            base_from_grid["high"]
-            * PROJECT_TYPE_MULTIPLIER[project_key]
-            * STYLE_MULTIPLIER[style_key]
-            * TIMELINE_COST_MULTIPLIER[timeline_key]
-            * complexity
-            * room_factor
-        )
-    else:
-        low_raw = (
-            surface_value
-            * config["low_m2"]
-            * PROJECT_TYPE_MULTIPLIER[project_key]
-            * STYLE_MULTIPLIER[style_key]
-            * TIMELINE_COST_MULTIPLIER[timeline_key]
-            * complexity
-            * room_factor
-        )
-        high_raw = (
-            surface_value
-            * config["high_m2"]
-            * PROJECT_TYPE_MULTIPLIER[project_key]
-            * STYLE_MULTIPLIER[style_key]
-            * TIMELINE_COST_MULTIPLIER[timeline_key]
-            * complexity
-            * room_factor
-        )
-
-    if high_raw <= low_raw:
-        high_raw = low_raw * 1.2
-
-    low = int(round(low_raw / 100.0) * 100)
-    high = int(round(high_raw / 100.0) * 100)
-
-    base_min_weeks, base_max_weeks = config["duration"]
-    duration_surface_factor = max(0.7, min(2.4, surface_value / 90.0))
-    duration_room_factor = 1.0 + min(0.25, room_count * 0.015)
-    duration_complexity = 0.97 + (complexity - 1.0) * 1.3
-    duration_timeline = TIMELINE_DURATION_MULTIPLIER[timeline_key]
-
-    duration_min = int(
-        max(
-            2,
-            round(
-                base_min_weeks
-                * duration_surface_factor
-                * duration_room_factor
-                * duration_complexity
-                * duration_timeline
-            ),
-        )
+    quote_lines, quote_error = _catalog_quote_lines(
+        scope=scope_key,
+        surface=surface,
+        work_item_key=work_item_key,
+        work_quantity=work_quantity,
     )
-    duration_max = int(
-        max(
-            duration_min + 1,
-            round(
-                base_max_weeks
-                * duration_surface_factor
-                * duration_room_factor
-                * duration_complexity
-                * duration_timeline
-            ),
-        )
-    )
+    if quote_error or not quote_lines:
+        return {"error": quote_error or CATALOG_ESTIMATE_ERROR["error"]}
+
+    catalog_result = estimate_catalog_lines(quote_lines)
+    if catalog_result.get("error"):
+        return {"error": CATALOG_ESTIMATE_ERROR["error"]}
+
+    low = int(round(float(catalog_result["total_min_ht"])))
+    high = int(round(float(catalog_result["total_max_ht"])))
 
     breakdown = []
-    for label, weight in _scope_breakdown_weights(scope_key):
-        part_low = int(round(low * weight / 100.0) * 100)
-        part_high = int(round(high * weight / 100.0) * 100)
+    for line in catalog_result.get("lines", []):
+        code = str(line.get("code") or "")
+        item = TARIFF_BY_KEY.get(code, {})
+        unit = str(line.get("unit") or item.get("unit") or "")
+        quantity = line.get("quantity")
+        unit_price_low = int(round(float(line.get("unit_price_min") or 0)))
+        unit_price_high = int(round(float(line.get("unit_price_max") or 0)))
+        if quantity is None:
+            detail = f"Forfait catalogue • {_format_eur(unit_price_low)} - {_format_eur(unit_price_high)}"
+        else:
+            detail = (
+                f"Quantite: {_format_catalog_quantity(quantity, unit)} • "
+                f"Prix catalogue: {_format_eur(unit_price_low)} - {_format_eur(unit_price_high)} / {unit}"
+            )
         breakdown.append(
             {
-                "label": label,
-                "share_percent": round(weight * 100),
-                "low": part_low,
-                "high": part_high,
-                "low_label": _format_eur(part_low),
-                "high_label": _format_eur(part_high),
+                "label": str(item.get("label") or code),
+                "code": code,
+                "detail": detail,
+                "low": int(round(float(line.get("line_total_min") or 0))),
+                "high": int(round(float(line.get("line_total_max") or 0))),
+                "low_label": _format_eur(int(round(float(line.get("line_total_min") or 0)))),
+                "high_label": _format_eur(int(round(float(line.get("line_total_max") or 0)))),
             }
         )
 
@@ -2403,46 +2382,52 @@ def _build_smart_quote(
                 "message": "Budget coherent avec l'estimation actuelle.",
             }
 
-    confidence = 0.52
-    if surface:
-        confidence += 0.14
-    if budget:
-        confidence += 0.08
-    if city:
-        confidence += 0.06
-    if notes and len(notes.strip()) >= 24:
-        confidence += 0.08
-    if room_count:
-        confidence += 0.06
-    confidence = round(min(0.92, confidence), 2)
+    primary_line = breakdown[0] if breakdown else {}
+    quantity_hint = ""
+    if primary_line:
+        raw_quantity = catalog_result.get("lines", [{}])[0].get("quantity")
+        raw_unit = str(catalog_result.get("lines", [{}])[0].get("unit") or "")
+        if raw_quantity is None:
+            quantity_hint = "Forfait"
+        else:
+            quantity_hint = _format_catalog_quantity(raw_quantity, raw_unit)
+
+    pricing_context_parts = ["Catalogue Eurobat"]
+    if primary_line.get("label"):
+        pricing_context_parts.append(str(primary_line["label"]))
+    if quantity_hint:
+        pricing_context_parts.append(quantity_hint)
 
     assumptions = [
-        f"Perimetre: {SMART_SCOPE_LABELS.get(scope_key, SMART_SCOPE_LABELS['renovation_complete'])}.",
-        f"Style vise: {style_key}.",
-        "Hors contraintes administratives exceptionnelles et diagnostics destructifs.",
+        "Calcul strictement base sur le catalogue Eurobat.",
+        "Aucun coefficient type de bien, style, delai, nombre de pieces ou complexite n'est applique.",
+        "Montant calcule uniquement a partir du code catalogue et de sa quantite.",
     ]
-    if pricing_source == "tariff_grid":
-        assumptions.append("Base grille tarifaire Eurobat (main-d'oeuvre).")
-    if pricing_source == "tariff_item":
-        assumptions.append("Calcul base sur poste specifique de la grille tarifaire.")
-    if not surface:
+    if primary_line.get("code"):
         assumptions.append(
-            f"Surface par defaut appliquee ({int(surface_value)} m2) selon type de bien."
+            f"Code catalogue utilise: {primary_line['code']} ({primary_line.get('label', primary_line['code'])})."
+        )
+    if work_item_key:
+        assumptions.append("Le poste selectionne dans la grille catalogue est prioritaire sur le type de travaux.")
+    else:
+        assumptions.append(
+            f"Le type de travaux est mappe sur le code catalogue {SCOPE_TO_CODE.get(scope_key, '')}."
         )
 
     return {
+        "pricing_basis": "catalog",
+        "pricing_context": " • ".join(part for part in pricing_context_parts if part),
         "project_type_label": PROJECT_TYPE_LABELS.get(project_key, project_key),
         "scope_label": SMART_SCOPE_LABELS.get(scope_key, scope_key),
-        "surface_m2": round(surface_value, 1),
+        "surface_m2": round(surface_value or 0.0, 1),
         "rooms": room_count or None,
-        "confidence": confidence,
         "low": low,
         "high": high,
         "low_label": _format_eur(low),
         "high_label": _format_eur(high),
         "budget_fit": budget_fit,
-        "duration_weeks": {"min": duration_min, "max": duration_max},
         "breakdown": breakdown,
+        "catalog_lines": catalog_result.get("lines", []),
         "assumptions": assumptions,
     }
 
@@ -4026,6 +4011,8 @@ async def devis_intelligent(
         work_quantity=work_quantity,
         work_unit=work_unit,
     )
+    if quote.get("error"):
+        return JSONResponse({"ok": False, "error": str(quote["error"])}, status_code=400)
 
     project_saved = False
     saved_project_id = None
@@ -4096,7 +4083,7 @@ async def devis_intelligent(
                     "original_name": upload.filename,
                     "stored_name": filename,
                     "mime_type": upload.content_type,
-                    "path": dst,
+                    "public_url": _public_static_url(dst),
                 }
             )
 
@@ -4117,7 +4104,7 @@ async def devis_intelligent(
                     "original_name": upload.filename,
                     "stored_name": filename,
                     "mime_type": upload.content_type,
-                    "path": dst,
+                    "public_url": _public_static_url(dst),
                 }
             )
 
@@ -4525,7 +4512,12 @@ async def render_3d_on_demand(
             )
 
         stored_quote = handoff_payload.get("quote")
-        if not isinstance(stored_quote, dict) or not stored_quote.get("low_label") or not stored_quote.get("high_label"):
+        if (
+            not isinstance(stored_quote, dict)
+            or stored_quote.get("pricing_basis") != "catalog"
+            or not stored_quote.get("low_label")
+            or not stored_quote.get("high_label")
+        ):
             stored_quote = None
         quote = stored_quote or _build_smart_quote(
             project_type=project_key,
@@ -4542,6 +4534,8 @@ async def render_3d_on_demand(
             work_quantity=str((handoff_payload or {}).get("work_quantity", "")),
             work_unit=str((handoff_payload or {}).get("work_unit", "")),
         )
+        if quote.get("error"):
+            return JSONResponse({"ok": False, "error": str(quote["error"])}, status_code=400)
 
         prompt = _compose_architecture_prompt(
             project_type=project_key,
@@ -4918,6 +4912,8 @@ async def architecture_3d(
         work_item_key="",
         work_quantity="",
     )
+    if quote.get("error"):
+        return JSONResponse({"ok": False, "error": str(quote["error"])}, status_code=400)
     interior_offer = _build_interior_offer(
         project_type=project_type,
         style=style,

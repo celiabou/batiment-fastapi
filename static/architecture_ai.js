@@ -1,14 +1,12 @@
 //noinspection SpellCheckingInspection
 (function () {
   /**
-   * @typedef {{min?: number, max?: number}} DurationWeeks
    * @typedef {{status?: string, message?: string}} BudgetFit
-   * @typedef {{label?: string, share_percent?: number, low_label?: string, high_label?: string}} QuoteBreakdownItem
+   * @typedef {{label?: string, detail?: string, share_percent?: number, low_label?: string, high_label?: string}} QuoteBreakdownItem
    * @typedef {{
    *   low_label?: string,
    *   high_label?: string,
-   *   duration_weeks?: DurationWeeks,
-   *   confidence?: number,
+   *   pricing_context?: string,
    *   project_type_label?: string,
    *   scope_label?: string,
    *   budget_fit?: BudgetFit,
@@ -349,12 +347,13 @@
     }
 
     setText(quoteRangeEl, `${quote.low_label || ""} - ${quote.high_label || ""}`);
-    /** @type {DurationWeeks} */
-    const duration = quote.duration_weeks || {};
-    setText(
-      quoteMetaEl,
-      `Confiance ${Math.round((quote.confidence || 0) * 100)}% • ${quote.project_type_label || ""} • ${quote.scope_label || ""} • Délai ${duration.min || "?"}-${duration.max || "?"} semaines`
-    );
+    const metaParts = [];
+    if (quote.pricing_context) metaParts.push(quote.pricing_context);
+    else {
+      if (quote.project_type_label) metaParts.push(quote.project_type_label);
+      if (quote.scope_label) metaParts.push(quote.scope_label);
+    }
+    setText(quoteMetaEl, metaParts.join(" • ") || "Calcul catalogue en attente.");
 
     /** @type {BudgetFit} */
     const budgetFit = quote.budget_fit || {};
@@ -368,7 +367,10 @@
 
       const left = document.createElement("span");
       left.className = "ai3d-breakdown-left";
-      left.textContent = `${item.label || "Poste"} (${Number(item.share_percent || 0)}%)`;
+      const hasShare = Number.isFinite(Number(item.share_percent));
+      const label = item.label || "Poste";
+      const detail = item.detail ? ` • ${item.detail}` : "";
+      left.textContent = hasShare ? `${label} (${Number(item.share_percent || 0)}%)${detail}` : `${label}${detail}`;
 
       const right = document.createElement("span");
       right.className = "ai3d-breakdown-right";

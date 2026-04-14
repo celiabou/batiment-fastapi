@@ -5,6 +5,9 @@
 <section class="dashboard-shell full-bleed">
   <div class="wrap dashboard-inner">
     <aside class="dashboard-sidebar">
+      <div class="dashboard-brand">
+        <img src="/static/branding/dashboard-logo-premium.png" alt="Logo espace client">
+      </div>
       <p class="dashboard-title">Espace client</p>
       <nav class="dashboard-nav">
         <a class="is-active" href="/dashboard">
@@ -48,17 +51,22 @@
           </span>
           <span>Guides</span>
         </a>
+        <form class="dashboard-logout" method="post" action="/logout">
+          <button class="dashboard-nav-btn" type="submit">
+            <span class="dash-icon">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M10 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M14 12H4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+                <path d="M7 9l-3 3 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </span>
+            <span>Deconnexion</span>
+          </button>
+        </form>
       </nav>
     </aside>
 
     <div class="dashboard-main">
-      {% if request.query_params.get("success") == "devis_final" %}
-        <div class="form-alert">Votre demande de devis final a bien ete transmise.</div>
-      {% endif %}
-      {% if request.query_params.get("error") == "project_missing" %}
-        <div class="form-alert">Projet introuvable pour cette demande.</div>
-      {% endif %}
-
       <section class="dashboard-section">
         <p class="dashboard-kicker">{{ recap.get("scope", "—") if recap else "—" }}</p>
         {% set recap_type = recap.get("project_type", "—") if recap else "—" %}
@@ -124,37 +132,16 @@
 
 
       <section class="dashboard-section">
-        <h3>Une question ? Besoin d'aide ?</h3>
+        <h3>Un accompagnement dedie</h3>
         <div class="dash-contact">
           <img src="/static/team/amine-messaoudi.png" alt="Chef de Projet Travaux">
           <div>
-            <p class="contact-name">Amine Messaoudi</p>
-            <p class="contact-role">Chef de Projet Travaux</p>
-            <a class="contact-phone" href="tel:+33605941623">06 05 94 16 23</a>
-            <a class="contact-mail" href="mailto:contact@eurobatservices.com">contact@eurobatservices.com</a>
+            <p class="contact-role">Votre interlocuteur unique :</p>
+            <p class="contact-name">Amine Messaoudi - Chef de projet travaux</p>
+            <a class="contact-phone" href="tel:+33605941623">📞 06 05 94 16 23</a>
+            <a class="contact-mail" href="mailto:contact@eurobatservices.com">✉️ contact@eurobatservices.com</a>
           </div>
         </div>
-      </section>
-
-      <section class="dashboard-section">
-        <h3>Demander le devis final</h3>
-        {% if projects %}
-          <form class="auth-form" method="post" action="/api/devis-final">
-            <label>Projet concerne
-              <select name="project_id" required>
-                {% for project in projects %}
-                  <option value="{{ project.id }}">{{ project.title }}</option>
-                {% endfor %}
-              </select>
-            </label>
-            <label>Message (optionnel)
-              <textarea name="message" rows="3" placeholder="Precision sur vos attentes ou contraintes"></textarea>
-            </label>
-            <button class="btn btn-solid" type="submit">Envoyer la demande</button>
-          </form>
-        {% else %}
-          <p class="muted">Aucun projet sauvegarde pour le moment.</p>
-        {% endif %}
       </section>
     </div>
   </div>

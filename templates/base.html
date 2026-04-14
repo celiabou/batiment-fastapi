@@ -4,56 +4,62 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Devis Travaux Express{% endblock %}</title>
+  <link rel="icon" type="image/png" href="/static/branding/eurobat-services.png">
+  <link rel="shortcut icon" href="/static/branding/eurobat-services.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700;800&family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/site.css?v=20260409-12">
+  <link rel="stylesheet" href="/static/site.css?v=20260409-25">
 </head>
 <body>
+  {% set current_path = request.url.path %}
+  {% set is_dashboard_area = current_path.startswith('/dashboard') %}
+  {% set current_user = get_current_user(request) %}
+  {% set hide_global_chrome = is_dashboard_area %}
   <div class="bg-aura bg-aura-1"></div>
   <div class="bg-aura bg-aura-2"></div>
   <div class="bg-grid"></div>
 
-  {% if not hide_public_header %}
-  <div class="topline">
-    <div class="wrap topline-row">
-      <span>Renovation maison & appartement en Ile-de-France</span>
-      <span>Estimation rapide et accompagnement clair</span>
-    </div>
-  </div>
-  <header class="hdr hdr-photo">
-    <div class="header-shell">
-      <div class="wrap nav-row">
-        {% set current_user = get_current_user(request) %}
-        <a class="brand" href="/">
-        <img class="brand-logo" src="/static/branding/eurobat-services.png" alt="Eurobat Services">
-        <span class="brand-text">
-          <strong>Renovation Batiment</strong>
-          <small>L'innovation au coeur de la renovation batiment</small>
-        </span>
-        </a>
-        <nav class="nav nav-main">
-          <a class="nav-link-main" href="/">Accueil</a>
-          <a class="nav-link-main" href="/nos-chantiers">Chantier</a>
-          <a class="nav-link-main" href="/avant-apres">Avant / Après</a>
-          <a class="nav-link-main" href="/nos-metiers">Guides</a>
-        </nav>
-        <div class="nav-right">
-          {% if current_user %}
-            <a class="account-pill" href="/dashboard">Mon espace</a>
-            <form class="nav-logout" method="post" action="/logout">
-              <button class="account-pill account-pill-ghost" type="submit">Deconnexion</button>
-            </form>
-          {% else %}
-            <a class="account-pill" href="/login">Se connecter</a>
-            <a class="account-pill account-pill-ghost" href="/signup">Creer un compte</a>
-          {% endif %}
-          <a class="phone-cta" href="tel:+33605941623">Appeler maintenant +33 6 05 94 16 23</a>
-          <a class="nav-cta" href="/estimez-votre-projet">J'estime mes travaux</a>
-        </div>
+  {% if not hide_global_chrome %}
+    <div class="topline">
+      <div class="wrap topline-row">
+        <span>Renovation maison & appartement en Ile-de-France</span>
+        <span>Estimation rapide et accompagnement clair</span>
       </div>
     </div>
-  </header>
+    <header class="hdr hdr-photo">
+      <div class="header-shell">
+        <div class="wrap nav-row">
+          <a class="brand" href="/">
+          <img class="brand-logo" src="/static/branding/eurobat-services.png" alt="Eurobat Services">
+          <span class="brand-text">
+            <strong>EUROBAT SERVICES</strong>
+            <small>Rénovation intelligente</small>
+          </span>
+          </a>
+          <nav class="nav nav-main">
+            <a class="nav-link-main" href="/">Accueil</a>
+            <a class="nav-link-main" href="/nos-chantiers">Chantier</a>
+            <a class="nav-link-main" href="/avant-apres">Avant / Après</a>
+            <a class="nav-link-main" href="/#nos-prestations">Nos prestations</a>
+            <a class="nav-link-main" href="/nos-metiers">Guides</a>
+          </nav>
+          <div class="nav-right">
+            {% if current_user %}
+              <a class="account-pill" href="/dashboard">Mon espace</a>
+              <form class="nav-logout" method="post" action="/logout">
+                <button class="account-pill account-pill-ghost" type="submit">Deconnexion</button>
+              </form>
+            {% else %}
+              <a class="account-pill" href="/login">Se connecter</a>
+              <a class="account-pill account-pill-ghost" href="/signup">Creer un compte</a>
+            {% endif %}
+            <a class="phone-cta" href="tel:+33605941623">Appeler maintenant +33 6 05 94 16 23</a>
+            <a class="nav-cta" href="/estimez-votre-projet">Estimer mon projet</a>
+          </div>
+        </div>
+      </div>
+    </header>
   {% endif %}
 
   <main class="wrap page">
@@ -64,7 +70,7 @@
   <footer class="footer">
     <div class="wrap footer-main">
       <div class="footer-brand">
-        <strong>Renovation Batiment</strong>
+        <strong>EUROBAT SERVICES</strong>
         <p>Accompagnement complet: pre-devis, devis final gratuit apres echange expert et visite technique.</p>
       </div>
       <div class="footer-links">
@@ -84,6 +90,24 @@
   <script>
     window.APP_CONFIG = {{ {"agenda_url": AGENDA_URL}|tojson }};
   </script>
+  {% if not hide_global_chrome %}
+    <script>
+      (function () {
+        const currentPath = window.location.pathname;
+        const currentHash = window.location.hash;
+        document.querySelectorAll(".nav-link-main").forEach((link) => {
+          const href = link.getAttribute("href") || "";
+          const isHashLink = href.startsWith("/#");
+          const isPathMatch = href === currentPath;
+          const isHome = href === "/" && currentPath === "/";
+          const isHashMatch = isHashLink && currentPath === "/" && currentHash === href.slice(1);
+          if (isPathMatch || isHome || isHashMatch) {
+            link.classList.add("is-active");
+          }
+        });
+      })();
+    </script>
+  {% endif %}
   <script src="/static/visitor_tracking.js?v=20260222-1"></script>
   <script src="/static/chat.js?v=20260401-1"></script>
   {% endif %}

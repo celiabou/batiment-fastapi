@@ -58,36 +58,9 @@
 
     <div class="ai3d-form-grid">
       <label>Poste de travaux (grille)
-        <select name="work_item_key">
+        <select name="work_item_key" class="js-work-item">
           <option value="">Selectionner</option>
-          <option value="demolition">Demolition interieure (m2)</option>
-          <option value="terrassement">Terrassement (m3)</option>
-          <option value="fondations">Fondations (m2)</option>
-          <option value="dalle_beton">Dalle beton (m2)</option>
-          <option value="ouverture_mur_porteur">Ouverture mur porteur (forfait)</option>
-          <option value="ragrage">Ragreage (m2)</option>
-          <option value="renovation_complete">Renovation complete (m2)</option>
-          <option value="renovation_legere">Renovation legere (m2)</option>
-          <option value="renovation_haut_de_gamme">Renovation haut de gamme (m2)</option>
-          <option value="electricite_complete">Installation complete (m2)</option>
-          <option value="electricite_normes">Mise aux normes (m2)</option>
-          <option value="prise_electrique">Prise electrique (unite)</option>
-          <option value="tableau_elec">Tableau electrique (forfait)</option>
-          <option value="plomberie_complete">Plomberie complete (m2)</option>
-          <option value="salle_de_bain_complete">Salle de bain complete (forfait)</option>
-          <option value="cuisine_raccordement">Cuisine (raccordement) (forfait)</option>
-          <option value="peinture_murs">Peinture murs (m2)</option>
-          <option value="peinture_plafond">Peinture plafond (m2)</option>
-          <option value="carrelage">Carrelage (m2)</option>
-          <option value="parquet">Parquet (m2)</option>
-          <option value="sol_souple">Sol souple (m2)</option>
-          <option value="moquette">Moquette (m2)</option>
-          <option value="renovation_toiture">Renovation toiture (m2)</option>
-          <option value="isolation_toiture">Isolation toiture (m2)</option>
-          <option value="renovation_balcon">Renovation balcon (m2)</option>
-          <option value="renovation_terrasse">Renovation terrasse (m2)</option>
-          <option value="amenagement_terrasse">Amenagement terrasse (forfait)</option>
-          <option value="optimisation_exterieur">Optimisation espace exterieur (forfait)</option>
+          {% include "partials/work_item_options.html" %}
         </select>
       </label>
     </div>

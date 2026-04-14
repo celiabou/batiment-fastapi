@@ -29,7 +29,17 @@ from database import SessionLocal, engine
 from db import init_db, insert_lead
 from intelligence.router import router as intelligence_router
 from models import Base, ClientProject, HandoffRequest, Lead, PasswordResetToken, ProjectDocument, UserAccount, UserSession
-from pricing import estimate_from_item_key, estimate_from_scope, estimate_from_text, get_tariff_item, has_required_quantity
+from pricing import (
+    CATALOG_ESTIMATE_ERROR,
+    ESTIMATE_WORK_ITEM_GROUPS,
+    TARIFF_BY_KEY,
+    estimate_catalog_lines,
+    estimate_from_item_key,
+    estimate_from_scope,
+    estimate_from_text,
+    get_tariff_item,
+    has_required_quantity,
+)
 from saas_ai.router import router as saas_ai_router
 
 def _load_local_env_file(env_path: Path) -> None:
@@ -276,11 +286,19 @@ ARCHITECTURE_DEMO_RENDERS = {
     ],
 }
 
+
+def _catalog_range(code: str, fallback_low: int, fallback_high: int) -> dict[str, int]:
+    item = TARIFF_BY_KEY.get(code)
+    if not item:
+        return {"low_m2": fallback_low, "high_m2": fallback_high}
+    return {"low_m2": int(item["min"]), "high_m2": int(item["max"])}
+
+
 SMART_SCOPE_CONFIG = {
-    "rafraichissement": {"low_m2": 320, "high_m2": 620, "duration": (2, 6)},
-    "renovation_partielle": {"low_m2": 700, "high_m2": 1250, "duration": (4, 10)},
-    "renovation_complete": {"low_m2": 1200, "high_m2": 2100, "duration": (8, 18)},
-    "restructuration_lourde": {"low_m2": 1700, "high_m2": 3000, "duration": (12, 28)},
+    "rafraichissement": {**_catalog_range("renovation_legere", 250, 750), "duration": (2, 6)},
+    "renovation_partielle": {**_catalog_range("renovation_legere", 250, 750), "duration": (4, 10)},
+    "renovation_complete": {**_catalog_range("renovation_complete", 1200, 2500), "duration": (8, 18)},
+    "restructuration_lourde": {**_catalog_range("renovation_lourde", 1200, 2500), "duration": (12, 28)},
 }
 
 SMART_SCOPE_LABELS = {
@@ -2704,6 +2722,7 @@ async def visitor_cookie_middleware(request: Request, call_next):
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals["AGENDA_URL"] = AGENDA_URL
+templates.env.globals["ESTIMATE_WORK_ITEM_GROUPS"] = ESTIMATE_WORK_ITEM_GROUPS
 templates.env.globals["get_current_user"] = _get_current_user
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
@@ -3362,6 +3381,14 @@ def request_final_quote(
             _send_email_message(to_email=internal_recipient, subject=subject, text_body=body)
 
     return RedirectResponse("/dashboard?success=devis_final", status_code=303)
+
+
+@app.post("/api/catalog-estimate")
+def catalog_estimate(payload: dict = Body(...)):
+    result = estimate_catalog_lines(payload.get("lines"))
+    if result.get("error") == CATALOG_ESTIMATE_ERROR["error"]:
+        return JSONResponse(status_code=400, content=result)
+    return JSONResponse(content=result)
 
 
 def _safe_doc_suffix(filename: str, mime_type: str = "") -> str:

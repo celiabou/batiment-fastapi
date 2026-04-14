@@ -2756,6 +2756,15 @@ def health_check():
     return Response(status_code=200)
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+@app.head("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse(
+        path=str(STATIC_DIR / "branding" / "eurobat-services.png"),
+        media_type="image/png",
+    )
+
+
 @app.get("/services", response_class=HTMLResponse)
 def list_services(request: Request):
     return templates.TemplateResponse(
@@ -2821,6 +2830,12 @@ def votre_projet_professionnel(request: Request):
 @app.get("/nos-chantiers", response_class=HTMLResponse)
 def nos_chantiers(request: Request):
     return templates.TemplateResponse(request, "nos_chantiers.html")
+
+
+@app.get("/chantiers/renovation-salle-de-bain-paris", response_class=HTMLResponse)
+@app.get("/chantiers/renovation-salle-de-bain-paris/", response_class=HTMLResponse)
+def chantier_sdb_paris(request: Request):
+    return templates.TemplateResponse(request, "chantier_sdb_paris.html")
 
 
 @app.get("/avant-apres", response_class=HTMLResponse)
@@ -3552,6 +3567,46 @@ def delete_project_document(request: Request, doc_id: int = Form(...)):
         db.close()
 
     return RedirectResponse("/dashboard/documents?success=deleted", status_code=303)
+
+
+@app.post("/api/project-document/delete-selected")
+def delete_selected_project_documents(request: Request, doc_ids: list[int] | None = Form(None)):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/documents", status_code=303)
+
+    selected_ids = sorted({doc_id for doc_id in (doc_ids or []) if isinstance(doc_id, int)})
+    if not selected_ids:
+        return RedirectResponse("/dashboard/documents?error=missing_selection", status_code=303)
+
+    db = SessionLocal()
+    try:
+        docs = (
+            db.query(ProjectDocument)
+            .filter(ProjectDocument.client_id == user["id"], ProjectDocument.id.in_(selected_ids))
+            .all()
+        )
+        if not docs:
+            return RedirectResponse("/dashboard/documents?error=document_missing", status_code=303)
+
+        file_paths: list[Path] = []
+        for doc in docs:
+            path = _resolve_document_path(doc.stored_name)
+            if path:
+                file_paths.append(path)
+            db.delete(doc)
+        db.commit()
+    finally:
+        db.close()
+
+    for path in file_paths:
+        if path.exists():
+            try:
+                path.unlink()
+            except OSError:
+                pass
+
+    return RedirectResponse("/dashboard/documents?success=deleted_selected", status_code=303)
 
 
 @app.get("/admin", response_class=HTMLResponse)

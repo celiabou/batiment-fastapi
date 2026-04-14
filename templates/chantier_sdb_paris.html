@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Renovation salle de bain Paris | Nos chantiers{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <p class="kicker">31 janvier 2026</p>
+  <h1>Renovation salle de bain Paris</h1>
+  <p class="lead">Reprise complete plomberie, carrelage grand format et mobilier sur mesure.</p>
+</section>
+
+<section class="section section-shell before-after-shell chantier-gallery-shell">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Galerie projet</p>
+      <h2>Toutes les photos salle de bain</h2>
+      <p class="section-sub">Cliquez sur une photo pour l'ouvrir en grand format.</p>
+    </div>
+    <a class="btn" href="/nos-chantiers">Retour aux chantiers</a>
+  </div>
+
+  <div class="before-after-grid chantier-gallery-grid">
+    <article class="before-after-card">
+      <div class="before-after-images triple">
+        <figure>
+          <img src="/static/before-after/sdb-avant.jpg" alt="Salle de bain avant travaux">
+          <figcaption>Avant 1</figcaption>
+        </figure>
+        <figure>
+          <img src="/static/before-after/sdb-apres.jpg" alt="Salle de bain pendant la transformation">
+          <figcaption>Avant 2</figcaption>
+        </figure>
+        <figure>
+          <img src="/static/before-after/sdb-apres-final.jpg" alt="Salle de bain apres travaux">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <div class="before-after-card-body">
+        <h3>Comparatif complet</h3>
+        <p>Visualisation de l'evolution du chantier, de l'etat initial jusqu'au rendu final.</p>
+      </div>
+    </article>
+
+    <article class="before-after-card">
+      <div class="before-after-images one-up">
+        <figure>
+          <img src="/static/before-after/sdb-couleur-apres.jpg" alt="Salle de bain finition couleur">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <div class="before-after-card-body">
+        <h3>Version ambiance couleur</h3>
+        <p>Douche italienne, vasque design et eclairage decoratif pour un rendu moderne.</p>
+      </div>
+    </article>
+
+    <article class="before-after-card">
+      <div class="before-after-images one-up">
+        <figure>
+          <img src="/static/before-after/sdb-premium-apres.jpg" alt="Salle de bain premium apres renovation">
+          <figcaption>Apres</figcaption>
+        </figure>
+      </div>
+      <div class="before-after-card-body">
+        <h3>Version premium</h3>
+        <p>Materiaux haut de gamme, lignes epurees et finitions soignees sur toute la piece.</p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<script>
+  (function () {
+    document.querySelectorAll(".chantier-gallery-grid img").forEach((img) => {
+      img.style.objectFit = "contain";
+      img.style.objectPosition = "center center";
+      img.addEventListener("click", () => {
+        if (img.src) window.open(img.src, "_blank", "noopener");
+      });
+    });
+  })();
+</script>
+{% endblock %}

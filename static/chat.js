@@ -58,7 +58,7 @@
 
   const btn = document.createElement("button");
   btn.id = "chatBtn";
-  btn.textContent = "Estimer mes travaux";
+  btn.textContent = "Chat assistant IA";
   document.body.appendChild(btn);
 
   const box = document.createElement("div");

@@ -4,18 +4,69 @@
 {% block content %}
 <section class="home-hero-photo full-bleed">
   <div class="home-hero-overlay"></div>
-  <div class="wrap home-hero-content">
-    <p class="kicker">Renovation haut de gamme</p>
-    <h1>Bien plus qu’une entreprise de rénovation</h1>
-    <p class="lead">Une nouvelle approche du bâtiment, entre expertise terrain et innovation.</p>
-    <p class="lead">EUROBAT SERVICES réinvente la manière d’aborder les projets de rénovation.</p>
-    <p class="lead">Là où les approches traditionnelles montrent leurs limites, nous apportons une vision plus moderne, plus structurée et tournée vers la performance.</p>
-    <p class="lead">Chaque projet est pensé comme un parcours clair, maîtrisé et optimisé, afin de vous permettre d’avancer sereinement, sans zones d’incertitude.</p>
-    <p class="lead">De la compréhension de votre besoin jusqu’au suivi du chantier, nous vous accompagnons avec méthode pour vous aider à prendre les bonnes décisions au bon moment.</p>
-    <p class="lead">Notre engagement : vous offrir une expérience plus fluide, plus lisible et plus efficace, pour transformer votre projet en réussite.</p>
-    <div class="cta-row">
-      <a class="btn btn-solid" href="/estimez-votre-projet">J'estime mes travaux</a>
+  <div class="wrap home-hero-shell">
+    <div class="home-hero-slider" aria-live="polite">
+      <p class="home-hero-brand">EUROBAT SERVICES</p>
+      <div class="home-hero-slides">
+        <article class="home-hero-slide is-active" data-index="0">
+          <h1>La rénovation enfin maîtrisée.</h1>
+          <p>Eurobat centralise, pilote et sécurise votre projet de A à Z. <span class="home-hero-accent">Plus de stress, plus de surprises.</span></p>
+        </article>
+        <article class="home-hero-slide" data-index="1" aria-hidden="true">
+          <h2>Votre projet mérite une estimation fiable.</h2>
+          <p>Gratuite, en 2 minutes, <span class="home-hero-accent">sans engagement.</span></p>
+        </article>
+        <article class="home-hero-slide" data-index="2" aria-hidden="true">
+          <h2>Vous n'êtes pas seul dans votre projet.</h2>
+          <p>Un interlocuteur dédié vous accompagne à chaque étape. <span class="home-hero-accent">Vous gardez le contrôle.</span></p>
+        </article>
+        <article class="home-hero-slide" data-index="3" aria-hidden="true">
+          <h2>Imaginez votre intérieur avant de vous engager.</h2>
+          <p>Visualisez chaque pièce en conditions réelles. <span class="home-hero-accent">Décidez en toute confiance.</span></p>
+        </article>
+        <article class="home-hero-slide" data-index="4" aria-hidden="true">
+          <h2>Maîtrisez votre budget dès le départ.</h2>
+          <p>Un chiffrage précis pour éviter les dérives. <span class="home-hero-accent">Pas de mauvaise surprise.</span></p>
+        </article>
+      </div>
+      <div class="home-hero-dots" aria-label="Navigation slider">
+        <button class="home-hero-dot is-active" type="button" data-index="0" aria-label="Slide 1"></button>
+        <button class="home-hero-dot" type="button" data-index="1" aria-label="Slide 2"></button>
+        <button class="home-hero-dot" type="button" data-index="2" aria-label="Slide 3"></button>
+        <button class="home-hero-dot" type="button" data-index="3" aria-label="Slide 4"></button>
+        <button class="home-hero-dot" type="button" data-index="4" aria-label="Slide 5"></button>
+      </div>
+      <div class="cta-row">
+        <a class="home-hero-cta" href="/estimez-votre-projet">Estimer mon projet</a>
+        <p class="home-hero-micro">Devis gratuit · Réponse sous 24h · Zéro engagement</p>
+      </div>
+      <div class="home-hero-dots" aria-label="Navigation slider">
+        <button class="home-hero-dot is-active" type="button" data-index="0" aria-label="Slide 1"></button>
+        <button class="home-hero-dot" type="button" data-index="1" aria-label="Slide 2"></button>
+        <button class="home-hero-dot" type="button" data-index="2" aria-label="Slide 3"></button>
+        <button class="home-hero-dot" type="button" data-index="3" aria-label="Slide 4"></button>
+      </div>
+      <div class="cta-row">
+        <a class="home-hero-cta" href="/estimez-votre-projet">J'estime mes travaux</a>
+      </div>
     </div>
+  </div>
+</section>
+
+<section class="section section-shell">
+  <div class="section-head">
+    <div>
+      <p class="kicker">Rénovation haut de gamme</p>
+      <h2>Bien plus qu’une entreprise de rénovation</h2>
+      <p class="section-sub">Une nouvelle approche du bâtiment, entre expertise terrain et innovation.</p>
+    </div>
+  </div>
+  <div class="section-sub">
+    <p>EUROBAT SERVICES réinvente la manière d’aborder les projets de rénovation.</p>
+    <p>Là où les approches traditionnelles montrent leurs limites, nous apportons une vision plus moderne, plus structurée et tournée vers la performance.</p>
+    <p>Chaque projet est pensé comme un parcours clair, maîtrisé et optimisé, afin de vous permettre d’avancer sereinement, sans zones d’incertitude.</p>
+    <p>De la compréhension de votre besoin jusqu’au suivi du chantier, nous vous accompagnons avec méthode pour vous aider à prendre les bonnes décisions au bon moment.</p>
+    <p>Notre engagement : vous offrir une expérience plus fluide, plus lisible et plus efficace, pour transformer votre projet en réussite.</p>
   </div>
 </section>
 
@@ -30,10 +81,7 @@
     <p>Ou bien vouloir refaire une installation électrique, remplacer des fenêtres, isoler les combles de votre maison, refaire un parquet…</p>
     <p>Vous souhaitez tout simplement nous demander un devis pour des travaux de rénovation complète de votre appartement ou maison.</p>
     <p>Nous vous fournissons une étude détaillée avec l’ensemble des postes de chantier.</p>
-    <p>Rénov-A Paris assure l’ensemble des travaux de peinture, électricité, plomberie, isolation thermique, maçonnerie, menuiseries, revêtements de sols.</p>
-  </div>
-  <div class="cta-row">
-    <a class="btn btn-solid" href="/estimez-votre-projet">J'estime mes travaux</a>
+    <p>EUROBAT SERVICES assure l’ensemble des travaux de peinture, électricité, plomberie, isolation thermique, maçonnerie, menuiseries, revêtements de sols.</p>
   </div>
 </section>
 
@@ -71,7 +119,6 @@
   </div>
   <div class="cta-row">
     <a class="btn btn-solid" href="/estimez-votre-projet">J'estime mes travaux</a>
-    <a class="btn" href="/simulation-3d">Voir une simulation 3D</a>
   </div>
 </section>
 
@@ -108,35 +155,35 @@
   </div>
   <div class="brokkr-service-catalog">
     <a class="brokkr-service-visual" href="/services/renovation-interieure">
-      <img src="https://images.pexels.com/photos/6585765/pexels-photo-6585765.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Renovation complete">
+      <img src="/static/before-after/sejour-apres.jpg" alt="Renovation complete d'interieur">
       <div class="brokkr-service-body">
         <h3>Renovation complete</h3>
         <p>Prise en charge TCE de la demolition aux finitions.</p>
       </div>
     </a>
     <a class="brokkr-service-visual" href="/services/renovation-interieure">
-      <img src="https://images.pexels.com/photos/6585615/pexels-photo-6585615.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Renover ma cuisine">
+      <img src="/static/before-after/cuisine-apres.jpg" alt="Cuisine renovee">
       <div class="brokkr-service-body">
         <h3>Renover ma cuisine</h3>
         <p>Implantation, plomberie, electricite et pose complete.</p>
       </div>
     </a>
     <a class="brokkr-service-visual" href="/services/plomberie">
-      <img src="https://images.pexels.com/photos/8134848/pexels-photo-8134848.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Renover ma salle de bain">
+      <img src="/static/before-after/sdb-apres-final.jpg" alt="Salle de bain renovee">
       <div class="brokkr-service-body">
         <h3>Renover ma salle de bain</h3>
         <p>Douche, baignoire, carrelage et mobilier optimise.</p>
       </div>
     </a>
     <a class="brokkr-service-visual" href="/services/electricite">
-      <img src="https://images.pexels.com/photos/8961251/pexels-photo-8961251.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Copropriete">
+      <img src="/static/before-after/travaux-gros-oeuvre.jpg" alt="Travaux de copropriete">
       <div class="brokkr-service-body">
         <h3>Copropriete</h3>
         <p>Parties communes, halls, cages d'escalier et mise aux normes.</p>
       </div>
     </a>
     <a class="brokkr-service-visual" href="/services/renovation-interieure">
-      <img src="https://images.pexels.com/photos/6474475/pexels-photo-6474475.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Amenagement bureaux professionnels">
+      <img src="/static/before-after/boutique-premium.jpg" alt="Amenagement de locaux professionnels">
       <div class="brokkr-service-body">
         <h3>Amenagement bureaux professionnels</h3>
         <p>Planning serre, coordination des lots et livraison prete a exploiter.</p>
@@ -155,14 +202,14 @@
     <a class="btn" href="/contact">Demarrer mon projet</a>
   </div>
   <div class="brokkr-chantier-grid">
-    <article class="brokkr-chantier-card">
+    <a class="brokkr-chantier-card" href="/chantiers/renovation-salle-de-bain-paris">
       <img src="https://images.pexels.com/photos/8134848/pexels-photo-8134848.jpeg?auto=compress&cs=tinysrgb&w=1400" alt="Renovation salle de bain paris">
       <div class="brokkr-chantier-body">
         <p class="brokkr-date">31 janvier 2026</p>
         <h3>Renovation salle de bain Paris</h3>
         <p>Reprise complete plomberie, carrelage grand format et mobilier sur mesure.</p>
       </div>
-    </article>
+    </a>
     <article class="brokkr-chantier-card">
       <img src="https://images.pexels.com/photos/6474475/pexels-photo-6474475.jpeg?auto=compress&cs=tinysrgb&w=1400" alt="Renovation bureaux paris">
       <div class="brokkr-chantier-body">
@@ -187,66 +234,56 @@
     <div>
       <p class="kicker">Avant / Après</p>
       <h2>Transformation reelle de nos chantiers</h2>
-      <p class="section-sub">Visualisez des resultats concrets avant de lancer votre projet.</p>
+      <p class="section-sub">Comparez les resultats avant/apres et projetez-vous clairement avant de lancer vos travaux.</p>
     </div>
+    <a class="btn" href="/avant-apres">Voir tout l'avant / apres</a>
   </div>
-  <div class="before-after-tabs" role="tablist" aria-label="Onglets avant apres">
-    <button class="before-after-tab is-active" type="button" data-category="all" aria-selected="true">Tout</button>
-    <button class="before-after-tab" type="button" data-category="salle-bain" aria-selected="false">Salle de bain</button>
-    <button class="before-after-tab" type="button" data-category="cuisine" aria-selected="false">Cuisine</button>
-    <button class="before-after-tab" type="button" data-category="sejour" aria-selected="false">Sejour</button>
-  </div>
-  <div id="beforeAfterGrid" class="before-after-grid">
-    <article class="before-after-card" data-category="salle-bain">
-      <div class="before-after-images">
+  <div id="beforeAfterGrid" class="before-after-grid before-after-grid-preview">
+    <article class="before-after-card">
+      <div class="before-after-images one-up">
         <figure>
-          <img src="/static/before-after/sdb-avant.jpg" alt="Avant renovation salle de bain">
-          <figcaption>Avant</figcaption>
+          <img src="/static/before-after/piece-vie-comparatif.jpg" alt="Comparatif avant apres piece de vie">
+          <figcaption>Avant / Apres</figcaption>
         </figure>
+      </div>
+      <div class="before-after-card-body">
+        <h3>Piece de vie</h3>
+        <p>Transformation d'un espace ancien en piece lumineuse et contemporaine.</p>
+      </div>
+    </article>
+    <article class="before-after-card">
+      <div class="before-after-images one-up">
         <figure>
-          <img src="/static/before-after/sdb-apres.jpg" alt="Apres renovation salle de bain">
+          <img src="/static/before-after/cuisine-comparatif.jpg" alt="Comparatif avant apres cuisine">
+          <figcaption>Avant / Apres</figcaption>
+        </figure>
+      </div>
+      <div class="before-after-card-body">
+        <h3>Cuisine</h3>
+        <p>Passage d'une cuisine ancienne a un espace moderne et fonctionnel.</p>
+      </div>
+    </article>
+    <article class="before-after-card">
+      <div class="before-after-images one-up">
+        <figure>
+          <img src="/static/before-after/sdb-apres-final.jpg" alt="Salle de bain apres renovation">
           <figcaption>Apres</figcaption>
         </figure>
       </div>
-      <h3>Salle de bain</h3>
-      <p>Optimisation complete des volumes et des finitions.</p>
-    </article>
-    <article class="before-after-card" data-category="cuisine">
-      <div class="before-after-images">
-        <figure>
-          <img src="/static/before-after/cuisine-avant.jpg" alt="Avant renovation cuisine">
-          <figcaption>Avant</figcaption>
-        </figure>
-        <figure>
-          <img src="/static/before-after/cuisine-apres.jpg" alt="Apres renovation cuisine">
-          <figcaption>Apres</figcaption>
-        </figure>
+      <div class="before-after-card-body">
+        <h3>Salle de bain</h3>
+        <p>Finition haut de gamme avec douche italienne et materiaux premium.</p>
       </div>
-      <h3>Cuisine</h3>
-      <p>Nouveau plan de travail, rangements et circulation repensee.</p>
-    </article>
-    <article class="before-after-card" data-category="sejour">
-      <div class="before-after-images">
-        <figure>
-          <img src="/static/before-after/sejour-avant.jpg" alt="Avant renovation sejour">
-          <figcaption>Avant</figcaption>
-        </figure>
-        <figure>
-          <img src="/static/before-after/sejour-apres.jpg" alt="Apres renovation sejour">
-          <figcaption>Apres</figcaption>
-        </figure>
-      </div>
-      <h3>Sejour</h3>
-      <p>Ambiance lumineuse, materiaux nobles et confort quotidien.</p>
     </article>
   </div>
-  <p class="before-after-note">Photos issues de la fiche PagesJaunes (Renova Home): <a href="https://www.pagesjaunes.fr/pros/61564010#1771321727;587575-rt98g_321727490115575941" target="_blank" rel="noopener">voir la source</a>.</p>
+  <p class="before-after-note">Tous les autres cas avant/apres sont disponibles dans la page complete <a href="/avant-apres">Avant / Apres</a>.</p>
+  <p class="before-after-note">Photos salle de bain disponibles dans <a href="/chantiers/renovation-salle-de-bain-paris">Chantiers &gt; Renovation salle de bain Paris</a>.</p>
 </section>
 
-<section id="nos-metiers" class="section section-shell">
+<section id="nos-prestations" class="section section-shell">
   <div class="section-head">
     <div>
-      <p class="kicker">Nos metiers</p>
+      <p class="kicker">Nos prestations</p>
       <h2>Tous corps d'etat du batiment</h2>
       <p class="section-sub">Un interlocuteur unique coordonne chaque metier sur site.</p>
     </div>
@@ -391,33 +428,38 @@
     <div class="review-track">
       <article class="bro-review-card">
         <strong>4.9/5</strong>
-        <p>"Merci à Eva, conseillère et experte en rénovation, à l’écoute, sympa."</p>
-        <span>Client - Appartement, Paris 15</span>
-      </article>
-      <article class="bro-review-card">
-        <strong>4.8/5</strong>
-        <p>"Conducteur de projet Amine, professionnelle et très clair dans le suivi."</p>
-        <span>Client - Maison, Yvelines</span>
+        <p>"Merci a Amine.B pour le suivi renovation. Equipe ponctuelle, bien organisee et tres minutieuse dans le travail."</p>
+        <span>Amine.B - Appartement, Paris 15</span>
       </article>
       <article class="bro-review-card">
         <strong>5.0/5</strong>
-        <p>"Bâtiment approche, équipe sérieuse et rassurante du début à la fin."</p>
-        <span>Client - Hauts-de-Seine</span>
+        <p>"Pour notre renovation d'immeuble, le suivi a ete tres bon du debut a la fin. Equipe serieuse, chantier propre et delais respectes."</p>
+        <span>Amaury.D - Immeuble, Saint-Ouen</span>
+      </article>
+      <article class="bro-review-card">
+        <strong>5.0/5</strong>
+        <p>"Tres satisfaite du chantier. Intervention ponctuelle, bonne coordination et finitions soignees. On se sent vraiment accompagne."</p>
+        <span>Segolene.R - Maison, Vincennes</span>
       </article>
       <article class="bro-review-card">
         <strong>4.9/5</strong>
-        <p>"Merci à Eva, conseillère et experte en rénovation, à l’écoute, sympa."</p>
-        <span>Client - Appartement, Paris 15</span>
+        <p>"Renovation de notre local commercial sur Paris. Delais respectes, chantier propre et equipe tres competente. Rien a redire."</p>
+        <span>Christophe.B - Local commercial, Paris</span>
       </article>
       <article class="bro-review-card">
         <strong>4.8/5</strong>
-        <p>"Conducteur de projet Amine, professionnelle et très clair dans le suivi."</p>
-        <span>Client - Maison, Yvelines</span>
+        <p>"Tres bonne organisation sur notre bien professionnel. Suivi clair, echanges simples et rendu final tres propre."</p>
+        <span>Xavier.P - Bien professionnel, La Defense</span>
       </article>
       <article class="bro-review-card">
         <strong>5.0/5</strong>
-        <p>"Bâtiment approche, équipe sérieuse et rassurante du début à la fin."</p>
-        <span>Client - Hauts-de-Seine</span>
+        <p>"Optimisation de l'espace incroyablement bien realisee, avec projection 3D. J'etais rassuree parce que j'ai pu voir a quoi mon studio allait ressembler avant la fin des travaux. Le rendu final etait conforme a la projection, et meme encore mieux."</p>
+        <span>Maryline.L - Studio, Paris 8e</span>
+      </article>
+      <article class="bro-review-card">
+        <strong>4.9/5</strong>
+        <p>"Renovation de facade tres bien executee. Travail minutieux, equipe rassurante et finitions vraiment propres."</p>
+        <span>Leticia.K - Facade, Argenteuil</span>
       </article>
     </div>
   </div>
@@ -467,29 +509,128 @@
 
 
 
+<div id="lightbox" class="lightbox" aria-hidden="true" role="dialog" aria-label="Agrandir l'image">
+  <button class="lightbox-close" type="button" aria-label="Fermer">×</button>
+  <img class="lightbox-img" src="" alt="">
+</div>
+
 <script>
   (function () {
-    const tabs = document.querySelectorAll(".before-after-tab");
-    const cards = document.querySelectorAll(".before-after-card");
-    if (!tabs.length || !cards.length) return;
+    const hero = document.querySelector(".home-hero-slider");
+    if (hero) {
+      const slides = Array.from(hero.querySelectorAll(".home-hero-slide"));
+      const dots = Array.from(hero.querySelectorAll(".home-hero-dot"));
+      let currentIndex = 0;
+      let autoplayTimer = null;
 
-    function activate(category) {
-      tabs.forEach((tab) => {
-        const isActive = tab.dataset.category === category;
-        tab.classList.toggle("is-active", isActive);
-        tab.setAttribute("aria-selected", isActive ? "true" : "false");
+      const activateSlide = (nextIndex) => {
+        currentIndex = nextIndex;
+        slides.forEach((slide, idx) => {
+          const active = idx === currentIndex;
+          slide.classList.toggle("is-active", active);
+          slide.setAttribute("aria-hidden", active ? "false" : "true");
+        });
+        dots.forEach((dot, idx) => {
+          dot.classList.toggle("is-active", idx === currentIndex);
+        });
+      };
+
+      const stopAutoplay = () => {
+        if (autoplayTimer) {
+          clearInterval(autoplayTimer);
+          autoplayTimer = null;
+        }
+      };
+
+      const startAutoplay = () => {
+        if (slides.length < 2) return;
+        stopAutoplay();
+        autoplayTimer = window.setInterval(() => {
+          const nextIndex = (currentIndex + 1) % slides.length;
+          activateSlide(nextIndex);
+        }, 4000);
+      };
+
+      dots.forEach((dot) => {
+        dot.addEventListener("click", function () {
+          const nextIndex = Number(dot.dataset.index || "0");
+          activateSlide(nextIndex);
+          startAutoplay();
+        });
       });
-      cards.forEach((card) => {
-        const show = category === "all" || card.dataset.category === category;
-        card.hidden = !show;
+
+      hero.addEventListener("mouseenter", stopAutoplay);
+      hero.addEventListener("mouseleave", startAutoplay);
+      activateSlide(0);
+      startAutoplay();
+    }
+
+    const sections = document.querySelectorAll(".before-after-shell");
+    if (sections.length) {
+      sections.forEach((section) => {
+        const tabs = section.querySelectorAll(".before-after-tab");
+        const cards = section.querySelectorAll(".before-after-card");
+        if (!tabs.length || !cards.length) return;
+
+        function activate(category) {
+          tabs.forEach((tab) => {
+            const isActive = tab.dataset.category === category;
+            tab.classList.toggle("is-active", isActive);
+            tab.setAttribute("aria-selected", isActive ? "true" : "false");
+          });
+          cards.forEach((card) => {
+            const show = category === "all" || card.dataset.category === category;
+            card.hidden = !show;
+          });
+        }
+
+        tabs.forEach((tab) => {
+          tab.addEventListener("click", function () {
+            activate(tab.dataset.category || "all");
+          });
+        });
+
+        const defaultTab = section.querySelector(".before-after-tab.is-active");
+        activate((defaultTab && defaultTab.dataset.category) || "all");
       });
     }
 
-    tabs.forEach((tab) => {
-      tab.addEventListener("click", function () {
-        activate(tab.dataset.category || "all");
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = lightbox ? lightbox.querySelector(".lightbox-img") : null;
+    const lightboxClose = lightbox ? lightbox.querySelector(".lightbox-close") : null;
+
+    if (lightbox && lightboxImg && lightboxClose) {
+      document.querySelectorAll(".before-after-images img").forEach((img) => {
+        img.style.objectFit = "contain";
+        img.style.objectPosition = "center center";
+        img.style.cursor = "zoom-in";
+        img.addEventListener("click", () => {
+          if (img.src) {
+            lightboxImg.src = img.src;
+            lightboxImg.alt = img.alt || "Image agrandie";
+            lightbox.classList.add("is-open");
+            lightbox.setAttribute("aria-hidden", "false");
+            document.body.style.overflow = "hidden";
+          }
+        });
       });
-    });
+
+      const closeLightbox = () => {
+        lightbox.classList.remove("is-open");
+        lightbox.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+      };
+
+      lightboxClose.addEventListener("click", closeLightbox);
+      lightbox.addEventListener("click", (e) => {
+        if (e.target === lightbox) closeLightbox();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && lightbox.classList.contains("is-open")) {
+          closeLightbox();
+        }
+      });
+    }
   })();
 </script>
 {% endblock %}

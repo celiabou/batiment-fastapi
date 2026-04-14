@@ -56,6 +56,22 @@
   const renderTitleEl = document.getElementById("smartRenderTitle");
   const renderSummaryEl = document.getElementById("smartRenderSummary");
 
+  const liveFields = {
+    work_item_key: document.getElementById("liveWorkItem"),
+    work_quantity: document.getElementById("liveQuantity"),
+    work_unit: document.getElementById("liveQuantity"),
+    project_type: document.getElementById("liveType"),
+    scope: document.getElementById("liveScope"),
+    style: document.getElementById("liveStyle"),
+    surface: document.getElementById("liveSurface"),
+    rooms: document.getElementById("liveRooms"),
+    budget: document.getElementById("liveBudget"),
+    timeline: document.getElementById("liveTimeline"),
+    city: document.getElementById("liveCity"),
+  };
+  const liveSavedHint = document.getElementById("liveSavedHint");
+  const DRAFT_KEY = "rb_quote_draft_v1";
+
   const sourceGalleryEl = document.getElementById("ai3dSource");
   const rendersGalleryEl = document.getElementById("ai3dRenders");
 
@@ -71,11 +87,101 @@
   const workItemSelects = Array.from(document.querySelectorAll(".js-work-item"));
   const workQtyInputs = Array.from(document.querySelectorAll(".js-work-qty"));
   const workUnitTags = Array.from(document.querySelectorAll(".js-work-unit"));
+  const workUnitHidden = document.getElementById("workUnitHidden");
+  const workUnitOverride = document.getElementById("workUnitOverride");
 
   let quoteSubmitted = false;
   let quoteSubmitting = false;
   let renderSubmitting = false;
   let currentHandoffId = "";
+
+  function readFormSnapshot() {
+    const formData = new FormData(quoteForm);
+    return {
+      project_type: formData.get("project_type") || "",
+      scope: formData.get("scope") || "",
+      style: formData.get("style") || "",
+      finishing_level: formData.get("finishing_level") || "",
+      work_item_key: formData.get("work_item_key") || "",
+      work_quantity: formData.get("work_quantity") || "",
+      work_unit: formData.get("work_unit") || "",
+      city: formData.get("city") || "",
+      surface: formData.get("surface") || "",
+      rooms: formData.get("rooms") || "",
+      budget: formData.get("budget") || "",
+      timeline: formData.get("timeline") || "",
+      notes: formData.get("notes") || "",
+      name: formData.get("name") || "",
+      phone: formData.get("phone") || "",
+      email: formData.get("email") || "",
+    };
+  }
+
+  function formatBudget(value) {
+    const clean = String(value || "").trim();
+    if (!clean) return "--";
+    const num = Number(clean.replace(/\s+/g, "").replace(",", "."));
+    if (!Number.isFinite(num)) return clean;
+    return Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(num) + " €";
+  }
+
+  function formatQuantity(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "--";
+    const num = Number(raw.replace(",", "."));
+    if (!Number.isFinite(num)) return raw;
+    const formatted = num % 1 === 0 ? num.toString() : num.toString();
+    return formatted.replace(".", ",");
+  }
+
+  function updateLiveRecap() {
+    const snap = readFormSnapshot();
+    if (liveFields.work_item_key) {
+      const selected = workItemSelects[0]?.selectedOptions?.[0];
+      const label = selected ? selected.textContent : "";
+      liveFields.work_item_key.textContent = label || snap.work_item_key || "--";
+    }
+    if (liveFields.work_quantity) {
+      const qty = formatQuantity(snap.work_quantity);
+      const unit = snap.work_unit ? ` ${snap.work_unit}` : "";
+      liveFields.work_quantity.textContent = qty !== "--" ? `${qty}${unit}` : "--";
+    }
+    if (liveFields.project_type) liveFields.project_type.textContent = snap.project_type || "--";
+    if (liveFields.scope) liveFields.scope.textContent = snap.scope || "--";
+    if (liveFields.style) liveFields.style.textContent = snap.style || "--";
+    if (liveFields.surface) liveFields.surface.textContent = snap.surface ? `${snap.surface} m2` : "--";
+    if (liveFields.rooms) liveFields.rooms.textContent = snap.rooms || "--";
+    if (liveFields.budget) liveFields.budget.textContent = snap.budget ? formatBudget(snap.budget) : "--";
+    if (liveFields.timeline) liveFields.timeline.textContent = snap.timeline || "--";
+    if (liveFields.city) liveFields.city.textContent = snap.city || "--";
+  }
+
+  function saveDraft() {
+    try {
+      const snap = readFormSnapshot();
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(snap));
+      if (liveSavedHint) liveSavedHint.textContent = "Brouillon sauvegardé localement.";
+    } catch (e) {
+      if (liveSavedHint) liveSavedHint.textContent = "Sauvegarde locale indisponible.";
+    }
+  }
+
+  function loadDraft() {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const snap = JSON.parse(raw);
+      Object.entries(snap || {}).forEach(([key, val]) => {
+        const control = quoteForm.elements.namedItem(key);
+        writeControlValue(control, String(val || ""));
+      });
+      syncWorkItemUnits();
+      updateLiveRecap();
+      if (liveSavedHint) liveSavedHint.textContent = "Brouillon chargé.";
+    } catch (e) {
+      // ignore
+    }
+  }
 
   /**
    * @param {Element|null} el
@@ -343,10 +449,13 @@
   function syncWorkItemUnits() {
     workItemSelects.forEach((selectEl, idx) => {
       const selected = selectEl.options[selectEl.selectedIndex];
-      const unit = selected ? selected.getAttribute("data-unit") || "--" : "--";
+      const autoUnit = selected ? selected.getAttribute("data-unit") || "--" : "--";
+      const overrideUnit = workUnitOverride ? workUnitOverride.value : "";
+      const unit = overrideUnit || autoUnit || "--";
       const unitTag = workUnitTags[idx];
       const qtyInput = workQtyInputs[idx];
       if (unitTag) unitTag.textContent = unit;
+      if (workUnitHidden) workUnitHidden.value = unit;
       if (qtyInput) {
         qtyInput.disabled = unit === "forfait" || unit === "--";
         qtyInput.required = unit !== "forfait" && unit !== "--";
@@ -399,6 +508,12 @@
       currentHandoffId = data.handoff_id ? String(data.handoff_id) : "";
       if (renderHandoffHidden) renderHandoffHidden.value = currentHandoffId;
       if (renderHandoffManual && currentHandoffId) renderHandoffManual.value = currentHandoffId;
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+        if (liveSavedHint) liveSavedHint.textContent = "Brouillon envoyé.";
+      } catch (e) {
+        // ignore
+      }
 
       copyQuoteToRenderPrefill();
       renderQuote(data.quote || null);
@@ -557,9 +672,26 @@
   workItemSelects.forEach((selectEl) => {
     selectEl.addEventListener("change", syncWorkItemUnits);
   });
+  if (workUnitOverride) {
+    workUnitOverride.addEventListener("change", () => {
+      syncWorkItemUnits();
+      updateLiveRecap();
+      saveDraft();
+    });
+  }
+  quoteForm.addEventListener("input", () => {
+    updateLiveRecap();
+    saveDraft();
+  });
+  quoteForm.addEventListener("change", () => {
+    updateLiveRecap();
+    saveDraft();
+  });
 
   setText(quoteDeliveryStatusEl, "Aucun email envoye pour l'instant.");
   setText(renderDeliveryStatusEl, "Aucun rendu 3D envoye pour l'instant.");
   syncWorkItemUnits();
+  loadDraft();
+  updateLiveRecap();
   refreshRenderEligibility();
 })();

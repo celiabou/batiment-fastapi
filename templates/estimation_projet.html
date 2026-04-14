@@ -9,7 +9,7 @@
   <p class="lead">Repondez aux questions et recevez un pre-devis par email. Le devis final gratuit est etabli apres appel telephonique ou visite technique, selon validation expert.</p>
 </section>
 
-<section class="ai3d-layout">
+<section class="ai3d-layout is-wide">
   <form id="aiQuoteForm" class="form ai3d-form" enctype="multipart/form-data">
     <h3>Estimation du projet</h3>
     <p class="section-sub">Decrivez votre besoin pour obtenir un pre-devis indicatif de la main-d'oeuvre.</p>
@@ -19,7 +19,9 @@
           <option value="maison">Maison</option>
           <option value="appartement">Appartement</option>
           <option value="immeuble">Immeuble</option>
+          <option value="bien_professionnel">Bien professionnel</option>
           <option value="facade">Facade</option>
+          <option value="autre">Autre</option>
         </select>
       </label>
 
@@ -40,6 +42,7 @@
           <option value="minimaliste">Minimaliste</option>
           <option value="industriel">Industriel</option>
           <option value="scandinave">Scandinave</option>
+          <option value="dubai">Dubai</option>
         </select>
       </label>
 
@@ -53,19 +56,12 @@
       </label>
     </div>
 
-    <div class="ai3d-form-grid ai3d-form-grid-4">
+    <div class="ai3d-form-grid">
       <label>Poste de travaux (grille)
         <select name="work_item_key" class="js-work-item">
           <option value="">Selectionner</option>
           {% include "partials/work_item_options.html" %}
         </select>
-      </label>
-
-      <label>Quantite
-        <div class="unit-field">
-          <input name="work_quantity" class="js-work-qty" type="number" min="0" step="0.1" placeholder="Ex: 80">
-          <span class="unit-tag js-work-unit">--</span>
-        </div>
       </label>
     </div>
 
@@ -144,28 +140,7 @@
     <p class="form-disclaimer form-disclaimer-long">Les estimations proposees sur cette page sont fournies a titre indicatif et concernent la main-d'oeuvre uniquement. Les fournitures, materiaux, equipements et contraintes specifiques du chantier ne sont pas inclus dans ce calcul initial. Un devis precis et personnalise pourra etre etabli apres echange avec un expert.</p>
   </form>
 
-  <aside class="ai3d-side">
-    <div class="box">
-      <h3>Ce que vous recevez</h3>
-      <ol class="ai3d-steps">
-        <li>Pre-devis par email apres vos reponses.</li>
-        <li>Echange avec un expert pour valider le perimetre.</li>
-        <li>Devis final gratuit apres appel ou visite technique.</li>
-      </ol>
-    </div>
-    <div class="box contact-card">
-      <h3>Une question ? Besoin d'aide ?</h3>
-      <div class="contact-card-body">
-        <img src="/static/team/amine-messaoudi.png" alt="Chef de Projet Travaux">
-        <div>
-          <p class="contact-name">Amine Messaoudi</p>
-          <p class="contact-role">Chef de Projet Travaux</p>
-          <a class="contact-mail" href="mailto:contact@eurobatservices.com">contact@eurobatservices.com</a>
-          <a class="contact-phone" href="tel:+33605941623">06 05 94 16 23</a>
-        </div>
-      </div>
-    </div>
-  </aside>
+  <!-- Sidebar recap removed per request: keep recap visible uniquement sur le dashboard -->
 </section>
 
 <section class="section">

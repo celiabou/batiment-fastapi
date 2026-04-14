@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 import unittest
 from pathlib import Path
 
 
-ROOT = Path("/Users/keythinkerscelia/PycharmProjects/PythonProject")
+ROOT = Path("/Users/keythinkerscelia/PycharmProjects/PythonProject/batiment_py")
 
 
 def _load_module(relative_path: str):
@@ -26,23 +27,20 @@ class CatalogEstimatorTest(unittest.TestCase):
             "restructuration_lourde": {"low_m2": 2000, "high_m2": 4000},
         }
 
-        for relative_path in ("batiment_py/app.py", "batiment-fastapi-repo/app.py"):
-            path = ROOT / relative_path
-            import sys
+        app_path = ROOT / "app.py"
+        sys.path.insert(0, str(ROOT))
+        try:
+            spec = importlib.util.spec_from_file_location("app_module", app_path)
+            module = importlib.util.module_from_spec(spec)
+            assert spec.loader is not None
+            spec.loader.exec_module(module)
+        finally:
+            sys.path.pop(0)
 
-            sys.path.insert(0, str(path.parent))
-            try:
-                spec = importlib.util.spec_from_file_location(path.stem.replace("-", "_"), path)
-                module = importlib.util.module_from_spec(spec)
-                assert spec.loader is not None
-                spec.loader.exec_module(module)
-            finally:
-                sys.path.pop(0)
-
-            for scope_key, scope_expected in expected.items():
-                with self.subTest(module=relative_path, scope=scope_key):
-                    self.assertEqual(module.SMART_SCOPE_CONFIG[scope_key]["low_m2"], scope_expected["low_m2"])
-                    self.assertEqual(module.SMART_SCOPE_CONFIG[scope_key]["high_m2"], scope_expected["high_m2"])
+        for scope_key, scope_expected in expected.items():
+            with self.subTest(scope=scope_key):
+                self.assertEqual(module.SMART_SCOPE_CONFIG[scope_key]["low_m2"], scope_expected["low_m2"])
+                self.assertEqual(module.SMART_SCOPE_CONFIG[scope_key]["high_m2"], scope_expected["high_m2"])
 
     def test_catalog_estimate_success(self):
         payload = [
@@ -84,9 +82,8 @@ class CatalogEstimatorTest(unittest.TestCase):
             "total_max_ht": 128200,
         }
 
-        for relative_path in ("batiment_py/pricing.py", "batiment-fastapi-repo/pricing.py"):
-            module = _load_module(relative_path)
-            self.assertEqual(module.estimate_catalog_lines(payload), expected)
+        module = _load_module("pricing.py")
+        self.assertEqual(module.estimate_catalog_lines(payload), expected)
 
     def test_catalog_estimate_invalid_code_or_quantity(self):
         invalid_payloads = [
@@ -101,14 +98,13 @@ class CatalogEstimatorTest(unittest.TestCase):
             ["bad-line"],
         ]
 
-        for relative_path in ("batiment_py/pricing.py", "batiment-fastapi-repo/pricing.py"):
-            module = _load_module(relative_path)
-            for payload in invalid_payloads:
-                with self.subTest(module=relative_path, payload=payload):
-                    self.assertEqual(
-                        module.estimate_catalog_lines(payload),
-                        {"error": "Invalid service code or quantity"},
-                    )
+        module = _load_module("pricing.py")
+        for payload in invalid_payloads:
+            with self.subTest(payload=payload):
+                self.assertEqual(
+                    module.estimate_catalog_lines(payload),
+                    {"error": "Invalid service code or quantity"},
+                )
 
 
 if __name__ == "__main__":

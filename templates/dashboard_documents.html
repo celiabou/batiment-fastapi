@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Mes documents | Espace client{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell full-bleed docs-only">
+  <div class="wrap">
+    <div class="docs-brand-head">
+      <img src="/static/branding/dashboard-logo-premium.png" alt="Logo espace client">
+    </div>
+    <h2 class="doc-page-title">Documents projet</h2>
+    <p class="doc-page-desc">Categories en colonne. Bouton Ajouter sur chaque bloc avec upload multiple sans limite.</p>
+    {% if request.query_params.get("success") == "uploaded" %}
+      <div class="form-success">Documents ajoutes avec succes.</div>
+    {% elif request.query_params.get("success") == "deleted" %}
+      <div class="form-success">Document supprime avec succes.</div>
+    {% elif request.query_params.get("success") == "deleted_selected" %}
+      <div class="form-success">Documents selectionnes supprimes avec succes.</div>
+    {% elif request.query_params.get("error") == "missing_file" %}
+      <div class="form-alert">Ajoute au moins un fichier.</div>
+    {% elif request.query_params.get("error") == "empty_file" %}
+      <div class="form-alert">Le fichier est vide ou invalide.</div>
+    {% elif request.query_params.get("error") == "invalid_project" %}
+      <div class="form-alert">Projet introuvable pour cet upload.</div>
+    {% elif request.query_params.get("error") == "document_missing" %}
+      <div class="form-alert">Document introuvable.</div>
+    {% elif request.query_params.get("error") == "missing_selection" %}
+      <div class="form-alert">Selectionne au moins un document a supprimer.</div>
+    {% endif %}
+
+    {% set cards = [
+      {"key":"presentation","title":"Présentation du bien","desc":"Photos, vidéos, liens d'annonce","icon":"🏠"},
+      {"key":"plans","title":"Plans et conception","desc":"Plans existants, dossier architecte, 3D","icon":"📐"},
+      {"key":"technique","title":"Documents techniques","desc":"DPE, diagnostics, audits","icon":"🧪"},
+      {"key":"inspirations","title":"Inspirations","desc":"Photos, Pinterest","icon":"💡"},
+      {"key":"autres","title":"Autres documents","desc":"Devis, déclaration préalable, copropriété","icon":"📁"}
+    ] %}
+
+    <div class="doc-grid-cards visuals">
+      {% for card in cards %}
+        {% set docs = (doc_buckets.get(card.key) or []) %}
+        {% set has_docs = docs|length > 0 %}
+        <div class="doc-card visual" id="doc-{{ card.key }}">
+          <div class="doc-card-header">
+            <span class="doc-icon">{{ card.icon }}</span>
+            <div class="doc-card-headings">
+              <p class="doc-card-title">{{ card.title }}</p>
+              <p class="doc-card-desc">{{ card.desc }}</p>
+            </div>
+            <div class="doc-card-actions doc-card-actions-stack">
+              <button class="doc-action-btn view js-doc-toggle" type="button" data-target="doc-files-{{ card.key }}">Visualise</button>
+              <form class="doc-upload-inline" method="post" action="/api/project-document" enctype="multipart/form-data">
+                {% if current_project %}
+                  <input type="hidden" name="project_id" value="{{ current_project.id }}">
+                {% endif %}
+                <input type="hidden" name="category_key" value="{{ card.key }}">
+                <input type="hidden" name="label" value="{{ card.title }}">
+                <label class="doc-upload-input mini">
+                  Ajouter
+                  <input type="file" name="file" required multiple accept="image/*,application/pdf,video/mp4,video/quicktime,video/webm" onchange="this.form.submit()">
+                </label>
+              </form>
+            </div>
+          </div>
+
+          <div class="doc-row-files is-hidden" id="doc-files-{{ card.key }}">
+            {% if has_docs %}
+              <div class="doc-bulk-actions">
+                <label class="doc-select-all">
+                  <input type="checkbox" class="js-select-all-docs" data-bulk-form="bulk-delete-{{ card.key }}">
+                  <span>Tout selectionner</span>
+                </label>
+                <form id="bulk-delete-{{ card.key }}" class="doc-bulk-delete-form" method="post" action="/api/project-document/delete-selected" onsubmit="return confirm('Supprimer les documents selectionnes ?')">
+                  <button class="doc-delete-selected-btn js-delete-selected-btn" type="submit" disabled>Supprimer la selection</button>
+                </form>
+              </div>
+              {% for doc in docs %}
+                <div class="doc-file-row">
+                  <label class="doc-file-check" title="Selectionner ce document">
+                    <input
+                      type="checkbox"
+                      name="doc_ids"
+                      value="{{ doc.id }}"
+                      form="bulk-delete-{{ card.key }}"
+                      class="js-doc-check"
+                      data-bulk-form="bulk-delete-{{ card.key }}"
+                    >
+                  </label>
+                  <div class="doc-file-main">
+                    {% if doc.kind == "image" %}
+                      <a href="{{ doc.url }}" target="_blank" rel="noopener">
+                        <img class="doc-preview-image" src="{{ doc.url }}" alt="{{ doc.name }}">
+                      </a>
+                    {% elif doc.kind == "video" %}
+                      <video class="doc-preview-video" controls preload="metadata">
+                        <source src="{{ doc.url }}" type="{{ doc.mime_type or 'video/mp4' }}">
+                      </video>
+                    {% endif %}
+                    <a class="doc-row-link" href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.name }}</a>
+                  </div>
+                  <form class="doc-delete-form" method="post" action="/api/project-document/delete" onsubmit="return confirm('Supprimer ce document ?')">
+                    <input type="hidden" name="doc_id" value="{{ doc.id }}">
+                    <button class="doc-delete-btn" type="submit">Supprimer</button>
+                  </form>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="doc-status doc-status-empty">Aucun document ajoute.</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+<script>
+  document.querySelectorAll('.js-doc-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-target');
+      if (!targetId) return;
+      const files = document.getElementById(targetId);
+      if (!files) return;
+      files.classList.toggle('is-hidden');
+      btn.textContent = files.classList.contains('is-hidden') ? 'Visualise' : 'Masquer';
+    });
+  });
+
+  function updateBulkDeleteState(formId) {
+    const checks = document.querySelectorAll(`.js-doc-check[data-bulk-form="${formId}"]`);
+    const selectedCount = Array.from(checks).filter((input) => input.checked).length;
+    const bulkForm = document.getElementById(formId);
+    const btn = bulkForm ? bulkForm.querySelector('.js-delete-selected-btn') : null;
+    if (!btn) return;
+    if (selectedCount > 0) {
+      btn.disabled = false;
+      btn.textContent = `Supprimer la selection (${selectedCount})`;
+    } else {
+      btn.disabled = true;
+      btn.textContent = 'Supprimer la selection';
+    }
+  }
+
+  document.querySelectorAll('.js-doc-check').forEach((checkbox) => {
+    checkbox.addEventListener('change', () => {
+      const formId = checkbox.getAttribute('data-bulk-form');
+      if (!formId) return;
+      const checks = document.querySelectorAll(`.js-doc-check[data-bulk-form="${formId}"]`);
+      const selectAll = document.querySelector(`.js-select-all-docs[data-bulk-form="${formId}"]`);
+      if (selectAll) {
+        const allChecked = checks.length > 0 && Array.from(checks).every((input) => input.checked);
+        selectAll.checked = allChecked;
+      }
+      updateBulkDeleteState(formId);
+    });
+  });
+
+  document.querySelectorAll('.js-select-all-docs').forEach((selectAll) => {
+    selectAll.addEventListener('change', () => {
+      const formId = selectAll.getAttribute('data-bulk-form');
+      if (!formId) return;
+      const checks = document.querySelectorAll(`.js-doc-check[data-bulk-form="${formId}"]`);
+      checks.forEach((input) => {
+        input.checked = selectAll.checked;
+      });
+      updateBulkDeleteState(formId);
+    });
+  });
+</script>
+{% endblock %}

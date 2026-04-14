@@ -8,3 +8,5 @@ leads.sqlite
 # User uploads/renders
 /static/architecture/uploads/
 /static/architecture/renders/
+/static/client-docs/
+/static/estimate/uploads/

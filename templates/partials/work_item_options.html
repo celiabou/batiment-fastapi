@@ -1,0 +1,7 @@
+{% for group in ESTIMATE_WORK_ITEM_GROUPS %}
+  <optgroup label="{{ group['label'] }}">
+    {% for item in group['items'] %}
+      <option value="{{ item['key'] }}" data-unit="{{ item['unit'] }}">{{ item['label'] }} ({{ item['unit'] }})</option>
+    {% endfor %}
+  </optgroup>
+{% endfor %}

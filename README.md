@@ -150,3 +150,6 @@ curl -X POST http://127.0.0.1:8081/api/saas-ai/tenants/1/trial \
   -H "Content-Type: application/json" \
   -d '{"product_codes":["eurobat_capture","devis_intelligent","architecture_3d"],"trial_days":60}'
 ```
+
+
+Par defaut, les origines localhost et 127.0.0.1 les plus courantes sont actives pour faciliter le branchement d'un frontend separe.

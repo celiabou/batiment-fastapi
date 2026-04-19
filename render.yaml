@@ -1,7 +1,18 @@
 services:
   - type: web
     name: batiment-fastapi
-    env: docker
-    plan: free
+    env: python
+    plan: starter
     autoDeploy: true
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /
+    envVars:
+      - key: LEADS_DB_PATH
+        value: /var/data/leads.sqlite
+      - key: DATABASE_URL
+        value: sqlite:////var/data/leads.sqlite
+    disk:
+      name: leads-data
+      mountPath: /var/data
+      sizeGB: 1

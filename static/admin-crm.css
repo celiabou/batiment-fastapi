@@ -499,6 +499,75 @@ flex-direction: column;
   gap: 8px;
 }
 
+.admin-crm-email-test-card {
+  margin-bottom: 20px;
+}
+
+.admin-crm-email-test-body {
+  padding: 20px 24px 24px;
+}
+
+.admin-crm-notice {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.admin-crm-notice.success {
+  color: #0f5132;
+  background: #e9f7ef;
+  border: 1px solid #b8e3c9;
+}
+
+.admin-crm-notice.error {
+  color: #8f1d1d;
+  background: #fdecec;
+  border: 1px solid #f5bcbc;
+}
+
+.admin-crm-email-test-form {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-crm-email-test-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--crm-text);
+}
+
+.admin-crm-email-test-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 420px) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-crm-email-test-input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--crm-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: var(--crm-text);
+  background: #fff;
+}
+
+.admin-crm-email-test-input:focus {
+  outline: none;
+  border-color: var(--crm-primary);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+}
+
+.admin-crm-email-test-help {
+  margin: 0;
+  font-size: 12px;
+  color: var(--crm-text-muted);
+}
+
 .admin-crm-btn {
   padding: 8px 16px;
   border-radius: 8px;
@@ -565,6 +634,273 @@ flex-direction: column;
 
 .admin-crm-table tbody tr:hover {
   background: var(--crm-bg);
+}
+
+.chantier-admin-card {
+  margin-bottom: 18px;
+}
+
+.chantier-admin-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 24px 12px;
+  color: var(--crm-text-muted);
+  font-size: 13px;
+}
+
+.chantier-admin-meta span {
+  background: var(--crm-bg);
+  border: 1px solid var(--crm-border);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.chantier-admin-table-wrap {
+  padding: 0 24px 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.chantier-admin-summary-table th {
+  width: 260px;
+  font-size: 12px;
+}
+
+.chantier-admin-summary-table td {
+  font-weight: 600;
+}
+
+.chantier-admin-status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--crm-border);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chantier-admin-status-chip.status-active {
+  background: #edf5fd;
+  border-color: #c7dbef;
+  color: #2a4f7b;
+}
+
+.chantier-admin-status-chip.status-completed {
+  background: #ecf7f1;
+  border-color: #c8e2d2;
+  color: #246841;
+}
+
+.chantier-admin-status-chip.status-blocked {
+  background: #fff0f0;
+  border-color: #efc8c8;
+  color: #9a3838;
+}
+
+.chantier-admin-progress-lg {
+  width: min(240px, 100%);
+  height: 9px;
+  border-radius: 999px;
+  background: #e8edf3;
+  overflow: hidden;
+}
+
+.chantier-admin-progress-lg span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #16a39a, #4465a8);
+}
+
+.chantier-admin-progress-label {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.chantier-admin-steps-table th {
+  white-space: nowrap;
+}
+
+.chantier-admin-steps-table td {
+  vertical-align: top;
+}
+
+.chantier-admin-steps-table tbody tr {
+  transition: background 0.2s ease;
+}
+
+.chantier-admin-row-validated {
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.chantier-admin-row-in_progress {
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.chantier-admin-row-blocked {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.chantier-admin-row-delayed {
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.chantier-admin-steps-table select,
+.chantier-admin-steps-table input,
+.chantier-admin-steps-table textarea {
+  width: 100%;
+  border: 1px solid var(--crm-border);
+  border-radius: 8px;
+  padding: 7px 9px;
+  font-size: 13px;
+  color: var(--crm-text);
+  background: #fff;
+  margin-bottom: 6px;
+}
+
+.chantier-admin-steps-table textarea {
+  resize: vertical;
+  min-height: 58px;
+}
+
+.chantier-admin-step-progress {
+  display: grid;
+  grid-template-columns: minmax(70px, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+}
+
+.chantier-admin-step-progress-track {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  background: #e8edf3;
+  overflow: hidden;
+}
+
+.chantier-admin-step-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #14b8a6, #6366f1);
+}
+
+.chantier-admin-step-progress strong {
+  font-size: 11px;
+  color: var(--crm-text-muted);
+}
+
+.chantier-admin-steps-table small {
+  display: block;
+  margin-top: -2px;
+  margin-bottom: 4px;
+  color: var(--crm-text-muted);
+  font-size: 11px;
+}
+
+.chantier-admin-current-comment {
+  margin: 0;
+  color: var(--crm-text-muted);
+  font-size: 12px;
+}
+
+.chantier-admin-steps {
+  display: grid;
+  gap: 8px;
+  padding: 0 24px 18px;
+}
+
+.chantier-admin-step-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 1.4fr) 130px 92px 130px 130px minmax(200px, 1.4fr) 160px minmax(220px, 1.6fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--crm-border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px;
+}
+
+.chantier-admin-step-row strong {
+  font-size: 13px;
+  color: var(--crm-text);
+}
+
+.chantier-admin-step-row select,
+.chantier-admin-step-row input {
+  width: 100%;
+  border: 1px solid var(--crm-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--crm-text);
+  background: #fff;
+}
+
+.chantier-admin-visible {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--crm-text-muted);
+  white-space: nowrap;
+}
+
+.chantier-admin-visible input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.chantier-admin-actions {
+  display: inline-flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.chantier-admin-events {
+  margin: 0;
+  padding: 0 24px 20px;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.chantier-admin-events li {
+  border: 1px solid var(--crm-border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chantier-admin-events li strong {
+  color: var(--crm-text);
+  font-size: 13px;
+}
+
+.chantier-admin-events li p {
+  margin: 4px 0 0;
+  color: var(--crm-text-muted);
+  font-size: 13px;
+}
+
+.chantier-admin-events li > span {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.chantier-admin-empty {
+  margin: 0;
+  padding: 0 24px 20px;
+  color: var(--crm-text-muted);
 }
 
 .admin-crm-table-link {
@@ -721,6 +1057,28 @@ flex-direction: column;
 
   .admin-crm-table {
     min-width: 600px;
+  }
+
+  .chantier-admin-steps-table {
+    min-width: 1100px;
+  }
+
+  .admin-crm-email-test-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .chantier-admin-step-row {
+    grid-template-columns: 1fr;
+  }
+
+  .chantier-admin-actions {
+    justify-content: flex-start;
+  }
+
+  .chantier-admin-events li {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

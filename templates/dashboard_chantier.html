@@ -43,6 +43,15 @@
           </span>
           <span>Documents</span>
         </a>
+        <a href="/dashboard/pre-devis">
+          <span class="dash-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M7 4h10l3 3v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6"></path>
+              <path d="M9 11h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span>Pre-devis</span>
+        </a>
         <a href="/ressources">
           <span class="dash-icon">
             <svg viewBox="0 0 24 24" fill="none">
@@ -67,52 +76,217 @@
     </aside>
 
     <div class="dashboard-main chantier-dashboard-main">
-      <section class="chantier-empty-shell">
-        <div class="chantier-empty-icon" aria-hidden="true">
-          <svg viewBox="0 0 96 96" fill="none">
-            <path d="M24 36h48l6 10v24a6 6 0 0 1-6 6H24a6 6 0 0 1-6-6V46l6-10z" fill="#b48956"></path>
-            <path d="M20 42h56l-6-10H26l-6 10z" fill="#d7b48b"></path>
-            <path d="M48 42v34" stroke="#916738" stroke-width="4" stroke-linecap="round"></path>
-            <path d="M34 24l10-4 5 13-10 4z" fill="#8b5e34"></path>
-            <path d="M58 18l8 8-8 8" stroke="#8b5e34" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
-            <path d="M56 18l12 12" stroke="#8b5e34" stroke-width="5" stroke-linecap="round"></path>
-          </svg>
-        </div>
-        <h2>Aucun chantier en cours</h2>
-        <p>Signez un devis travaux avec une entreprise pour demarrer votre chantier</p>
+      {% if flash %}
+        <div class="chantier-flash {{ flash[0] }}">{{ flash[1] }}</div>
+      {% endif %}
 
-        <div class="chantier-feature-strip">
-          <article class="chantier-feature">
-            <span class="chantier-feature-icon">
-              <svg viewBox="0 0 24 24" fill="none">
-                <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.8"></circle>
-                <path d="M20 20l-4.2-4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
-              </svg>
-            </span>
-            <strong>Suivi de l'avancement par lot</strong>
-            <p>Retrouvez l'avancement detaille pour chaque lot de votre chantier</p>
-          </article>
-          <article class="chantier-feature">
-            <span class="chantier-feature-icon">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-              </svg>
-            </span>
-            <strong>Controle sur la liberation des fonds</strong>
-            <p>Validez les etats d'avancement du chantier pour liberer les fonds</p>
-          </article>
-          <article class="chantier-feature">
-            <span class="chantier-feature-icon">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M7 7h4V3M17 17h-4v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                <path d="M17 7a7 7 0 0 0-11.95 4M7 17a7 7 0 0 0 11.95-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
-              </svg>
-            </span>
-            <strong>Suivi des modifications</strong>
-            <p>Le recapitulatif de votre chantier se met a jour en fonction des avenants signes</p>
-          </article>
+      {% if contract %}
+        <section class="dashboard-section chantier-premium-head chantier-table-section">
+          <p class="dashboard-kicker">Chantier actif</p>
+          <div class="chantier-hero-grid">
+            <div class="chantier-hero-main">
+              <h2>Dashboard chantier</h2>
+              <p class="chantier-hero-sub">Suivi en temps reel publie par EUROBAT SERVICES.</p>
+              <div class="chantier-hero-chips">
+                <span class="chantier-hero-chip chantier-chip-status-{{ contract.status }}">{{ contract.status_label }}</span>
+                <span class="chantier-hero-chip">Etape: {{ contract.current_step_label or "A confirmer" }}</span>
+                <span class="chantier-hero-chip">Prochaine: {{ contract.next_step_label or "A confirmer" }}</span>
+              </div>
+            </div>
+            <div class="chantier-progress-panel">
+              <p class="chantier-progress-title">Avancement global</p>
+              <p class="chantier-progress-value">{{ contract.global_progress }}%</p>
+              <div class="chantier-progress-track-lg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ contract.global_progress }}">
+                <span style="width: {{ contract.global_progress }}%;"></span>
+              </div>
+              <p class="chantier-progress-meta">Derniere mise a jour: {{ contract.last_update_label or "A confirmer" }}</p>
+            </div>
+          </div>
+          <table class="chantier-table chantier-summary-table">
+            <tbody>
+              <tr><th>Nom du chantier</th><td>{{ contract.project_name }}</td></tr>
+              <tr><th>Statut global</th><td>{{ contract.status_label }}</td></tr>
+              <tr><th>Avancement global</th><td>{{ contract.global_progress }}%</td></tr>
+              <tr><th>Etape actuelle</th><td>{{ contract.current_step_label or "A confirmer" }}</td></tr>
+              <tr><th>Prochaine etape</th><td>{{ contract.next_step_label or "A confirmer" }}</td></tr>
+              <tr><th>Signature</th><td>{{ contract.signed_label or "A confirmer" }}</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="dashboard-section chantier-table-section">
+          <h3>Tableau des etapes</h3>
+          <table class="chantier-table">
+            <thead>
+              <tr>
+                <th>Etape</th>
+                <th>Statut</th>
+                <th>Avancement</th>
+                <th>Date prevue</th>
+                <th>Date reelle</th>
+                <th>Commentaire client</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for step in steps %}
+                <tr class="chantier-row-{{ step.status }}">
+                  <td><strong>{{ step.label }}</strong></td>
+                  <td><span class="status-pill chantier-status {{ step.status }}">{{ step.status_label }}</span></td>
+                  <td>
+                    <div class="chantier-step-progress">
+                      <div class="chantier-step-progress-track"><span style="width: {{ step.progress_percent }}%;"></span></div>
+                      <strong>{{ step.progress_percent }}%</strong>
+                    </div>
+                  </td>
+                  <td>{{ step.planned_date_label or "—" }}</td>
+                  <td>{{ step.actual_date_label or "—" }}</td>
+                  <td>{{ step.client_comment or "—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </section>
+
+        <div class="chantier-stream-grid">
+          <section class="dashboard-section">
+            <h3>Etapes terminees</h3>
+            {% if completed_steps %}
+              <ul class="chantier-event-list">
+                {% for label in completed_steps %}
+                  <li>
+                    <div>
+                      <strong>{{ label }}</strong>
+                      <p>Etape validee.</p>
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="section-sub">Aucune etape validee pour le moment.</p>
+            {% endif %}
+          </section>
+
+          <section class="dashboard-section">
+            <h3>Prochaines etapes</h3>
+            {% if upcoming_steps %}
+              <ul class="chantier-event-list">
+                {% for label in upcoming_steps %}
+                  <li>
+                    <div>
+                      <strong>{{ label }}</strong>
+                      <p>Etape a venir.</p>
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              {% if contract.status == "completed" %}
+                <p class="section-sub">Toutes les etapes sont terminees.</p>
+              {% else %}
+                <p class="section-sub">La prochaine etape sera publiee par EUROBAT.</p>
+              {% endif %}
+            {% endif %}
+          </section>
         </div>
-      </section>
+
+        <div class="chantier-stream-grid">
+          <section class="dashboard-section">
+            <h3>Commentaires visibles</h3>
+            {% if comments %}
+              <ul class="chantier-event-list">
+                {% for comment in comments %}
+                  <li>
+                    <div>
+                      <strong>{{ comment.title }}</strong>
+                      <p>{{ comment.detail }}</p>
+                    </div>
+                    <span>{{ comment.created_label }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="section-sub">Aucun commentaire visible pour le moment.</p>
+            {% endif %}
+          </section>
+
+          <section class="dashboard-section">
+            <h3>Dernieres mises a jour</h3>
+            {% if events %}
+              <ul class="chantier-event-list">
+                {% for event in events %}
+                  <li>
+                    <div>
+                      <strong>{{ event.title }}</strong>
+                      <p>{{ event.detail }}</p>
+                    </div>
+                    <span>{{ event.created_label }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="section-sub">Aucune mise a jour publiee pour le moment.</p>
+            {% endif %}
+          </section>
+        </div>
+      {% else %}
+        <section class="chantier-empty-shell">
+          <div class="chantier-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 96 96" fill="none">
+              <path d="M24 36h48l6 10v24a6 6 0 0 1-6 6H24a6 6 0 0 1-6-6V46l6-10z" fill="#b48956"></path>
+              <path d="M20 42h56l-6-10H26l-6 10z" fill="#d7b48b"></path>
+              <path d="M48 42v34" stroke="#916738" stroke-width="4" stroke-linecap="round"></path>
+              <path d="M34 24l10-4 5 13-10 4z" fill="#8b5e34"></path>
+              <path d="M58 18l8 8-8 8" stroke="#8b5e34" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M56 18l12 12" stroke="#8b5e34" stroke-width="5" stroke-linecap="round"></path>
+            </svg>
+          </div>
+          <h2>Suivez les grandes etapes de votre chantier</h2>
+          <p>Signez votre devis pour activer le suivi chantier en temps reel.</p>
+
+          <form class="chantier-sign-form" method="post" action="/dashboard/chantier/sign-devis">
+            <label>Nom du signataire
+              <input type="text" name="signer_name" value="{{ user.name or '' }}" placeholder="Prenom Nom" required>
+            </label>
+            <label class="chantier-sign-checkbox">
+              <input type="checkbox" name="accept_terms" value="on" required>
+              <span>Je confirme la signature du devis n° {{ prequote_reference or 'A confirmer' }} et l'activation du suivi chantier.</span>
+            </label>
+            <button class="btn btn-solid" type="submit">Signer le devis et activer le suivi</button>
+          </form>
+
+          <div class="chantier-feature-strip">
+            <article class="chantier-feature">
+              <span class="chantier-feature-icon">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.8"></circle>
+                  <path d="M20 20l-4.2-4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+              </span>
+              <strong>Avancement en temps reel</strong>
+              <p>Visualisez les grandes etapes du projet et leur progression.</p>
+            </article>
+            <article class="chantier-feature">
+              <span class="chantier-feature-icon">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </span>
+              <strong>Mises a jour par EUROBAT</strong>
+              <p>Le suivi est pilote par le chef de projet depuis le CRM.</p>
+            </article>
+            <article class="chantier-feature">
+              <span class="chantier-feature-icon">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M7 7h4V3M17 17h-4v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <path d="M17 7a7 7 0 0 0-11.95 4M7 17a7 7 0 0 0 11.95-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+              </span>
+              <strong>Historique centralise</strong>
+              <p>Retrouvez toutes les evolutions du chantier dans un seul fil.</p>
+            </article>
+          </div>
+        </section>
+      {% endif %}
     </div>
   </div>
 </section>

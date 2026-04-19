@@ -1,14 +1,14 @@
 //noinspection SpellCheckingInspection
 (function () {
   /**
-   * @typedef {{min?: number, max?: number}} DurationWeeks
    * @typedef {{status?: string, message?: string}} BudgetFit
-   * @typedef {{label?: string, share_percent?: number, low_label?: string, high_label?: string}} QuoteBreakdownItem
+   * @typedef {{label?: string, detail?: string, share_percent?: number, low_label?: string, high_label?: string}} QuoteBreakdownItem
    * @typedef {{
+   *   estimate_mode?: string,
+   *   estimate_mode_label?: string,
    *   low_label?: string,
    *   high_label?: string,
-   *   duration_weeks?: DurationWeeks,
-   *   confidence?: number,
+   *   pricing_context?: string,
    *   project_type_label?: string,
    *   scope_label?: string,
    *   budget_fit?: BudgetFit,
@@ -22,6 +22,8 @@
    *   details?: string[],
    *   message?: string,
    *   handoff_id?: string|number,
+   *   prequote_url?: string,
+   *   account_optional?: boolean,
    *   quote?: SmartQuote,
    *   delivery?: DeliveryStatus,
    *   source_photos?: string[],
@@ -45,6 +47,7 @@
   const renderStatusEl = document.getElementById("aiRenderStatus");
   const quoteDeliveryStatusEl = document.getElementById("aiQuoteDeliveryStatus");
   const renderDeliveryStatusEl = document.getElementById("aiRenderDeliveryStatus");
+  const quotePdfLinkEl = document.getElementById("aiQuotePdfLink");
 
   const quoteRangeEl = document.getElementById("smartQuoteRange");
   const quoteMetaEl = document.getElementById("smartQuoteMeta");
@@ -89,10 +92,16 @@
   let quotePhotosSelectedFiles = [];
 
   const workItemSelects = Array.from(document.querySelectorAll(".js-work-item"));
+  const workItemBlocks = Array.from(document.querySelectorAll(".js-work-item-block"));
   const workQtyInputs = Array.from(document.querySelectorAll(".js-work-qty"));
   const workUnitTags = Array.from(document.querySelectorAll(".js-work-unit"));
+  const workQtyHelpTexts = Array.from(document.querySelectorAll(".js-work-qty-help"));
+  const workQtyLabelTexts = Array.from(document.querySelectorAll(".js-work-qty-label-text"));
+  const surfaceHelpTexts = Array.from(document.querySelectorAll(".js-surface-help"));
+  const estimateModeHints = Array.from(document.querySelectorAll(".js-estimate-mode-hint"));
   const workUnitHidden = document.getElementById("workUnitHidden");
   const workUnitOverride = document.getElementById("workUnitOverride");
+  const SCOPE_WORK_ITEM_ONLY = "par_choix_prestation";
 
   let quoteSubmitted = false;
   let quoteSubmitting = false;
@@ -353,12 +362,14 @@
     }
 
     setText(quoteRangeEl, `${quote.low_label || ""} - ${quote.high_label || ""}`);
-    /** @type {DurationWeeks} */
-    const duration = quote.duration_weeks || {};
-    setText(
-      quoteMetaEl,
-      `Confiance ${Math.round((quote.confidence || 0) * 100)}% • ${quote.project_type_label || ""} • ${quote.scope_label || ""} • Délai ${duration.min || "?"}-${duration.max || "?"} semaines`
-    );
+    const metaParts = [];
+    if (quote.estimate_mode_label) metaParts.push(quote.estimate_mode_label);
+    if (quote.pricing_context) metaParts.push(quote.pricing_context);
+    else {
+      if (quote.project_type_label) metaParts.push(quote.project_type_label);
+      if (quote.scope_label) metaParts.push(quote.scope_label);
+    }
+    setText(quoteMetaEl, metaParts.join(" • ") || "Calcul catalogue en attente.");
 
     /** @type {BudgetFit} */
     const budgetFit = quote.budget_fit || {};
@@ -372,7 +383,10 @@
 
       const left = document.createElement("span");
       left.className = "ai3d-breakdown-left";
-      left.textContent = `${item.label || "Poste"} (${Number(item.share_percent || 0)}%)`;
+      const hasShare = Number.isFinite(Number(item.share_percent));
+      const label = item.label || "Poste";
+      const detail = item.detail ? ` • ${item.detail}` : "";
+      left.textContent = hasShare ? `${label} (${Number(item.share_percent || 0)}%)${detail}` : `${label}${detail}`;
 
       const right = document.createElement("span");
       right.className = "ai3d-breakdown-right";
@@ -451,18 +465,53 @@
   }
 
   function syncWorkItemUnits() {
+    const modeHint = "Type de travaux sert au cadrage. Le calcul est effectue uniquement depuis le poste catalogue selectionne.";
+    const surfaceContextHelp = "Champ contextuel (optionnel): non utilise pour le calcul catalogue du pre-devis.";
+    const itemHelpText = "A renseigner uniquement si vous choisissez une prestation precise. Exemple : 12 m2 de cloison, 3 portes, 8 ml de plan de travail. Ce champ ne correspond pas a la surface totale du bien.";
+    estimateModeHints.forEach((el) => {
+      el.textContent = modeHint;
+    });
+    surfaceHelpTexts.forEach((el) => {
+      el.textContent = surfaceContextHelp;
+    });
+    workItemBlocks.forEach((block) => {
+      block.hidden = false;
+    });
+
+    function qtyLabelFor(unit, hasItem) {
+      if (!hasItem) return "Quantite du poste selectionne";
+      if (unit === "m2") return "Surface a traiter (m2)";
+      if (unit === "ml") return "Longueur estimee (ml)";
+      if (unit === "unite") return "Nombre d'unites";
+      if (unit === "forfait") return "Forfait - aucune quantite a renseigner";
+      return "Quantite du poste selectionne";
+    }
+
     workItemSelects.forEach((selectEl, idx) => {
       const selected = selectEl.options[selectEl.selectedIndex];
-      const autoUnit = selected ? selected.getAttribute("data-unit") || "--" : "--";
-      const overrideUnit = workUnitOverride ? workUnitOverride.value : "";
+      const hasWorkItem = Boolean(selected && selected.value);
+      const autoUnit = hasWorkItem ? selected.getAttribute("data-unit") || "--" : "--";
+      const overrideUnit = (hasWorkItem && workUnitOverride) ? workUnitOverride.value : "";
       const unit = overrideUnit || autoUnit || "--";
       const unitTag = workUnitTags[idx];
       const qtyInput = workQtyInputs[idx];
+      const helpText = workQtyHelpTexts[idx];
+      const qtyLabel = workQtyLabelTexts[idx];
+      if (qtyLabel) qtyLabel.textContent = qtyLabelFor(unit, hasWorkItem);
+      selectEl.required = true;
+      selectEl.disabled = false;
       if (unitTag) unitTag.textContent = unit;
       if (workUnitHidden) workUnitHidden.value = unit;
+      if (helpText) {
+        helpText.textContent = !hasWorkItem
+          ? "Selectionnez d'abord un poste de travaux dans la grille catalogue."
+          : unit === "forfait"
+          ? "Forfait - aucune quantite a renseigner."
+          : itemHelpText;
+      }
       if (qtyInput) {
-        qtyInput.disabled = unit === "forfait" || unit === "--";
-        qtyInput.required = unit !== "forfait" && unit !== "--";
+        qtyInput.disabled = !hasWorkItem || unit === "forfait" || unit === "--";
+        qtyInput.required = hasWorkItem && unit !== "forfait" && unit !== "--";
         if (unit === "forfait") {
           qtyInput.value = "";
           qtyInput.placeholder = "N/A";
@@ -484,6 +533,11 @@
 
     try {
       const formData = new FormData(quoteForm);
+      const workItemValue = String(formData.get("work_item_key") || "").trim();
+      if (!workItemValue) {
+        setText(quoteStatusEl, "Selectionnez un poste de travaux dans la grille catalogue pour lancer l'estimation.");
+        return;
+      }
       appendTracking(formData);
       const res = await fetch("/api/devis-intelligent", {
         method: "POST",
@@ -526,18 +580,27 @@
       renderDelivery(
         quoteDeliveryStatusEl,
         quoteDelivery,
-        `Devis envoyé au client (${quoteDelivery.client_email || "email client"}) + copie interne.`
+        `Pre-devis envoye au client (${quoteDelivery.client_email || "email client"}) + copie interne.`
       );
 
+      if (quotePdfLinkEl) {
+        const prequoteUrl = String(data.prequote_url || "").trim();
+        if (prequoteUrl) {
+          quotePdfLinkEl.hidden = false;
+          quotePdfLinkEl.setAttribute("href", prequoteUrl);
+          quotePdfLinkEl.textContent = "Telecharger mon pre-devis PDF";
+        } else {
+          quotePdfLinkEl.hidden = true;
+          quotePdfLinkEl.removeAttribute("href");
+        }
+      }
+
       if (quoteAccountEl) {
-        if (data.account_required_for_final) {
-          quoteAccountEl.textContent = "Compte obligatoire pour recevoir le devis final.";
-          quoteAccountEl.className = "ai3d-budget-hint ai3d-budget-under_budget";
-        } else if (data.project_saved) {
+        if (data.project_saved) {
           quoteAccountEl.textContent = "Votre dossier a été sauvegardé dans votre espace client.";
           quoteAccountEl.className = "ai3d-budget-hint ai3d-budget-aligned";
         } else {
-          quoteAccountEl.textContent = "Connectez-vous pour recevoir le devis final.";
+          quoteAccountEl.textContent = "Votre pre-devis est deja envoye par email. Creer un espace client reste optionnel.";
           quoteAccountEl.className = "ai3d-budget-hint";
         }
       }
@@ -687,6 +750,10 @@
   workItemSelects.forEach((selectEl) => {
     selectEl.addEventListener("change", syncWorkItemUnits);
   });
+  const quoteScopeSelect = quoteForm.querySelector('select[name="scope"]');
+  if (quoteScopeSelect) {
+    quoteScopeSelect.addEventListener("change", syncWorkItemUnits);
+  }
   if (workUnitOverride) {
     workUnitOverride.addEventListener("change", () => {
       syncWorkItemUnits();
@@ -703,8 +770,12 @@
     saveDraft();
   });
 
-  setText(quoteDeliveryStatusEl, "Aucun email envoye pour l'instant.");
+  setText(quoteDeliveryStatusEl, "Aucun pre-devis envoye pour l'instant.");
   setText(renderDeliveryStatusEl, "Aucun rendu 3D envoye pour l'instant.");
+  if (quotePdfLinkEl) {
+    quotePdfLinkEl.hidden = true;
+    quotePdfLinkEl.removeAttribute("href");
+  }
   syncWorkItemUnits();
   loadDraft();
   updateLiveRecap();

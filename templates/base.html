@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700;800&family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/site.css?v=20260409-25">
+  <link rel="stylesheet" href="/static/site.css?v=20260417-27">
 </head>
 <body>
   {% set current_path = request.url.path %}
@@ -41,7 +41,54 @@
             <a class="nav-link-main" href="/">Accueil</a>
             <a class="nav-link-main" href="/nos-chantiers">Chantier</a>
             <a class="nav-link-main" href="/avant-apres">Avant / Après</a>
-            <a class="nav-link-main" href="/#nos-prestations">Nos prestations</a>
+            <details class="nav-drop nav-services" id="navServicesDropdown">
+              <summary class="nav-link-main nav-link-main-drop" aria-haspopup="true" aria-expanded="false">
+                <span>Nos prestations</span>
+                <svg class="nav-caret" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M5.5 7.5 10 12l4.5-4.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path>
+                </svg>
+              </summary>
+              <div class="nav-drop-menu nav-services-menu" role="menu" aria-label="Prestations Eurobat Services">
+                <div class="nav-drop-group">
+                  <p class="nav-drop-title">Rénovation intérieure</p>
+                  <a href="/nos-metiers#renovation-interieure">Rénovation intérieure</a>
+                  <a href="/nos-metiers#renovation-interieure-globale">Rénovation intérieure globale</a>
+                  <a href="/nos-metiers#installation-chantier">Installation de chantier</a>
+                  <a href="/nos-metiers#demolition-depose">Démolition et dépose</a>
+                  <a href="/nos-metiers#maconnerie-interieure">Maçonnerie intérieure</a>
+                </div>
+                <div class="nav-drop-group">
+                  <p class="nav-drop-title">Second œuvre & finitions</p>
+                  <a href="/nos-metiers#platrerie">Plâtrerie</a>
+                  <a href="/nos-metiers#enduit-lissage">Enduit / lissage</a>
+                  <a href="/nos-metiers#faux-plafonds">Faux plafonds</a>
+                  <a href="/nos-metiers#cloisons-doublage-isolation">Cloisons, doublage et isolation</a>
+                  <a href="/nos-metiers#menuiserie-interieure">Menuiserie intérieure</a>
+                  <a href="/nos-metiers#peinture">Peinture</a>
+                  <a href="/nos-metiers#ragreage">Ragréage</a>
+                  <a href="/nos-metiers#chape">Chape</a>
+                  <a href="/nos-metiers#revetements-sols-murs">Revêtements sols et murs</a>
+                </div>
+                <div class="nav-drop-group">
+                  <p class="nav-drop-title">Techniques & pièces d'eau</p>
+                  <a href="/nos-metiers#plomberie">Plomberie</a>
+                  <a href="/nos-metiers#electricite">Électricité</a>
+                  <a href="/nos-metiers#cuisine-salle-bain">Cuisine et salle de bain</a>
+                </div>
+                <div class="nav-drop-group">
+                  <p class="nav-drop-title">Aménagement</p>
+                  <a href="/nos-metiers#amenagement-interieur">Aménagement intérieur</a>
+                  <a href="/nos-metiers#amenagement-general">Aménagement général</a>
+                  <a href="/nos-metiers#amenagement-balcon-terrasse">Aménagement balcon et terrasse</a>
+                </div>
+                <div class="nav-drop-group">
+                  <p class="nav-drop-title">Balcon & terrasse (extérieur)</p>
+                  <a href="/nos-metiers#amenagement-balcon-terrasse">Aménagement balcon et terrasse</a>
+                  <a href="/nos-metiers#renovation-balcon-terrasse">Rénovation balcon et terrasse</a>
+                  <a href="/nos-metiers#etancheite-finitions">Étanchéité et finitions</a>
+                </div>
+              </div>
+            </details>
             <a class="nav-link-main" href="/nos-metiers">Guides</a>
           </nav>
           <div class="nav-right">
@@ -95,7 +142,7 @@
       (function () {
         const currentPath = window.location.pathname;
         const currentHash = window.location.hash;
-        document.querySelectorAll(".nav-link-main").forEach((link) => {
+        document.querySelectorAll(".nav-link-main[href]").forEach((link) => {
           const href = link.getAttribute("href") || "";
           const isHashLink = href.startsWith("/#");
           const isPathMatch = href === currentPath;
@@ -105,6 +152,94 @@
             link.classList.add("is-active");
           }
         });
+
+        const servicesDrop = document.getElementById("navServicesDropdown");
+        const servicesSummary = servicesDrop ? servicesDrop.querySelector("summary") : null;
+        if (servicesDrop && servicesSummary) {
+          const isDesktop = () => window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 761px)").matches;
+          let closeTimer = null;
+
+          const setExpanded = (open) => {
+            servicesSummary.setAttribute("aria-expanded", open ? "true" : "false");
+          };
+
+          const openDropdown = () => {
+            if (closeTimer) {
+              window.clearTimeout(closeTimer);
+              closeTimer = null;
+            }
+            servicesDrop.setAttribute("open", "");
+            setExpanded(true);
+          };
+
+          const closeDropdown = () => {
+            if (closeTimer) {
+              window.clearTimeout(closeTimer);
+              closeTimer = null;
+            }
+            servicesDrop.removeAttribute("open");
+            setExpanded(false);
+          };
+
+          if (currentPath === "/nos-metiers" || (currentPath === "/" && currentHash === "#nos-prestations")) {
+            servicesSummary.classList.add("is-active");
+          }
+
+          servicesDrop.addEventListener("toggle", () => {
+            setExpanded(servicesDrop.hasAttribute("open"));
+          });
+
+          servicesDrop.addEventListener("mouseenter", () => {
+            if (isDesktop()) {
+              openDropdown();
+            }
+          });
+
+          servicesDrop.addEventListener("mouseleave", () => {
+            if (isDesktop()) {
+              closeTimer = window.setTimeout(closeDropdown, 120);
+            }
+          });
+
+          servicesSummary.addEventListener("click", (event) => {
+            if (isDesktop()) {
+              event.preventDefault();
+              if (servicesDrop.hasAttribute("open")) {
+                closeDropdown();
+              } else {
+                openDropdown();
+              }
+            } else {
+              window.setTimeout(() => setExpanded(servicesDrop.hasAttribute("open")), 0);
+            }
+          });
+
+          document.addEventListener("click", (event) => {
+            if (!servicesDrop.contains(event.target)) {
+              closeDropdown();
+            }
+          });
+
+          document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+              closeDropdown();
+            }
+          });
+
+          document.addEventListener("nav:close", () => {
+            closeDropdown();
+          });
+
+          document.querySelectorAll(".nav-main a").forEach((link) => {
+            link.addEventListener("click", () => {
+              closeDropdown();
+            });
+          });
+
+          window.addEventListener("resize", () => {
+            closeDropdown();
+          });
+        }
       })();
     </script>
   {% endif %}

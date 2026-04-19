@@ -204,6 +204,73 @@ class ClientProject(Base):
     status = Column(String(40), nullable=True)
 
 
+class ChantierContract(Base):
+    __tablename__ = "chantier_contracts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+    client_id = Column(Integer, ForeignKey("user_accounts.id"), nullable=False, index=True)
+    project_id = Column(Integer, ForeignKey("client_projects.id"), nullable=True, index=True)
+    status = Column(String(30), nullable=False, default="active", index=True)
+
+    signed_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+    signer_name = Column(String(120), nullable=False)
+    signer_email = Column(String(180), nullable=False, index=True)
+    signer_ip = Column(String(64), nullable=True)
+    quote_reference = Column(String(80), nullable=True)
+    terms_version = Column(String(20), nullable=False, default="v1")
+
+
+class ChantierLot(Base):
+    __tablename__ = "chantier_lots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+    contract_id = Column(Integer, ForeignKey("chantier_contracts.id"), nullable=False, index=True)
+    code = Column(String(64), nullable=True)
+    label = Column(String(180), nullable=False)
+    status = Column(String(30), nullable=False, default="pending", index=True)
+    progress_percent = Column(Integer, nullable=False, default=0)
+    next_step = Column(Text, nullable=True)
+    planned_start = Column(DateTime(timezone=True), nullable=True, index=True)
+    planned_end = Column(DateTime(timezone=True), nullable=True, index=True)
+    sort_order = Column(Integer, nullable=False, default=0)
+
+
+class ChantierMilestone(Base):
+    __tablename__ = "chantier_milestones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+    lot_id = Column(Integer, ForeignKey("chantier_lots.id"), nullable=False, index=True)
+    title = Column(String(180), nullable=False)
+    status = Column(String(30), nullable=False, default="pending", index=True)
+    notes = Column(Text, nullable=True)
+    due_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    ready_at = Column(DateTime(timezone=True), nullable=True)
+    validated_at = Column(DateTime(timezone=True), nullable=True, index=True)
+
+
+class ChantierEvent(Base):
+    __tablename__ = "chantier_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+    contract_id = Column(Integer, ForeignKey("chantier_contracts.id"), nullable=False, index=True)
+    event_type = Column(String(40), nullable=False, index=True)
+    title = Column(String(180), nullable=False)
+    detail = Column(Text, nullable=True)
+    impact_timeline = Column(String(120), nullable=True)
+    impact_scope = Column(String(120), nullable=True)
+
+
 class ProjectDocument(Base):
     __tablename__ = "project_documents"
 

@@ -3,7 +3,9 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./leads.sqlite")
+default_leads_db_path = os.getenv("LEADS_DB_PATH", "leads.sqlite")
+default_database_url = f"sqlite:///{default_leads_db_path}"
+DATABASE_URL = os.getenv("DATABASE_URL", default_database_url)
 
 connect_args = {}
 if DATABASE_URL.startswith("sqlite"):

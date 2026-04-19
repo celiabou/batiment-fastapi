@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Mon espace client{% endblock %}
+{% block title %}Mes pre-devis | Espace client{% endblock %}
 
 {% block content %}
 <section class="dashboard-shell full-bleed">
@@ -10,7 +10,7 @@
       </div>
       <p class="dashboard-title">Espace client</p>
       <nav class="dashboard-nav">
-        <a class="is-active" href="/dashboard">
+        <a href="/dashboard">
           <span class="dash-icon">
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M4 11.5l8-6 8 6v7a1 1 0 0 1-1 1h-5v-5H10v5H5a1 1 0 0 1-1-1v-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
@@ -18,7 +18,7 @@
           </span>
           <span>Accueil</span>
         </a>
-        <a href="/estimez-votre-projet">
+        <a href="/estimation-projet">
           <span class="dash-icon">
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M8 5h8l2 2v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
@@ -30,7 +30,7 @@
         <a href="/dashboard/chantier">
           <span class="dash-icon">
             <svg viewBox="0 0 24 24" fill="none">
-              <path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+              <path d="M5 7h14M5 12h14M5 17h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
             </svg>
           </span>
           <span>Chantier</span>
@@ -43,7 +43,7 @@
           </span>
           <span>Documents</span>
         </a>
-        <a href="/dashboard/pre-devis">
+        <a class="is-active" href="/dashboard/pre-devis">
           <span class="dash-icon">
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M7 4h10l3 3v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6"></path>
@@ -77,80 +77,50 @@
 
     <div class="dashboard-main">
       <section class="dashboard-section">
-        <p class="dashboard-kicker">{{ recap.get("scope", "—") if recap else "—" }}</p>
-        {% set recap_type = recap.get("project_type", "—") if recap else "—" %}
-        {% set recap_surface = recap.get("surface", "—") if recap else "—" %}
-        {% set recap_scope = recap.get("scope", "—") if recap else "—" %}
-        <h2>
-          {{ recap_scope | default("—") }} d'un {{ recap_type | default("—") }} de {{ recap_surface | default("—") }} m2
-        </h2>
-        <div class="dash-card">
-          <div>
-            <p class="dash-card-title">
-              <span class="dash-icon dash-icon-circle">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M9 12h6M9 16h6M8 4h6l4 4v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6"></path>
-                </svg>
-              </span>
-              Etude du projet
-            </p>
-            <p class="muted">
-              {{ recap.get("city", "—") if recap else "—" }}
-            </p>
-          </div>
-          {% if recap %}
-            <span class="status-pill">
-              Rendez-vous: {{ recap.get("appointment_status", "—") }}
-            </span>
-          {% else %}
-            <span class="status-pill">{{ projects[0].status if projects and projects[0].status else "Aucun rendez-vous a venir" }}</span>
-          {% endif %}
-        </div>
+        <p class="dashboard-kicker">Historique estimateur</p>
+        <h2>Mes pre-devis PDF</h2>
+        <p class="section-sub">Retrouvez tous les pre-devis generes depuis l'estimateur, puis ouvrez-les en PDF.</p>
+        {% if request.query_params.get("success") == "deleted" %}
+          <div class="form-success">Pre-devis supprime avec succes.</div>
+        {% elif request.query_params.get("error") == "document_missing" %}
+          <div class="form-alert">Pre-devis introuvable ou deja supprime.</div>
+        {% endif %}
       </section>
 
       <section class="dashboard-section">
-        <h3>Recapitulatif du projet</h3>
-        <div class="dash-summary">
-          <div>
-            <span>Type de bien</span>
-            <strong>{{ recap.get("project_type", "—") if recap else "—" }}</strong>
+        {% if prequote_items %}
+          <div class="prequote-list">
+            {% for item in prequote_items %}
+              <article class="prequote-card">
+                <form class="prequote-delete-form" method="post" action="/api/pre-devis/delete" onsubmit="return confirm('Supprimer ce pre-devis ?');">
+                  <input type="hidden" name="doc_id" value="{{ item.id }}">
+                  <button class="prequote-delete-btn" type="submit" aria-label="Supprimer ce pre-devis" title="Supprimer">X</button>
+                </form>
+                <div>
+                  <h3>{{ item.title }}</h3>
+                  {% if item.prequote_number %}
+                    <p class="prequote-meta"><strong>N° du pré-devis:</strong> {{ item.prequote_number }}</p>
+                  {% endif %}
+                  <p class="prequote-meta"><strong>Projet:</strong> {{ item.project_title }}</p>
+                  {% if item.estimate_range %}
+                    <p class="prequote-meta"><strong>Fourchette:</strong> {{ item.estimate_range }}</p>
+                  {% endif %}
+                  <p class="prequote-meta"><strong>Genere le:</strong> {{ item.created_at or "Date inconnue" }}</p>
+                </div>
+                <div class="prequote-actions">
+                  <a class="btn btn-solid prequote-open" href="{{ item.view_url }}">Ouvrir PDF</a>
+                  <a class="prequote-download" href="{{ item.url }}" target="_blank" rel="noopener" download>Telecharger</a>
+                </div>
+              </article>
+            {% endfor %}
           </div>
-          <div>
-            <span>Type de renovation</span>
-            <strong>{{ recap.get("scope", "—") if recap else "—" }}</strong>
-          </div>
-          <div>
-            <span>Surface</span>
-            <strong>{{ recap.get("surface", "—") if recap else "—" }} m2</strong>
-          </div>
-          <div>
-            <span>Style</span>
-            <strong>{{ recap.get("style", "—") if recap else "—" }}</strong>
-          </div>
-          <div>
-            <span>Budget</span>
-            <strong>{{ recap.get("budget", "—") if recap else "—" }}</strong>
-          </div>
-          <div>
-            <span>Niveau de finition</span>
-            <strong>{{ recap.get("finishing_level", "—") if recap else "—" }}</strong>
-          </div>
-        </div>
-      </section>
-
-
-
-      <section class="dashboard-section">
-        <h3>Un accompagnement dedie</h3>
-        <div class="dash-contact">
-          <img src="/static/team/amine-messaoudi.png" alt="Chef de Projet Travaux">
-          <div>
-            <p class="contact-role">Votre interlocuteur unique :</p>
-            <p class="contact-name">Amine Messaoudi - Chef de projet travaux</p>
-            <a class="contact-phone" href="tel:+33605941623">📞 06 05 94 16 23</a>
-            <a class="contact-mail" href="mailto:contact@eurobatservices.com">✉️ contact@eurobatservices.com</a>
-          </div>
-        </div>
+        {% else %}
+          <article class="prequote-empty">
+            <h3>Aucun pre-devis disponible</h3>
+            <p>Generez un pre-devis depuis l'estimateur pour l'ajouter automatiquement a votre espace client.</p>
+            <a class="btn btn-solid" href="/estimation-projet">Generer un pre-devis</a>
+          </article>
+        {% endif %}
       </section>
     </div>
   </div>

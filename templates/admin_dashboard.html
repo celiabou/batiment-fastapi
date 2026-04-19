@@ -49,6 +49,12 @@
           </svg>
           Contacts
         </a>
+        <a href="/admin/chantiers" class="admin-crm-nav-item {% if active_page == 'chantiers' %}active{% endif %}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14M5 12h14M5 17h10"></path>
+          </svg>
+          Chantiers
+        </a>
       </div>
 
       <div class="admin-crm-nav-section">
@@ -103,6 +109,42 @@
 
     <!-- Content -->
     <div class="admin-crm-content">
+      {% set email_test_state = request.query_params.get("email_test", "") %}
+      {% set email_test_to = request.query_params.get("email_test_to", "") %}
+      {% set email_test_msg = request.query_params.get("email_test_msg", "") %}
+
+      <div class="admin-crm-table-card admin-crm-email-test-card">
+        <div class="admin-crm-table-header">
+          <h3 class="admin-crm-table-title">Test SMTP (From / Reply-To / Return-Path)</h3>
+        </div>
+        <div class="admin-crm-email-test-body">
+          {% if email_test_state == "ok" %}
+            <div class="admin-crm-notice success">Email de test envoye a {{ email_test_to }}.</div>
+          {% elif email_test_state == "error" %}
+            <div class="admin-crm-notice error">Echec envoi test: {{ email_test_msg or "Erreur inconnue." }}</div>
+          {% endif %}
+
+          <form method="post" action="/admin/dashboard/email-test" class="admin-crm-email-test-form">
+            <label class="admin-crm-email-test-label" for="emailTestTo">Adresse de reception du test</label>
+            <div class="admin-crm-email-test-row">
+              <input
+                id="emailTestTo"
+                type="email"
+                name="to_email"
+                required
+                value="{{ email_test_to or (user.email if user and user.email else '') }}"
+                class="admin-crm-email-test-input"
+                placeholder="vous@domaine.com"
+              >
+              <button class="admin-crm-btn admin-crm-btn-primary" type="submit">Envoyer test SMTP</button>
+            </div>
+            <p class="admin-crm-email-test-help">
+              Le mail de test inclut les valeurs de headers et de routage pour verifier visuellement From, Reply-To et Return-Path.
+            </p>
+          </form>
+        </div>
+      </div>
+
       <!-- Stats Grid -->
       <div class="admin-crm-stats-grid">
         <div class="admin-crm-stat-card">

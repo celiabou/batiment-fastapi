@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Visionneuse pre-devis | Espace client{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell full-bleed">
+  <div class="wrap dashboard-viewer-wrap">
+    <div class="prequote-viewer-head">
+      <a class="btn prequote-back-btn" href="/dashboard/pre-devis">Retour aux pre-devis</a>
+      <div>
+        <h2>{{ doc_title }}</h2>
+        {% if prequote_number %}
+          <p class="section-sub">N° du pre-devis: {{ prequote_number }}</p>
+        {% endif %}
+      </div>
+      <a class="prequote-download" href="{{ doc_url }}" target="_blank" rel="noopener" download>Telecharger</a>
+    </div>
+    <article class="prequote-viewer-frame">
+      <iframe src="{{ doc_url }}" title="Visionneuse pre-devis PDF"></iframe>
+    </article>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% block title %}Administration | Chantiers{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="/static/admin-crm.css">
+
+<div class="admin-crm-layout">
+  <aside class="admin-crm-sidebar" id="adminSidebar">
+    <div class="admin-crm-sidebar-header">
+      <a href="/admin/dashboard" class="admin-crm-logo">
+        <div class="admin-crm-logo-icon">RB</div>
+        <div>
+          <div class="admin-crm-logo-text">Renovation CRM</div>
+          <div class="admin-crm-logo-subtitle">Gestion d'activite</div>
+        </div>
+      </a>
+      <a href="/admin/logout" class="admin-crm-logout-btn" title="Deconnexion">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+        </svg>
+      </a>
+    </div>
+
+    <nav class="admin-crm-nav">
+      <div class="admin-crm-nav-section">
+        <div class="admin-crm-nav-label">Principal</div>
+        <a href="/admin/dashboard" class="admin-crm-nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          Tableau de bord
+        </a>
+        <a href="/admin/dashboard/users" class="admin-crm-nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
+          Clients
+        </a>
+        <a href="/admin/estimations" class="admin-crm-nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+          </svg>
+          Estimations
+        </a>
+        <a href="/admin/contacts" class="admin-crm-nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+          </svg>
+          Contacts
+        </a>
+        <a href="/admin/chantiers" class="admin-crm-nav-item active">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14M5 12h14M5 17h10"></path>
+          </svg>
+          Chantiers
+        </a>
+      </div>
+      <div class="admin-crm-nav-section">
+        <div class="admin-crm-nav-label">Navigation</div>
+        <a href="/" class="admin-crm-nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+          </svg>
+          Retour au site
+        </a>
+      </div>
+    </nav>
+
+    <div class="admin-crm-sidebar-footer">
+      <div class="admin-crm-user-card">
+        <div class="admin-crm-user-avatar">
+          {% if user and user.name %}
+            {{ user.name[:2]|upper }}
+          {% else %}
+            AD
+          {% endif %}
+        </div>
+        <div class="admin-crm-user-info">
+          <div class="admin-crm-user-name">{{ user.name if user and user.name else 'Admin' }}</div>
+          <div class="admin-crm-user-role">Administrateur</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="admin-crm-sidebar-overlay" id="adminOverlay"></div>
+
+  <main class="admin-crm-main">
+    <header class="admin-crm-header">
+      <div class="admin-crm-header-left">
+        <button class="admin-crm-menu-toggle" id="adminMenuToggle" aria-label="Toggle menu">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+        <h1 class="admin-crm-page-title">Suivi chantiers</h1>
+      </div>
+      <div class="admin-crm-header-right">
+        <span style="font-size: 13px; color: var(--crm-text-muted); font-weight: 600;">
+          {{ contracts|length }} chantier{{ 's' if contracts|length > 1 else '' }}
+        </span>
+      </div>
+    </header>
+
+    <div class="admin-crm-content">
+      {% if flash %}
+        <div class="admin-crm-notice {{ flash[0] }}">{{ flash[1] }}</div>
+      {% endif %}
+
+      {% if contracts %}
+        {% for contract in contracts %}
+          <section class="admin-crm-table-card chantier-admin-card">
+            <div class="admin-crm-table-header">
+              <h3 class="admin-crm-table-title">Chantier #{{ contract.id }} - {{ contract.client_name }}</h3>
+              <div class="admin-crm-table-actions">
+                <span style="font-size: 12px; color: var(--crm-text-muted);">{{ contract.client_email }}</span>
+              </div>
+            </div>
+
+            <div class="chantier-admin-meta">
+              <span>Devis: {{ contract.quote_reference }}</span>
+              <span>Signature: {{ contract.signed_label or "—" }}</span>
+              <span>Statut: {{ contract.status_label }}</span>
+            </div>
+
+            {% if contract.steps %}
+              <div class="chantier-admin-table-wrap">
+                <table class="admin-crm-table chantier-admin-summary-table">
+                  <tbody>
+                    <tr><th>Nom du chantier</th><td>{{ contract.project_name }}</td></tr>
+                    <tr><th>Statut global</th><td><span class="chantier-admin-status-chip status-{{ contract.status }}">{{ contract.status_label }}</span></td></tr>
+                    <tr>
+                      <th>Avancement global</th>
+                      <td>
+                        <div class="chantier-admin-progress-lg">
+                          <span style="width: {{ contract.global_progress }}%;"></span>
+                        </div>
+                        <strong class="chantier-admin-progress-label">{{ contract.global_progress }}%</strong>
+                      </td>
+                    </tr>
+                    <tr><th>Etape actuelle</th><td>{{ contract.current_step_label or "A confirmer" }}</td></tr>
+                    <tr><th>Prochaine etape</th><td>{{ contract.next_step_label or "A confirmer" }}</td></tr>
+                    <tr><th>Derniere mise a jour</th><td>{{ contract.last_update_label or "A confirmer" }}</td></tr>
+                  </tbody>
+                </table>
+
+                <table class="admin-crm-table chantier-admin-steps-table">
+                  <thead>
+                    <tr>
+                      <th>Etape</th>
+                      <th>Statut</th>
+                      <th>Date prevue</th>
+                      <th>Date reelle</th>
+                      <th>Commentaire client</th>
+                      <th>Pilotage entreprise</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for step in contract.steps %}
+                      <tr class="chantier-admin-row-{{ step.status }}">
+                        <td><strong>{{ step.label }}</strong></td>
+                        <td>
+                          <select name="status" form="stepForm{{ step.id }}">
+                            <option value="pending" {% if step.status == 'pending' %}selected{% endif %}>Planifie</option>
+                            <option value="in_progress" {% if step.status == 'in_progress' %}selected{% endif %}>En cours</option>
+                            <option value="blocked" {% if step.status == 'blocked' %}selected{% endif %}>Bloque</option>
+                            <option value="delayed" {% if step.status == 'delayed' %}selected{% endif %}>En retard</option>
+                            <option value="validated" {% if step.status == 'validated' %}selected{% endif %}>Termine</option>
+                          </select>
+                          <div class="chantier-admin-step-progress">
+                            <div class="chantier-admin-step-progress-track"><span style="width: {{ step.progress_percent }}%;"></span></div>
+                            <strong>{{ step.progress_percent }}%</strong>
+                          </div>
+                          <input type="number" name="progress_percent" min="0" max="100" value="{{ step.progress_percent }}" form="stepForm{{ step.id }}">
+                        </td>
+                        <td>
+                          <input type="date" name="planned_date" value="{{ step.planned_date_value }}" form="stepForm{{ step.id }}">
+                          {% if step.planned_date_label %}
+                            <small>{{ step.planned_date_label }}</small>
+                          {% endif %}
+                        </td>
+                        <td>
+                          <input type="date" name="actual_date" value="{{ step.actual_date_value }}" form="stepForm{{ step.id }}">
+                          {% if step.actual_date_label %}
+                            <small>{{ step.actual_date_label }}</small>
+                          {% endif %}
+                        </td>
+                        <td>
+                          <textarea name="client_comment" rows="2" form="stepForm{{ step.id }}" placeholder="Commentaire visible client">{{ step.client_comment }}</textarea>
+                          <p class="chantier-admin-current-comment">{{ step.client_comment or "Aucun commentaire client." }}</p>
+                        </td>
+                        <td>
+                          <input type="text" name="next_step" value="{{ step.next_step }}" form="stepForm{{ step.id }}" placeholder="Prochaine action">
+                          <input type="text" name="internal_comment" form="stepForm{{ step.id }}" placeholder="Commentaire interne">
+                          <select name="issue_flag" form="stepForm{{ step.id }}">
+                            <option value="none">Aucun signalement</option>
+                            <option value="blocked">Signaler blocage</option>
+                            <option value="delayed">Signaler retard</option>
+                          </select>
+                          <div class="chantier-admin-actions">
+                            <button class="admin-crm-btn admin-crm-btn-secondary" type="submit" name="action" value="save" form="stepForm{{ step.id }}">Enregistrer</button>
+                            <button class="admin-crm-btn admin-crm-btn-primary" type="submit" name="action" value="validate" form="stepForm{{ step.id }}">Valider etape</button>
+                          </div>
+                          <form id="stepForm{{ step.id }}" method="post" action="/admin/chantiers/step-update">
+                            <input type="hidden" name="step_id" value="{{ step.id }}">
+                          </form>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p class="chantier-admin-empty">Aucune etape configuree.</p>
+            {% endif %}
+
+            {% if contract.events %}
+              <ul class="chantier-admin-events">
+                {% for event in contract.events %}
+                  <li>
+                    <div>
+                      <strong>{{ event.title }}</strong>
+                      {% if event.detail %}<p>{{ event.detail }}</p>{% endif %}
+                    </div>
+                    <span>{{ event.created_label }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </section>
+        {% endfor %}
+      {% else %}
+        <div class="admin-crm-empty-state">
+          <div class="admin-crm-empty-state-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14M5 12h14M5 17h10"></path>
+            </svg>
+          </div>
+          <h4 class="admin-crm-empty-state-title">Aucun chantier</h4>
+          <p class="admin-crm-empty-state-text">Les chantiers signes apparaissent ici.</p>
+        </div>
+      {% endif %}
+    </div>
+  </main>
+</div>
+
+<script>
+  const menuToggle = document.getElementById('adminMenuToggle');
+  const sidebar = document.getElementById('adminSidebar');
+  const overlay = document.getElementById('adminOverlay');
+
+  if (menuToggle && sidebar && overlay) {
+    menuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('active');
+    });
+
+    overlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+    });
+  }
+</script>
+{% endblock %}

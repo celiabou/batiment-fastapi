@@ -12,7 +12,7 @@
 <section class="ai3d-layout is-wide">
   <form id="aiQuoteForm" class="form ai3d-form" enctype="multipart/form-data">
     <h3>Estimation du projet</h3>
-    <p class="section-sub">Decrivez votre besoin pour obtenir un pre-devis indicatif de la main-d'oeuvre.</p>
+    <p class="section-sub">Calcul 100% base sur le catalogue: le montant est calcule uniquement depuis le poste de travaux selectionne.</p>
     <div class="ai3d-form-grid">
       <label>Type de bien
         <select name="project_type" required>
@@ -31,6 +31,7 @@
           <option value="renovation_partielle">Renovation partielle</option>
           <option value="rafraichissement">Rafraichissement</option>
           <option value="restructuration_lourde">Restructuration lourde</option>
+          <option value="par_choix_prestation">Choix par prestation</option>
         </select>
       </label>
 
@@ -55,23 +56,33 @@
         </select>
       </label>
     </div>
+    <p class="section-sub js-estimate-mode-hint">Type de travaux sert au cadrage. Le calcul est effectue uniquement depuis le poste catalogue selectionne.</p>
 
-    <div class="ai3d-form-grid">
+    <div class="ai3d-form-grid ai3d-form-grid-4 js-work-item-block">
       <label>Poste de travaux (grille)
         <select name="work_item_key" class="js-work-item">
           <option value="">Selectionner</option>
           {% include "partials/work_item_options.html" %}
         </select>
       </label>
+
+      <label><span class="js-work-qty-label-text">Quantite du poste selectionne</span>
+        <div class="unit-field">
+          <input name="work_quantity" class="js-work-qty" type="number" min="0" step="0.1" placeholder="Ex: 80">
+          <span class="unit-tag js-work-unit">--</span>
+        </div>
+        <small class="work-qty-help js-work-qty-help">A renseigner uniquement si vous choisissez une prestation precise. Exemple : 12 m2 de cloison, 3 portes, 8 ml de plan de travail. Ce champ ne correspond pas a la surface totale du bien.</small>
+      </label>
     </div>
 
-    <div class="ai3d-form-grid ai3d-form-grid-4">
+    <div class="ai3d-form-grid ai3d-form-grid-4 quote-project-grid">
       <label>Ville
         <input name="city" placeholder="Ex: Maurepas">
       </label>
 
-      <label>Surface (m2)
+      <label class="js-surface-field">Surface a renover (m2) - indicatif
         <input name="surface" placeholder="Ex: 120">
+        <small class="work-qty-help js-surface-help">Champ contextuel (optionnel): non utilise pour le calcul catalogue du pre-devis.</small>
       </label>
 
       <label>Nombre de pieces
@@ -99,20 +110,24 @@
     <label>Photos du bien (appartement / maison / studio)
       <input type="file" id="quotePhotosInput" name="project_photos" accept="image/*" multiple>
       <span class="file-hint">Plusieurs photos acceptees (JPG, PNG, WebP)</span>
+      <span class="file-hint">Ajout facultatif, mais recommande pour affiner votre pre-devis.</span>
       <div id="quotePhotosPreview" class="photo-preview"></div>
     </label>
 
     <label>Videos du bien (prises nettes)
       <input type="file" id="quoteVideosInput" name="project_videos" accept="video/*" multiple>
       <span class="file-hint">Plusieurs videos acceptees</span>
+      <span class="file-hint">Ajout facultatif, mais recommande pour affiner votre pre-devis.</span>
     </label>
 
     <label>DPE du bien (optionnel)
       <input type="file" name="project_dpe" accept=".pdf,image/*">
+      <span class="file-hint">Ajout facultatif, mais recommande pour affiner votre pre-devis.</span>
     </label>
 
     <label>Plans du bien (optionnel)
       <input type="file" name="project_plans" accept=".pdf,image/*" multiple>
+      <span class="file-hint">Ajout facultatif, mais recommande pour affiner votre pre-devis.</span>
     </label>
 
     <div class="ai3d-contact-row">
@@ -131,9 +146,9 @@
     <button id="aiQuoteSubmit" class="btn btn-solid" type="submit">Obtenir mon pre-devis</button>
     {% if not current_user %}
       <div class="form-disclaimer form-disclaimer-long">
-        Pour recevoir le devis final, la creation d'un compte client est obligatoire.
+        Le pre-devis est envoye par email immediatement.
         <a href="/signup?next=/dashboard">Creer mon compte</a> ou
-        <a href="/login?next=/dashboard">me connecter</a>.
+        <a href="/login?next=/dashboard">me connecter</a> est optionnel pour suivre les documents dans l'espace client.
       </div>
     {% else %}
       <div class="form-disclaimer form-disclaimer-long">
@@ -155,21 +170,22 @@
       <h3 id="smartQuoteRange">En attente d'estimation</h3>
       <p class="ai3d-disclaimer">Main-d'oeuvre uniquement</p>
       <p class="ai3d-disclaimer">Hors materiaux et fournitures</p>
-      <p id="smartQuoteMeta" class="section-sub">Remplissez le formulaire pour obtenir une estimation.</p>
+      <p id="smartQuoteMeta" class="section-sub">Devis cible calcule depuis le poste de travaux catalogue selectionne.</p>
       <p class="ai3d-disclaimer">Cette estimation est donnee a titre indicatif. Un devis detaille necessite une etude personnalisee.</p>
       <p id="smartQuoteBudget" class="ai3d-budget-hint">Budget non analyse.</p>
-      <p id="smartQuoteAccount" class="ai3d-budget-hint">Connectez-vous pour recevoir le devis final.</p>
+      <p id="smartQuoteAccount" class="ai3d-budget-hint">Le pre-devis est envoye par email. L'espace client est optionnel.</p>
       <div id="smartQuoteBreakdown" class="ai3d-breakdown"></div>
       <ul id="smartQuoteAssumptions" class="ai3d-assumptions"></ul>
-      <p id="aiQuoteDeliveryStatus" class="ai3d-budget-hint">Aucun email envoye pour l'instant.</p>
+      <p id="aiQuoteDeliveryStatus" class="ai3d-budget-hint">Aucun pre-devis envoye pour l'instant.</p>
+      <a id="aiQuotePdfLink" class="btn btn-solid ai3d-cta" href="#" hidden>Telecharger mon pre-devis PDF</a>
       {% if current_user %}
-        <a class="btn btn-solid ai3d-cta" href="/dashboard">Acceder a mon devis final</a>
+        <a class="btn btn-solid ai3d-cta" href="/dashboard">Acceder a mon espace client</a>
       {% else %}
-        <a class="btn btn-solid ai3d-cta" href="/signup?next=/dashboard">Creer mon compte pour le devis final</a>
+        <a class="btn btn-solid ai3d-cta" href="/signup?next=/dashboard">Creer mon espace client (optionnel)</a>
       {% endif %}
     </article>
   </div>
 </section>
 
-<script src="{{ url_for('static', path='architecture_ai.js') }}?v=20260402-1"></script>
+<script src="{{ url_for('static', path='architecture_ai.js') }}?v=20260417-item-only"></script>
 {% endblock %}

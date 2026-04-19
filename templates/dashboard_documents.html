@@ -9,6 +9,12 @@
     </div>
     <h2 class="doc-page-title">Documents projet</h2>
     <p class="doc-page-desc">Categories en colonne. Bouton Ajouter sur chaque bloc avec upload multiple sans limite.</p>
+    <nav class="docs-mini-nav" aria-label="Navigation espace client">
+      <a href="/dashboard">Accueil</a>
+      <a href="/dashboard/chantier">Chantier</a>
+      <a class="is-active" href="/dashboard/documents">Documents</a>
+      <a href="/dashboard/pre-devis">Pre-devis</a>
+    </nav>
     {% if request.query_params.get("success") == "uploaded" %}
       <div class="form-success">Documents ajoutes avec succes.</div>
     {% elif request.query_params.get("success") == "deleted" %}

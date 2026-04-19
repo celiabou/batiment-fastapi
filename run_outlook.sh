@@ -19,15 +19,17 @@ fi
 
 export SMTP_HOST="${SMTP_HOST:-smtp.office365.com}"
 export SMTP_PORT="${SMTP_PORT:-587}"
+export SMTP_SSL="${SMTP_SSL:-false}"
 export SMTP_STARTTLS="${SMTP_STARTTLS:-true}"
-export SMTP_USER="${SMTP_USER:-celia.b@keythinkers.fr}"
-export SMTP_FROM_EMAIL="${SMTP_FROM_EMAIL:-celia.b@keythinkers.fr}"
-export SMTP_FROM_NAME="${SMTP_FROM_NAME:-Renovation Batiment IA}"
-export INTERNAL_REPORT_EMAIL="${INTERNAL_REPORT_EMAIL:-celia.b@keythinkers.fr}"
+export SMTP_USER="${SMTP_USER:-devis@eurobatservices.com}"
+export SMTP_FROM_EMAIL="${SMTP_FROM_EMAIL:-devis@eurobatservices.com}"
+export SMTP_FROM_NAME="${SMTP_FROM_NAME:-EUROBAT SERVICES}"
+export SMTP_REPLY_TO="${SMTP_REPLY_TO:-devis@eurobatservices.com}"
+export INTERNAL_REPORT_EMAIL="${INTERNAL_REPORT_EMAIL:-devis@eurobatservices.com}"
 export PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-http://127.0.0.1:8081}"
 
 if [ -z "${SMTP_PASSWORD:-}" ]; then
-  read -r -s -p "Mot de passe SMTP Outlook (celia.b@keythinkers.fr): " SMTP_PASSWORD
+  read -r -s -p "Mot de passe SMTP Outlook (devis@eurobatservices.com): " SMTP_PASSWORD
   echo
   export SMTP_PASSWORD
 fi

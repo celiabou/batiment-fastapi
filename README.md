@@ -44,8 +44,10 @@ L'endpoint `/api/architecture-3d` est en mode strict:
 
 Variables necessaires:
 - `OPENAI_API_KEY` (generation rendu 3D)
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SSL`, `SMTP_STARTTLS`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`
+- `SMTP_FROM_NAME`, `SMTP_REPLY_TO`
 - `INTERNAL_REPORT_EMAIL` (copie interne)
+- `EMAIL_REMINDER_J1_ENABLED` (optionnel, default `true` pour relance J+1)
 
 ## Tracking conversion leads
 - Cookie visiteur first-party: `rb_vid` (180 jours)
@@ -61,7 +63,7 @@ Variables necessaires:
 - `seo.py`: configuration site, JSON-LD, sitemap
 - `pricing.py`: estimation deterministe (fallback)
 - `db.py`: stockage des leads SQLite (`leads.sqlite`)
-- `run_outlook.sh`: demarrage avec defaults Outlook sur `celia.b@keythinkers.fr`
+- `run_outlook.sh`: demarrage avec defaults Outlook sur `devis@eurobatservices.com`
 
 ## A personnaliser
 - `seo.py`: remplacer `SITE["url"]`, `SITE["phone"]`, `SITE["email"]`

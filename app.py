@@ -1,8 +1,10 @@
 # noinspection SpellCheckingInspection
+import asyncio
 import base64
 import binascii
 import hashlib
 import hmac
+import io
 import json
 import mimetypes
 import os
@@ -11,31 +13,54 @@ import secrets
 import smtplib
 import unicodedata
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime, timedelta
 from email.message import EmailMessage
 from email.utils import formataddr
 from pathlib import Path
 from urllib import error as urllib_error
 from urllib import request as urlrequest
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from fastapi import Body, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+try:
+    from reportlab.lib import colors as rl_colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.utils import simpleSplit
+    from reportlab.pdfgen import canvas as rl_canvas
+except Exception:  # pragma: no cover - optional runtime dependency
+    rl_canvas = None
+    A4 = (595.27, 841.89)
+    simpleSplit = None
+    rl_colors = None
 
 from database import SessionLocal, engine
 from db import init_db, insert_lead
 from intelligence.router import router as intelligence_router
-from models import Base, ClientProject, HandoffRequest, Lead, PasswordResetToken, ProjectDocument, UserAccount, UserSession
+from models import (
+    Base,
+    ChantierContract,
+    ChantierEvent,
+    ChantierLot,
+    ChantierMilestone,
+    ClientProject,
+    HandoffRequest,
+    Lead,
+    PasswordResetToken,
+    ProjectDocument,
+    UserAccount,
+    UserSession,
+)
 from pricing import (
     CATALOG_ESTIMATE_ERROR,
+    COMPAT_CODE_ALIASES,
     ESTIMATE_WORK_ITEM_GROUPS,
+    SCOPE_TO_CODE,
     TARIFF_BY_KEY,
     estimate_catalog_lines,
-    estimate_from_item_key,
-    estimate_from_scope,
     estimate_from_text,
     get_tariff_item,
     has_required_quantity,
@@ -80,11 +105,15 @@ CONTENT_DIR = BASE_DIR / "content"
 ARCHITECTURE_UPLOAD_DIR = STATIC_DIR / "architecture" / "uploads"
 ARCHITECTURE_RENDER_DIR = STATIC_DIR / "architecture" / "renders"
 ESTIMATE_UPLOAD_DIR = STATIC_DIR / "estimate" / "uploads"
+PREQUOTE_PDF_DIR = STATIC_DIR / "estimate" / "predevis"
 CLIENT_DOCS_DIR = STATIC_DIR / "client-docs"
 AGENDA_URL = os.getenv("AGENDA_URL", "").strip()
-INTERNAL_REPORT_EMAIL = os.getenv("INTERNAL_REPORT_EMAIL", "celia.b@keythinkers.fr").strip()
+DEFAULT_SMTP_FROM_NAME = "EUROBAT SERVICES"
+DEFAULT_SMTP_FROM_EMAIL = "devis@eurobatservices.com"
+INTERNAL_REPORT_EMAIL = os.getenv("INTERNAL_REPORT_EMAIL", DEFAULT_SMTP_FROM_EMAIL).strip()
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
 LABOR_ONLY_MENTION = "Main-d'œuvre uniquement, hors matériaux et fournitures."
+PREQUOTE_DOC_LABEL_PREFIX = "predevis:estimateur"
 VISITOR_COOKIE_NAME = "rb_vid"
 VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 180
 SESSION_COOKIE_NAME = "rb_session"
@@ -296,7 +325,7 @@ ARCHITECTURE_DEMO_RENDERS = {
 def _catalog_range(code: str, fallback_low: int, fallback_high: int) -> dict[str, int]:
     item = TARIFF_BY_KEY.get(code)
     if not item:
-        return {"low_m2": fallback_low, "high_m2": fallback_high}
+        raise RuntimeError(f"Catalogue item missing for scope mapping: {code}")
     return {"low_m2": int(item["min"]), "high_m2": int(item["max"])}
 
 
@@ -306,13 +335,37 @@ SMART_SCOPE_CONFIG = {
     "renovation_complete": {**_catalog_range("renovation_complete", 1200, 2500), "duration": (8, 18)},
     "restructuration_lourde": {**_catalog_range("renovation_lourde", 1200, 2500), "duration": (12, 28)},
 }
+WORK_ITEM_ONLY_SCOPE = "par_choix_prestation"
 
 SMART_SCOPE_LABELS = {
+    WORK_ITEM_ONLY_SCOPE: "Choix par prestation",
     "rafraichissement": "Rafraichissement",
     "renovation_partielle": "Renovation partielle",
     "renovation_complete": "Renovation complete",
     "restructuration_lourde": "Restructuration lourde",
 }
+
+
+def _normalize_scope_key(scope: str, *, default_if_empty: str = "renovation_complete") -> str:
+    scope_key = (scope or "").strip().lower()
+    if not scope_key:
+        return default_if_empty
+    alias_map = {
+        "choix par prestation": WORK_ITEM_ONLY_SCOPE,
+        "par choix prestation": WORK_ITEM_ONLY_SCOPE,
+        "prestation unique": WORK_ITEM_ONLY_SCOPE,
+        "renovation complete": "renovation_complete",
+        "renovation partielle": "renovation_partielle",
+        "rafraichissement": "rafraichissement",
+        "restructuration lourde": "restructuration_lourde",
+    }
+    if scope_key in alias_map:
+        return alias_map[scope_key]
+    if scope_key == WORK_ITEM_ONLY_SCOPE:
+        return WORK_ITEM_ONLY_SCOPE
+    if scope_key in SMART_SCOPE_CONFIG:
+        return scope_key
+    return ""
 
 PROJECT_TYPE_LABELS = {
     "facade": "Facade",
@@ -1236,6 +1289,661 @@ def _resolve_document_path(stored_name: str) -> Path | None:
     return None
 
 
+def _pdf_ascii_text(value: object, limit: int = 900) -> str:
+    raw = _clean_text(value, limit=limit)
+    if not raw:
+        return ""
+    normalized = (
+        unicodedata.normalize("NFKC", raw)
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+        .replace("’", "'")
+        .replace("“", '"')
+        .replace("”", '"')
+        .replace("•", "-")
+        .replace("–", "-")
+        .replace("—", "-")
+    )
+    normalized = re.sub(r"[ \t]+", " ", normalized)
+    normalized = re.sub(r"\n{3,}", "\n\n", normalized)
+    normalized = re.sub(r"\bEUR\b", "€", normalized, flags=re.IGNORECASE)
+    return normalized.strip()
+
+
+def _wrap_pdf_line(text: str, max_len: int = 92) -> list[str]:
+    normalized = _pdf_ascii_text(text, limit=2000)
+    if not normalized:
+        return [""]
+
+    lines: list[str] = []
+    for source_line in normalized.splitlines():
+        stripped = source_line.strip()
+        if not stripped:
+            lines.append("")
+            continue
+
+        words = stripped.split(" ")
+        current = ""
+        for word in words:
+            if not current:
+                current = word
+                continue
+            candidate = f"{current} {word}"
+            if len(candidate) <= max_len:
+                current = candidate
+            else:
+                lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+
+    return lines or [""]
+
+
+def _pdf_escape(text: str) -> str:
+    return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def _format_pdf_currency(value: object) -> str:
+    parsed = _parse_number(value)
+    if parsed is None:
+        return _pdf_ascii_text(value, limit=120) or "A confirmer"
+    amount = int(round(parsed))
+    return f"{amount:,}".replace(",", " ") + " €"
+
+
+def _format_pdf_surface(value: object) -> str:
+    parsed = _parse_number(value)
+    if parsed is None or parsed <= 0:
+        text = _pdf_ascii_text(value, limit=80)
+        return text or "A confirmer"
+    if float(parsed).is_integer():
+        label = str(int(parsed))
+    else:
+        label = f"{parsed:.2f}".rstrip("0").rstrip(".").replace(".", ",")
+    return f"{label} m2"
+
+
+def _timeline_label(timeline: str) -> str:
+    timeline_map = {
+        "urgent": "Urgent",
+        "3_mois": "Sous 3 mois",
+        "6_mois": "Sous 6 mois",
+        "flexible": "Flexible",
+    }
+    return timeline_map.get((timeline or "").strip(), _pdf_ascii_text(timeline, limit=60) or "A confirmer")
+
+
+def _to_eur_symbol(label: object) -> str:
+    text = _pdf_ascii_text(label, limit=140)
+    if not text:
+        return "A confirmer"
+    return re.sub(r"\bEUR\b", "€", text, flags=re.IGNORECASE)
+
+
+def _generate_prequote_number() -> str:
+    year = _utc_now().strftime("%Y")
+    serial = f"{secrets.randbelow(10_000):04d}"
+    return f"PD-{year}-{serial}"
+
+
+def _build_simple_text_pdf(page_lines: list[list[str]]) -> bytes:
+    pages = page_lines if page_lines else [["Pre-devis"]]
+    object_map: dict[int, bytes] = {
+        1: b"<< /Type /Catalog /Pages 2 0 R >>",
+        3: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    }
+    page_refs: list[int] = []
+
+    for index, lines in enumerate(pages):
+        page_obj_id = 4 + index * 2
+        content_obj_id = page_obj_id + 1
+        page_refs.append(page_obj_id)
+
+        commands = ["BT", "/F1 11 Tf", "50 800 Td", "14 TL"]
+        for raw_line in lines:
+            safe_line = _pdf_escape(_pdf_ascii_text(raw_line, limit=500))
+            commands.append(f"({safe_line}) Tj")
+            commands.append("T*")
+        commands.append("ET")
+        content = "\n".join(commands).encode("cp1252", "replace")
+
+        object_map[page_obj_id] = (
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
+            f"/Resources << /Font << /F1 3 0 R >> >> /Contents {content_obj_id} 0 R >>"
+        ).encode("ascii")
+        object_map[content_obj_id] = (
+            f"<< /Length {len(content)} >>\nstream\n".encode("ascii")
+            + content
+            + b"\nendstream"
+        )
+
+    kids = " ".join(f"{obj_id} 0 R" for obj_id in page_refs) or "4 0 R"
+    object_map[2] = f"<< /Type /Pages /Kids [{kids}] /Count {len(page_refs) or 1} >>".encode("ascii")
+    if not page_refs:
+        object_map[4] = b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>"
+        object_map[5] = b"<< /Length 43 >>\nstream\nBT\n/F1 11 Tf\n50 800 Td\n(Pre-devis) Tj\nET\nendstream"
+
+    max_obj_id = max(object_map.keys())
+    buffer = b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"
+    offsets = [0] * (max_obj_id + 1)
+
+    for obj_id in range(1, max_obj_id + 1):
+        payload = object_map.get(obj_id, b"<<>>")
+        offsets[obj_id] = len(buffer)
+        buffer += f"{obj_id} 0 obj\n".encode("ascii")
+        buffer += payload
+        buffer += b"\nendobj\n"
+
+    xref_offset = len(buffer)
+    buffer += f"xref\n0 {max_obj_id + 1}\n".encode("ascii")
+    buffer += b"0000000000 65535 f \n"
+    for obj_id in range(1, max_obj_id + 1):
+        buffer += f"{offsets[obj_id]:010d} 00000 n \n".encode("ascii")
+    buffer += (
+        f"trailer\n<< /Size {max_obj_id + 1} /Root 1 0 R >>\n"
+        f"startxref\n{xref_offset}\n%%EOF\n"
+    ).encode("ascii")
+    return buffer
+
+
+def _build_prequote_pdf_reportlab(
+    *,
+    prequote_number: str,
+    now_label: str,
+    summary_lines: list[str],
+    context_lines: list[str],
+    detail_lines: list[str],
+    assumptions_lines: list[str],
+    notes_lines: list[str],
+    final_lines: list[str],
+) -> bytes | None:
+    if rl_canvas is None or rl_colors is None or simpleSplit is None:
+        return None
+
+    page_width, page_height = A4
+    margin_x = 34
+    margin_top = 28
+    margin_bottom = 36
+    content_width = page_width - (2 * margin_x)
+    buffer = io.BytesIO()
+    c = rl_canvas.Canvas(buffer, pagesize=A4)
+
+    col_bg = rl_colors.HexColor("#F4F6FA")
+    col_primary = rl_colors.HexColor("#1F365C")
+    col_title = rl_colors.HexColor("#16263F")
+    col_text = rl_colors.HexColor("#2C3A4D")
+    col_muted = rl_colors.HexColor("#5A6A80")
+
+    def _wrap_line(text: str, font_name: str = "Helvetica", font_size: float = 9.2, max_width: float = 460) -> list[str]:
+        clean = _pdf_ascii_text(text, limit=3000)
+        if not clean:
+            return [""]
+        lines = [line for line in simpleSplit(clean, font_name, font_size, max_width) if line]
+        return lines or [clean]
+
+    def _draw_page_background() -> None:
+        c.setFillColor(col_bg)
+        c.rect(0, 0, page_width, page_height, stroke=0, fill=1)
+
+    def _draw_header() -> float:
+        top_y = page_height - margin_top
+        header_h = 102
+        c.setFillColor(col_primary)
+        c.roundRect(margin_x, top_y - header_h, content_width, header_h, 14, stroke=0, fill=1)
+
+        text_left = margin_x + 18
+        logo_path = STATIC_DIR / "branding" / "eurobat-services.png"
+        if logo_path.exists():
+            try:
+                c.drawImage(
+                    str(logo_path),
+                    margin_x + 14,
+                    top_y - header_h + 19,
+                    width=66,
+                    height=66,
+                    preserveAspectRatio=True,
+                    mask="auto",
+                )
+                text_left = margin_x + 88
+            except Exception:
+                text_left = margin_x + 18
+
+        c.setFillColor(rl_colors.white)
+        c.setFont("Helvetica-Bold", 15)
+        c.drawString(text_left, top_y - 31, "EUROBAT SERVICES")
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(text_left, top_y - 50, "Pre-devis estimateur")
+        c.setFont("Helvetica", 9.5)
+        c.drawRightString(margin_x + content_width - 14, top_y - 31, f"N° pre-devis : {prequote_number}")
+        c.drawRightString(margin_x + content_width - 14, top_y - 47, f"Date generation : {now_label}")
+        c.setStrokeColor(rl_colors.Color(1, 1, 1, alpha=0.32))
+        c.setLineWidth(0.8)
+        c.line(text_left, top_y - 59, margin_x + content_width - 14, top_y - 59)
+        return top_y - header_h - 11
+
+    _draw_page_background()
+    cursor_y = _draw_header()
+
+    sections: list[tuple[str, list[str]]] = [
+        ("Resume financier", summary_lines),
+        ("Contexte du projet", context_lines),
+        ("Detail des postes", detail_lines),
+        ("Hypotheses de calcul", assumptions_lines),
+        ("Notes client", notes_lines),
+        ("Mention finale", final_lines),
+    ]
+    line_height = 10.8
+    rows: list[tuple[str, str]] = []
+
+    for title, lines in sections:
+        rows.append(("title", title))
+        source_lines = lines or ["Aucune donnee."]
+        for line in source_lines:
+            wrapped = _wrap_line(f"- {line}", font_size=9.1, max_width=content_width - 2)
+            for wrapped_line in wrapped:
+                rows.append(("line", wrapped_line))
+        rows.append(("space", ""))
+
+    if rows and rows[-1][0] == "space":
+        rows.pop()
+
+    available_height = max(80.0, cursor_y - margin_bottom)
+    max_rows = max(12, int(available_height // line_height))
+    if len(rows) > max_rows:
+        rows = rows[: max_rows - 2]
+        rows.append(("line", "..."))
+        rows.append(
+            (
+                "line",
+                "Le devis final est valide avec le chef de projet renovation apres appel ou visite technique.",
+            )
+        )
+
+    for kind, text in rows:
+        if cursor_y <= margin_bottom:
+            break
+        if kind == "space":
+            cursor_y -= line_height * 0.45
+            continue
+        if kind == "title":
+            c.setFillColor(col_title)
+            c.setFont("Helvetica-Bold", 10.1)
+        else:
+            c.setFillColor(col_text if "devis final est valide" not in text else col_muted)
+            c.setFont("Helvetica", 9.1)
+        c.drawString(margin_x, cursor_y, _pdf_ascii_text(text, limit=500))
+        cursor_y -= line_height
+
+    c.setFillColor(col_muted)
+    c.setFont("Helvetica-Oblique", 8.2)
+    c.drawRightString(page_width - margin_x, margin_bottom - 8, "Document indicatif - version 1 page")
+
+    c.save()
+    return buffer.getvalue()
+
+
+def _build_prequote_pdf(
+    *,
+    prequote_number: str,
+    quote: dict,
+    project_type: str,
+    scope: str,
+    style: str,
+    timeline: str,
+    city: str,
+    surface: str,
+    rooms: str,
+    budget: str,
+    work_item_key: str,
+    work_quantity: str,
+    work_unit: str,
+    notes: str,
+) -> bytes:
+    now_label = _utc_now().strftime("%d/%m/%Y %H:%M")
+    project_label = PROJECT_TYPE_LABELS.get(project_type, project_type or "A confirmer")
+    scope_label = SMART_SCOPE_LABELS.get(scope, scope or "A confirmer")
+    budget_fit = _pdf_ascii_text((quote or {}).get("budget_fit", {}).get("message", ""), limit=200)
+    summary_lines: list[str] = [
+        f"Fourchette de prix (main-d'oeuvre) : {_to_eur_symbol(quote.get('low_label'))} - {_to_eur_symbol(quote.get('high_label'))}",
+        f"Mention : {LABOR_ONLY_MENTION}",
+        f"Base de calcul : {_pdf_ascii_text(quote.get('pricing_context') or 'Catalogue Eurobat', limit=220)}",
+        f"Analyse budget : {budget_fit or 'A confirmer'}",
+    ]
+    context_lines: list[str] = [
+        f"Type de bien : {_pdf_ascii_text(project_label, limit=120)}",
+        f"Type de travaux : {_pdf_ascii_text(scope_label, limit=120)}",
+        f"Ville : {_pdf_ascii_text(city, limit=120) or 'A confirmer'}",
+        f"Surface : {_format_pdf_surface(surface)}",
+        f"Pieces : {_pdf_ascii_text(rooms, limit=60) or 'A confirmer'}",
+        f"Style : {_pdf_ascii_text(style, limit=80) or 'A confirmer'}",
+        f"Echeance : {_timeline_label(timeline)}",
+        f"Budget client : {_format_pdf_currency(budget)}",
+    ]
+    if work_item_key:
+        work_item = TARIFF_BY_KEY.get(COMPAT_CODE_ALIASES.get(work_item_key, work_item_key), {})
+        context_lines.append(f"Poste catalogue : {_pdf_ascii_text(work_item.get('label') or work_item_key, limit=120)}")
+        quantity_text = _pdf_ascii_text(work_quantity, limit=40) or "A confirmer"
+        unit_text = _pdf_ascii_text(work_unit, limit=20)
+        context_lines.append(f"Quantite declaree : {quantity_text}{(' ' + unit_text) if unit_text else ''}")
+
+    detail_lines: list[str] = []
+    for item in (quote or {}).get("breakdown", []):
+        label = _pdf_ascii_text(item.get("label") or "Poste", limit=140)
+        detail = _pdf_ascii_text(item.get("detail") or "")
+        price = f"{_to_eur_symbol(item.get('low_label'))} - {_to_eur_symbol(item.get('high_label'))}"
+        if detail:
+            detail_lines.append(f"{label}: {price} ({detail})")
+        else:
+            detail_lines.append(f"{label}: {price}")
+    if not detail_lines:
+        detail_lines.append("Aucun poste detaille disponible.")
+
+    assumptions = [str(x) for x in (quote or {}).get("assumptions", []) if str(x).strip()]
+    assumptions_lines: list[str] = []
+    if assumptions:
+        for assumption in assumptions:
+            assumptions_lines.append(_pdf_ascii_text(assumption, limit=600))
+    else:
+        assumptions_lines.append("Aucune hypothese detaillee fournie.")
+
+    notes_text = _pdf_ascii_text(notes, limit=2500)
+    notes_lines: list[str] = []
+    if notes_text:
+        notes_lines.extend(_wrap_pdf_line(notes_text, max_len=92))
+    else:
+        notes_lines.append("Aucune note client.")
+
+    final_lines = [
+        "Ce pré-devis est généré automatiquement depuis l'estimateur.",
+        "Le devis final est a valider avec le chef de projet renovation apres rendez-vous (appel ou visite technique).",
+    ]
+
+    rich_pdf = _build_prequote_pdf_reportlab(
+        prequote_number=prequote_number,
+        now_label=now_label,
+        summary_lines=summary_lines,
+        context_lines=context_lines,
+        detail_lines=detail_lines,
+        assumptions_lines=assumptions_lines,
+        notes_lines=notes_lines,
+        final_lines=final_lines,
+    )
+    if rich_pdf:
+        return rich_pdf
+
+    # Fallback texte si la librairie PDF premium n'est pas disponible.
+    lines: list[str] = [
+        "EUROBAT SERVICES",
+        "PRE-DEVIS ESTIMATEUR",
+        f"N° du pré-devis : {prequote_number}",
+        f"Date de génération : {now_label}",
+        "",
+        "Résumé financier",
+        *[f"- {line}" for line in summary_lines],
+        "",
+        "Contexte du projet",
+        *[f"- {line}" for line in context_lines],
+        "",
+        "Détail des postes",
+        *[f"- {line}" for line in detail_lines],
+        "",
+        "Hypothèses de calcul",
+        *[f"- {line}" for line in assumptions_lines],
+        "",
+        "Notes client",
+        *notes_lines,
+        "",
+        "Mention finale / document indicatif",
+        *final_lines,
+    ]
+
+    wrapped: list[str] = []
+    for line in lines:
+        wrapped.extend(_wrap_pdf_line(line, max_len=92))
+
+    max_lines = 58
+    if len(wrapped) > max_lines:
+        wrapped = wrapped[: max_lines - 2] + [
+            "...",
+            "Le devis final est valide avec le chef de projet renovation apres appel ou visite technique.",
+        ]
+    return _build_simple_text_pdf([wrapped])
+
+
+def _create_prequote_document_ref(
+    *,
+    quote: dict,
+    project_type: str,
+    scope: str,
+    style: str,
+    timeline: str,
+    city: str,
+    surface: str,
+    rooms: str,
+    budget: str,
+    work_item_key: str,
+    work_quantity: str,
+    work_unit: str,
+    notes: str,
+) -> dict[str, str]:
+    PREQUOTE_PDF_DIR.mkdir(parents=True, exist_ok=True)
+    prequote_number = _generate_prequote_number()
+    pdf_bytes = _build_prequote_pdf(
+        prequote_number=prequote_number,
+        quote=quote,
+        project_type=project_type,
+        scope=scope,
+        style=style,
+        timeline=timeline,
+        city=city,
+        surface=surface,
+        rooms=rooms,
+        budget=budget,
+        work_item_key=work_item_key,
+        work_quantity=work_quantity,
+        work_unit=work_unit,
+        notes=notes,
+    )
+    token = uuid.uuid4().hex[:10]
+    filename = f"predevis_{_utc_file_stamp()}_{token}.pdf"
+    dst = PREQUOTE_PDF_DIR / filename
+    dst.write_bytes(pdf_bytes)
+    stored_name = Path("estimate") / "predevis" / filename
+    generated_name = f"pre-devis-{prequote_number}.pdf"
+    return {
+        "label": f"{PREQUOTE_DOC_LABEL_PREFIX}:{prequote_number}|Pre-devis estimateur",
+        "original_name": generated_name,
+        "stored_name": stored_name.as_posix(),
+        "mime_type": "application/pdf",
+        "public_url": _public_static_url(dst),
+    }
+
+
+def _fold_lookup(value: object) -> str:
+    raw = str(value or "").strip().lower()
+    if not raw:
+        return ""
+    normalized = unicodedata.normalize("NFKD", raw)
+    stripped = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    stripped = stripped.replace("_", " ")
+    return re.sub(r"\s+", " ", stripped).strip()
+
+
+def _lookup_key_from_value(
+    raw_value: object,
+    *,
+    labels: dict[str, str],
+    default: str,
+) -> str:
+    candidate = str(raw_value or "").strip()
+    if candidate in labels:
+        return candidate
+
+    folded_candidate = _fold_lookup(candidate)
+    if not folded_candidate:
+        return default
+
+    for key, label in labels.items():
+        if folded_candidate == _fold_lookup(key):
+            return key
+        if folded_candidate == _fold_lookup(label):
+            return key
+
+    return default
+
+
+def _extract_prequote_number(value: object) -> str:
+    text = str(value or "")
+    match = re.search(r"\b(PD-\d{4}-\d{4,6})\b", text, flags=re.IGNORECASE)
+    return match.group(1).upper() if match else ""
+
+
+def _is_prequote_document(doc: ProjectDocument | None) -> bool:
+    if not doc:
+        return False
+    label = (doc.label or "").strip().lower()
+    original = (doc.original_name or "").strip().lower()
+    stored = (doc.stored_name or "").strip().lower()
+    return (
+        label.startswith(PREQUOTE_DOC_LABEL_PREFIX)
+        or "predevis" in label
+        or "pre-devis" in original
+        or "predevis" in original
+        or "predevis" in stored
+    )
+
+
+def _is_legacy_prequote_document(doc: ProjectDocument | None) -> bool:
+    if not _is_prequote_document(doc):
+        return False
+    return not any(
+        (
+            _extract_prequote_number(doc.label if doc else ""),
+            _extract_prequote_number(doc.original_name if doc else ""),
+            _extract_prequote_number(doc.stored_name if doc else ""),
+        )
+    )
+
+
+def _extract_estimate_range_values(raw_range: object) -> tuple[int | None, int | None]:
+    text = _pdf_ascii_text(raw_range, limit=180)
+    if not text:
+        return None, None
+    numbers = re.findall(r"\d[\d\s]{0,12}", text)
+    values: list[int] = []
+    for number in numbers:
+        parsed = _parse_number(number)
+        if parsed is not None and parsed > 0:
+            values.append(int(round(parsed)))
+    if len(values) >= 2:
+        low, high = sorted(values[:2])
+        return low, high
+    return None, None
+
+
+def _upgrade_legacy_prequote_document(db, doc: ProjectDocument) -> bool:
+    if not _is_legacy_prequote_document(doc):
+        return False
+
+    project = (
+        db.query(ClientProject)
+        .filter(ClientProject.id == doc.project_id, ClientProject.client_id == doc.client_id)
+        .first()
+    )
+    if not project:
+        return False
+
+    recap = _parse_project_summary(project.summary) or {}
+    project_key = _lookup_key_from_value(
+        recap.get("project_type"),
+        labels=PROJECT_TYPE_LABELS,
+        default="maison",
+    )
+    scope_key = _lookup_key_from_value(
+        recap.get("scope"),
+        labels=SMART_SCOPE_LABELS,
+        default="renovation_complete",
+    )
+    style_key = str(recap.get("style") or "").strip().lower()
+    if style_key not in STYLE_MULTIPLIER:
+        style_key = "moderne"
+    timeline_key = str(recap.get("timeline") or "").strip()
+    if timeline_key not in TIMELINE_COST_MULTIPLIER:
+        timeline_key = "6_mois"
+
+    surface = str(recap.get("surface") or "")
+    rooms = str(recap.get("rooms") or "")
+    budget = str(recap.get("budget") or "")
+    city = str(recap.get("city") or "")
+    work_item_key = str(recap.get("work_item_key") or "")
+    work_quantity = str(recap.get("work_quantity") or "")
+    work_unit = str(recap.get("work_unit") or "")
+    notes = str(recap.get("notes") or "")
+
+    quote = _build_smart_quote(
+        project_type=project_key,
+        style=style_key,
+        scope=scope_key,
+        timeline=timeline_key,
+        surface=surface,
+        rooms=rooms,
+        budget=budget,
+        city=city,
+        notes=notes,
+        finishing_level=str(recap.get("finishing_level") or ""),
+        work_item_key=work_item_key,
+        work_quantity=work_quantity,
+        work_unit=work_unit,
+        require_work_item=True,
+    )
+    if quote.get("error"):
+        low, high = _extract_estimate_range_values(recap.get("estimate_range"))
+        low = low or 0
+        high = high or max(low, 0)
+        quote = {
+            "low_label": _format_eur(low) if low else "A confirmer",
+            "high_label": _format_eur(high) if high else "A confirmer",
+            "pricing_context": "Catalogue Eurobat",
+            "budget_fit": {"status": "unknown", "message": "Budget non analyse."},
+            "breakdown": [],
+            "assumptions": ["Migration automatique depuis un pre-devis legacy."],
+        }
+
+    new_doc = _create_prequote_document_ref(
+        quote=quote,
+        project_type=project_key,
+        scope=scope_key,
+        style=style_key,
+        timeline=timeline_key,
+        city=city,
+        surface=surface,
+        rooms=rooms,
+        budget=budget,
+        work_item_key=work_item_key,
+        work_quantity=work_quantity,
+        work_unit=work_unit,
+        notes=notes,
+    )
+
+    old_path = _resolve_document_path(doc.stored_name)
+    doc.label = new_doc["label"]
+    doc.original_name = new_doc["original_name"]
+    doc.stored_name = new_doc["stored_name"]
+    doc.mime_type = new_doc.get("mime_type")
+    project.updated_at = _utc_now()
+    db.commit()
+    db.refresh(doc)
+
+    if old_path and old_path.exists():
+        try:
+            old_path.unlink()
+        except OSError:
+            pass
+
+    return True
+
+
 def _compose_architecture_prompt(
     project_type: str,
     style: str,
@@ -1637,6 +2345,16 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on", "oui"}
 
 
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw.strip())
+    except (TypeError, ValueError):
+        return default
+
+
 def _is_placeholder_secret(value: str) -> bool:
     t = (value or "").strip()
     if not t:
@@ -1837,7 +2555,6 @@ def _inject_lead_summary(conversation: object, payload: dict) -> object:
 
 
 def _smtp_settings() -> dict:
-    default_from_email = (INTERNAL_REPORT_EMAIL or "celia.b@keythinkers.fr").strip()
     host = os.getenv("SMTP_HOST", "smtp.office365.com").strip()
     port_raw = os.getenv("SMTP_PORT", "587").strip()
     try:
@@ -1845,16 +2562,19 @@ def _smtp_settings() -> dict:
     except ValueError:
         port = 587
 
-    from_email = os.getenv("SMTP_FROM_EMAIL", default_from_email).strip()
+    from_email = os.getenv("SMTP_FROM_EMAIL", DEFAULT_SMTP_FROM_EMAIL).strip()
     smtp_user = os.getenv("SMTP_USER", from_email).strip()
+    reply_to = os.getenv("SMTP_REPLY_TO", from_email).strip()
 
     return {
         "host": host,
         "port": port,
         "user": smtp_user,
         "password": os.getenv("SMTP_PASSWORD", "").strip(),
-        "from_name": os.getenv("SMTP_FROM_NAME", "Renovation Batiment IA").strip(),
+        "from_name": os.getenv("SMTP_FROM_NAME", DEFAULT_SMTP_FROM_NAME).strip(),
         "from_email": from_email,
+        "reply_to": reply_to,
+        "ssl": _env_bool("SMTP_SSL", False),
         "starttls": _env_bool("SMTP_STARTTLS", True),
     }
 
@@ -1875,6 +2595,7 @@ def _send_email_message(
     subject: str,
     text_body: str,
     html_body: str | None = None,
+    attachments: list[dict[str, object]] | None = None,
 ) -> tuple[bool, str | None]:
     cfg = _smtp_settings()
     recipient = (to_email or "").strip()
@@ -1886,21 +2607,80 @@ def _send_email_message(
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = formataddr((cfg["from_name"], cfg["from_email"]))
+    if cfg.get("reply_to"):
+        msg["Reply-To"] = cfg["reply_to"]
     msg["To"] = recipient
     msg.set_content(text_body)
     if html_body:
         msg.add_alternative(html_body, subtype="html")
+    for attachment in attachments or []:
+        filename = _clean_text(attachment.get("filename"), limit=180) or "document.bin"
+        content = attachment.get("content")
+        if not isinstance(content, (bytes, bytearray)):
+            continue
+        mime_type = str(attachment.get("mime_type") or "").strip().lower()
+        guessed_mime, _ = mimetypes.guess_type(filename)
+        resolved_mime = mime_type or guessed_mime or "application/octet-stream"
+        if "/" in resolved_mime:
+            maintype, subtype = resolved_mime.split("/", 1)
+        else:
+            maintype, subtype = "application", "octet-stream"
+        msg.add_attachment(bytes(content), maintype=maintype, subtype=subtype, filename=filename)
 
     try:
-        with smtplib.SMTP(cfg["host"], cfg["port"], timeout=25) as server:
-            if cfg["starttls"]:
-                server.starttls()
-            if cfg["user"] and cfg["password"]:
-                server.login(cfg["user"], cfg["password"])
-            server.send_message(msg)
+        if cfg.get("ssl"):
+            with smtplib.SMTP_SSL(cfg["host"], cfg["port"], timeout=25) as server:
+                if cfg["user"] and cfg["password"]:
+                    server.login(cfg["user"], cfg["password"])
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(cfg["host"], cfg["port"], timeout=25) as server:
+                if cfg["starttls"]:
+                    server.starttls()
+                if cfg["user"] and cfg["password"]:
+                    server.login(cfg["user"], cfg["password"])
+                server.send_message(msg)
         return True, None
     except (smtplib.SMTPException, OSError) as exc:
         return False, str(exc)
+
+
+def _is_email_address(value: str) -> bool:
+    candidate = (value or "").strip()
+    return bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", candidate))
+
+
+def _compose_smtp_probe_email(*, initiated_by_email: str) -> tuple[str, str]:
+    cfg = _smtp_settings()
+    now_label = _utc_now().strftime("%Y-%m-%d %H:%M:%S UTC")
+    from_header = formataddr((cfg.get("from_name") or "", cfg.get("from_email") or ""))
+    reply_to = (cfg.get("reply_to") or "").strip() or "(not set)"
+    smtp_user = (cfg.get("user") or "").strip() or "(not set)"
+    envelope_from = (cfg.get("from_email") or "").strip() or "(not set)"
+
+    subject = "Test SMTP EUROBAT - Verification headers"
+    lines = [
+        "Test d'envoi SMTP EUROBAT SERVICES",
+        "",
+        f"- Date: {now_label}",
+        f"- Declenche par: {initiated_by_email or 'admin'}",
+        "",
+        "Valeurs attendues sur ce message:",
+        f"- Header From: {from_header}",
+        f"- Header Reply-To: {reply_to}",
+        f"- Envelope MAIL FROM (app): {envelope_from}",
+        f"- SMTP_USER (auth): {smtp_user}",
+        "",
+        "Controle visuel a faire dans la boite de reception:",
+        "- Verifier l'affichage du From.",
+        "- Verifier le Reply-To.",
+        "- Verifier le Return-Path / source du message.",
+        "",
+        "Note:",
+        "Le Return-Path peut etre re-ecrit par le serveur SMTP selon sa politique.",
+        "S'il reste technique (ex: root@...), il faut aligner le compte SMTP du domaine.",
+    ]
+    return subject, "\n".join(lines)
 
 
 def _to_public_link(path_or_url: str) -> str:
@@ -1937,8 +2717,6 @@ def _compose_client_quote_email(
 ) -> tuple[str, str]:
     project_label = PROJECT_TYPE_LABELS.get(project_type, project_type or "projet")
     scope_label = SMART_SCOPE_LABELS.get(scope, SMART_SCOPE_LABELS["renovation_complete"])
-    duration = (quote or {}).get("duration_weeks", {}) or {}
-    duration_label = f"{duration.get('min', '?')} a {duration.get('max', '?')} semaines"
     client_name = (name or "").strip() or "Bonjour"
 
     subject = f"Votre devis intelligent + rendu 3D - {project_label}"
@@ -1955,14 +2733,19 @@ def _compose_client_quote_email(
         f"- Ville: {city or 'A confirmer'}",
         f"- Budget estime: {(quote or {}).get('low_label', 'A confirmer')} - {(quote or {}).get('high_label', 'A confirmer')}",
         f"- Mention: {LABOR_ONLY_MENTION}",
-        f"- Delai indicatif: {duration_label}",
-        f"- Confiance estimation: {int(round(float((quote or {}).get('confidence', 0)) * 100))}%",
+        f"- Base de calcul: {(quote or {}).get('pricing_context', 'Catalogue Eurobat')}",
         "",
         "Postes budgetaires",
     ]
 
     for item in (quote or {}).get("breakdown", [])[:8]:
-        lines.append(f"- {item.get('label', 'Poste')}: {item.get('low_label', '?')} - {item.get('high_label', '?')}")
+        detail = item.get("detail")
+        if detail:
+            lines.append(
+                f"- {item.get('label', 'Poste')}: {item.get('low_label', '?')} - {item.get('high_label', '?')} ({detail})"
+            )
+        else:
+            lines.append(f"- {item.get('label', 'Poste')}: {item.get('low_label', '?')} - {item.get('high_label', '?')}")
 
     lines.extend(["", "Rendus 3D (liens)"])
     if renders:
@@ -1979,10 +2762,10 @@ def _compose_client_quote_email(
         [
             "",
             "Prochaine etape",
-            "- Un conducteur de projet vous contacte pour valider les points techniques.",
-            "- Puis visite technique et devis detaille lot par lot.",
+            "- Un chef de projet renovation vous contacte pour valider les points techniques.",
+            "- Le devis final est valide apres rendez-vous (appel ou visite technique).",
             "",
-            f"Equipe Renovation Batiment IA\n{PUBLIC_BASE_URL}",
+            f"Equipe EUROBAT SERVICES\n{PUBLIC_BASE_URL}",
         ]
     )
 
@@ -1997,19 +2780,20 @@ def _compose_client_devis_email(
     scope: str,
     style: str,
     quote: dict,
+    prequote_url: str = "",
+    has_pdf_attachment: bool = False,
 ) -> tuple[str, str]:
     project_label = PROJECT_TYPE_LABELS.get(project_type, project_type or "projet")
     scope_label = SMART_SCOPE_LABELS.get(scope, SMART_SCOPE_LABELS["renovation_complete"])
-    duration = (quote or {}).get("duration_weeks", {}) or {}
-    duration_label = f"{duration.get('min', '?')} a {duration.get('max', '?')} semaines"
     client_name = (name or "").strip() or "Bonjour"
+    normalized_prequote_url = _to_public_link(prequote_url) if prequote_url else ""
+    signup_url = _to_public_link("/signup?next=/dashboard")
 
-    subject = f"Votre devis intelligent - {project_label}"
+    subject = "Votre pre-devis EUROBAT SERVICES est pret"
     lines = [
         f"{client_name},",
         "",
-        "Merci pour votre demande.",
-        "Votre devis intelligent est pret.",
+        "Votre pre-devis est pret.",
         "",
         "Synthese projet",
         f"- Type: {project_label}",
@@ -2017,28 +2801,94 @@ def _compose_client_devis_email(
         f"- Style: {(style or 'moderne').capitalize()}",
         f"- Ville: {city or 'A confirmer'}",
         f"- Budget estime: {(quote or {}).get('low_label', 'A confirmer')} - {(quote or {}).get('high_label', 'A confirmer')}",
-        f"- Delai indicatif: {duration_label}",
-        f"- Confiance estimation: {int(round(float((quote or {}).get('confidence', 0)) * 100))}%",
-        "",
-        "Postes budgetaires",
+        f"- Base de calcul: {(quote or {}).get('pricing_context', 'Catalogue Eurobat')}",
     ]
 
-    for item in (quote or {}).get("breakdown", [])[:8]:
-        lines.append(
-            f"- {item.get('label', 'Poste')}: {item.get('low_label', '?')} - {item.get('high_label', '?')}"
+    if normalized_prequote_url:
+        lines.extend(
+            [
+                "",
+                "Telecharger le pre-devis (PDF):",
+                normalized_prequote_url,
+            ]
         )
+    if has_pdf_attachment:
+        lines.extend(
+            [
+                "",
+                "Piece jointe:",
+                "- Le pre-devis PDF est joint a cet email.",
+            ]
+        )
+
+    lines.extend(["", "Postes budgetaires"])
+
+    for item in (quote or {}).get("breakdown", [])[:8]:
+        detail = item.get("detail")
+        if detail:
+            lines.append(
+                f"- {item.get('label', 'Poste')}: {item.get('low_label', '?')} - {item.get('high_label', '?')} ({detail})"
+            )
+        else:
+            lines.append(
+                f"- {item.get('label', 'Poste')}: {item.get('low_label', '?')} - {item.get('high_label', '?')}"
+            )
 
     lines.extend(
         [
             "",
-            "Etape suivante",
-            "- Vous pouvez demander le rendu 3D sur simple demande apres devis.",
-            "- Notre equipe vous accompagne sur les points techniques avant appel.",
+            "Prochaine etape conseillee",
+            "- Repondez a cet email pour planifier un echange de 10 minutes.",
+            "- Le devis final est a valider avec le chef de projet renovation apres rendez-vous (appel ou visite technique).",
             "",
-            f"Equipe Renovation Batiment IA\n{PUBLIC_BASE_URL}",
+            "Creer votre espace client (optionnel):",
+            signup_url,
+            "",
+            f"Equipe EUROBAT SERVICES\n{PUBLIC_BASE_URL}",
         ]
     )
 
+    return subject, "\n".join(lines)
+
+
+def _compose_client_followup_email(
+    *,
+    name: str,
+    project_type: str,
+    quote: dict,
+    prequote_url: str,
+) -> tuple[str, str]:
+    client_name = (name or "").strip() or "Bonjour"
+    project_label = PROJECT_TYPE_LABELS.get(project_type, project_type or "projet")
+    low_label = str((quote or {}).get("low_label") or "").strip()
+    high_label = str((quote or {}).get("high_label") or "").strip()
+    budget_range = f"{low_label} - {high_label}" if low_label and high_label else "A confirmer"
+    normalized_prequote_url = _to_public_link(prequote_url) if prequote_url else ""
+    signup_url = _to_public_link("/signup?next=/dashboard")
+
+    subject = "Votre pre-devis est toujours disponible"
+    lines = [
+        f"{client_name},",
+        "",
+        "Nous vous avons envoye votre pre-devis.",
+        f"- Projet: {project_label}",
+        f"- Estimation: {budget_range}",
+    ]
+    if normalized_prequote_url:
+        lines.extend(["", "Consulter le pre-devis PDF:", normalized_prequote_url])
+
+    lines.extend(
+        [
+            "",
+            "Creer votre espace client (optionnel):",
+            signup_url,
+            "",
+            "Souhaitez-vous un ajustement rapide selon votre budget reel ?",
+            "Repondez simplement a cet email.",
+            "",
+            f"Equipe EUROBAT SERVICES\n{PUBLIC_BASE_URL}",
+        ]
+    )
     return subject, "\n".join(lines)
 
 
@@ -2087,7 +2937,7 @@ def _compose_client_render_email(
             "- Validation des choix techniques et esthetiques.",
             "- Cadrage final avant lancement chantier.",
             "",
-            f"Equipe Renovation Batiment IA\n{PUBLIC_BASE_URL}",
+            f"Equipe EUROBAT SERVICES\n{PUBLIC_BASE_URL}",
         ]
     )
 
@@ -2164,8 +3014,7 @@ def _compose_internal_report_email(
         "Devis intelligent",
         f"- Fourchette: {(quote or {}).get('low_label', 'A confirmer')} - {(quote or {}).get('high_label', 'A confirmer')}",
         f"- Mention: {LABOR_ONLY_MENTION}",
-        f"- Delai: {(quote or {}).get('duration_weeks', {}).get('min', '?')} a {(quote or {}).get('duration_weeks', {}).get('max', '?')} semaines",
-        f"- Confiance: {int(round(float((quote or {}).get('confidence', 0)) * 100))}%",
+        f"- Base de calcul: {(quote or {}).get('pricing_context', 'Catalogue Eurobat')}",
         f"- Budget fit: {(quote or {}).get('budget_fit', {}).get('message', 'A confirmer')}",
         "",
         "Compte rendu avant appel",
@@ -2255,6 +3104,60 @@ def _scope_breakdown_weights(scope: str) -> list[tuple[str, float]]:
     ]
 
 
+def _format_catalog_quantity(value: object, unit: str) -> str:
+    amount = _parse_number(value)
+    if amount is None:
+        return "Forfait"
+    if float(amount).is_integer():
+        amount_label = str(int(round(amount)))
+    else:
+        amount_label = f"{amount:.2f}".rstrip("0").rstrip(".").replace(".", ",")
+    return f"{amount_label} {unit}".strip()
+
+
+def _catalog_quote_lines(
+    *,
+    scope: str,
+    surface: str,
+    work_item_key: str,
+    work_quantity: str,
+    require_work_item: bool = False,
+) -> tuple[list[dict[str, object]] | None, str | None]:
+    scope_key = _normalize_scope_key(scope, default_if_empty="")
+    if not scope_key:
+        return None, "Type de travaux invalide. Selectionnez une option proposee."
+
+    selected_work_item = (work_item_key or "").strip()
+    if selected_work_item:
+        catalog_code = COMPAT_CODE_ALIASES.get(selected_work_item, selected_work_item)
+        item = TARIFF_BY_KEY.get(catalog_code)
+        if not item:
+            return None, "Poste de travaux invalide dans le catalogue."
+        if str(item.get("unit") or "") == "forfait":
+            return [{"code": catalog_code}], None
+
+        quantity = _parse_number(work_quantity)
+        if quantity is None or quantity <= 0:
+            return None, f"Renseignez une quantite valide pour le poste {item['label']}."
+        return [{"code": catalog_code, "quantity": quantity}], None
+
+    if require_work_item:
+        return None, "Selectionnez un poste de travaux dans la grille catalogue pour lancer l'estimation."
+
+    if scope_key != WORK_ITEM_ONLY_SCOPE:
+        catalog_code = SCOPE_TO_CODE.get(scope_key)
+        item = TARIFF_BY_KEY.get(catalog_code or "")
+        if not item:
+            return None, "Type de travaux introuvable dans le catalogue."
+
+        quantity = _parse_number(surface)
+        if quantity is None or quantity <= 0:
+            return None, "Renseignez la surface a renover (m2) pour calculer cette estimation globale."
+        return [{"code": catalog_code, "quantity": quantity}], None
+
+    return None, "Selectionnez un poste de travaux dans la grille catalogue pour ce mode."
+
+
 def _build_smart_quote(
     project_type: str,
     style: str,
@@ -2269,124 +3172,58 @@ def _build_smart_quote(
     work_item_key: str = "",
     work_quantity: str = "",
     work_unit: str = "",
+    require_work_item: bool = False,
 ) -> dict:
-    scope_key = scope if scope in SMART_SCOPE_CONFIG else "renovation_complete"
-    style_key = style if style in STYLE_MULTIPLIER else "moderne"
+    scope_key = _normalize_scope_key(scope, default_if_empty="")
+    if not scope_key:
+        return {"error": "Type de travaux invalide. Selectionnez une option proposee."}
     project_key = project_type if project_type in PROJECT_TYPE_MULTIPLIER else "maison"
-    timeline_key = timeline if timeline in TIMELINE_COST_MULTIPLIER else "6_mois"
-    finishing_key = finishing_level if finishing_level in {"standard", "premium", "haut_de_gamme", "sur_mesure"} else ""
-
-    config = SMART_SCOPE_CONFIG[scope_key]
-    surface_value = _parse_number(surface) or PROJECT_DEFAULT_SURFACE[project_key]
-    surface_value = max(18.0, min(5000.0, surface_value))
-
     room_count = int(_parse_number(rooms) or 0)
     room_count = max(0, min(60, room_count))
     budget_value = _parse_number(budget)
-    complexity = _estimate_complexity(notes)
-    quantity_value = _parse_number(work_quantity)
+    surface_value = _parse_number(surface)
 
-    room_factor = 1.0
-    if room_count:
-        room_factor += min(0.2, (room_count - 2) * 0.02)
-    if room_count == 1 and surface_value > 60:
-        room_factor += 0.05
-
-    pricing_source = "smart_scope"
-    base_from_grid = estimate_from_scope(scope_key, project_key, surface_value, finishing_key)
-    if work_item_key:
-        base_from_grid = estimate_from_item_key(work_item_key, quantity_value, (work_unit or "").strip() or None)
-        if base_from_grid:
-            pricing_source = "tariff_item"
-
-    if base_from_grid:
-        if pricing_source == "smart_scope":
-            pricing_source = "tariff_grid"
-        low_raw = (
-            base_from_grid["low"]
-            * PROJECT_TYPE_MULTIPLIER[project_key]
-            * STYLE_MULTIPLIER[style_key]
-            * TIMELINE_COST_MULTIPLIER[timeline_key]
-            * complexity
-            * room_factor
-        )
-        high_raw = (
-            base_from_grid["high"]
-            * PROJECT_TYPE_MULTIPLIER[project_key]
-            * STYLE_MULTIPLIER[style_key]
-            * TIMELINE_COST_MULTIPLIER[timeline_key]
-            * complexity
-            * room_factor
-        )
-    else:
-        low_raw = (
-            surface_value
-            * config["low_m2"]
-            * PROJECT_TYPE_MULTIPLIER[project_key]
-            * STYLE_MULTIPLIER[style_key]
-            * TIMELINE_COST_MULTIPLIER[timeline_key]
-            * complexity
-            * room_factor
-        )
-        high_raw = (
-            surface_value
-            * config["high_m2"]
-            * PROJECT_TYPE_MULTIPLIER[project_key]
-            * STYLE_MULTIPLIER[style_key]
-            * TIMELINE_COST_MULTIPLIER[timeline_key]
-            * complexity
-            * room_factor
-        )
-
-    if high_raw <= low_raw:
-        high_raw = low_raw * 1.2
-
-    low = int(round(low_raw / 100.0) * 100)
-    high = int(round(high_raw / 100.0) * 100)
-
-    base_min_weeks, base_max_weeks = config["duration"]
-    duration_surface_factor = max(0.7, min(2.4, surface_value / 90.0))
-    duration_room_factor = 1.0 + min(0.25, room_count * 0.015)
-    duration_complexity = 0.97 + (complexity - 1.0) * 1.3
-    duration_timeline = TIMELINE_DURATION_MULTIPLIER[timeline_key]
-
-    duration_min = int(
-        max(
-            2,
-            round(
-                base_min_weeks
-                * duration_surface_factor
-                * duration_room_factor
-                * duration_complexity
-                * duration_timeline
-            ),
-        )
+    quote_lines, quote_error = _catalog_quote_lines(
+        scope=scope_key,
+        surface=surface,
+        work_item_key=work_item_key,
+        work_quantity=work_quantity,
+        require_work_item=require_work_item,
     )
-    duration_max = int(
-        max(
-            duration_min + 1,
-            round(
-                base_max_weeks
-                * duration_surface_factor
-                * duration_room_factor
-                * duration_complexity
-                * duration_timeline
-            ),
-        )
-    )
+    if quote_error or not quote_lines:
+        return {"error": quote_error or CATALOG_ESTIMATE_ERROR["error"]}
+
+    catalog_result = estimate_catalog_lines(quote_lines)
+    if catalog_result.get("error"):
+        return {"error": CATALOG_ESTIMATE_ERROR["error"]}
+
+    low = int(round(float(catalog_result["total_min_ht"])))
+    high = int(round(float(catalog_result["total_max_ht"])))
 
     breakdown = []
-    for label, weight in _scope_breakdown_weights(scope_key):
-        part_low = int(round(low * weight / 100.0) * 100)
-        part_high = int(round(high * weight / 100.0) * 100)
+    for line in catalog_result.get("lines", []):
+        code = str(line.get("code") or "")
+        item = TARIFF_BY_KEY.get(code, {})
+        unit = str(line.get("unit") or item.get("unit") or "")
+        quantity = line.get("quantity")
+        unit_price_low = int(round(float(line.get("unit_price_min") or 0)))
+        unit_price_high = int(round(float(line.get("unit_price_max") or 0)))
+        if quantity is None:
+            detail = f"Forfait catalogue • {_format_eur(unit_price_low)} - {_format_eur(unit_price_high)}"
+        else:
+            detail = (
+                f"Quantite: {_format_catalog_quantity(quantity, unit)} • "
+                f"Prix catalogue: {_format_eur(unit_price_low)} - {_format_eur(unit_price_high)} / {unit}"
+            )
         breakdown.append(
             {
-                "label": label,
-                "share_percent": round(weight * 100),
-                "low": part_low,
-                "high": part_high,
-                "low_label": _format_eur(part_low),
-                "high_label": _format_eur(part_high),
+                "label": str(item.get("label") or code),
+                "code": code,
+                "detail": detail,
+                "low": int(round(float(line.get("line_total_min") or 0))),
+                "high": int(round(float(line.get("line_total_max") or 0))),
+                "low_label": _format_eur(int(round(float(line.get("line_total_min") or 0)))),
+                "high_label": _format_eur(int(round(float(line.get("line_total_max") or 0)))),
             }
         )
 
@@ -2409,46 +3246,60 @@ def _build_smart_quote(
                 "message": "Budget coherent avec l'estimation actuelle.",
             }
 
-    confidence = 0.52
-    if surface:
-        confidence += 0.14
-    if budget:
-        confidence += 0.08
-    if city:
-        confidence += 0.06
-    if notes and len(notes.strip()) >= 24:
-        confidence += 0.08
-    if room_count:
-        confidence += 0.06
-    confidence = round(min(0.92, confidence), 2)
+    primary_line = breakdown[0] if breakdown else {}
+    quantity_hint = ""
+    if primary_line:
+        raw_quantity = catalog_result.get("lines", [{}])[0].get("quantity")
+        raw_unit = str(catalog_result.get("lines", [{}])[0].get("unit") or "")
+        if raw_quantity is None:
+            quantity_hint = "Forfait"
+        else:
+            quantity_hint = _format_catalog_quantity(raw_quantity, raw_unit)
+
+    pricing_context_parts = ["Catalogue Eurobat"]
+    if primary_line.get("label"):
+        pricing_context_parts.append(str(primary_line["label"]))
+    if quantity_hint:
+        pricing_context_parts.append(quantity_hint)
 
     assumptions = [
-        f"Perimetre: {SMART_SCOPE_LABELS.get(scope_key, SMART_SCOPE_LABELS['renovation_complete'])}.",
-        f"Style vise: {style_key}.",
-        "Hors contraintes administratives exceptionnelles et diagnostics destructifs.",
+        "Calcul strictement base sur le catalogue Eurobat.",
+        "Aucun coefficient type de bien, style, delai, nombre de pieces ou complexite n'est applique.",
+        "Montant calcule uniquement a partir du code catalogue et de sa quantite.",
     ]
-    if pricing_source == "tariff_grid":
-        assumptions.append("Base grille tarifaire Eurobat (main-d'oeuvre).")
-    if pricing_source == "tariff_item":
-        assumptions.append("Calcul base sur poste specifique de la grille tarifaire.")
-    if not surface:
+    if primary_line.get("code"):
         assumptions.append(
-            f"Surface par defaut appliquee ({int(surface_value)} m2) selon type de bien."
+            f"Code catalogue utilise: {primary_line['code']} ({primary_line.get('label', primary_line['code'])})."
+        )
+    if require_work_item:
+        assumptions.append("Le type de travaux sert de cadrage et n'influence pas le calcul de l'estimation.")
+        assumptions.append("Estimation calculee uniquement sur le poste catalogue selectionne.")
+    elif scope_key == WORK_ITEM_ONLY_SCOPE:
+        assumptions.append("Mode choix par prestation: estimation ciblee calculee uniquement sur le poste catalogue selectionne.")
+    else:
+        assumptions.append(
+            f"Mode estimation globale: le type de travaux est mappe sur le code catalogue {SCOPE_TO_CODE.get(scope_key, '')}."
         )
 
+    estimate_mode = "item_targeted" if (require_work_item or scope_key == WORK_ITEM_ONLY_SCOPE) else "project_global"
+    estimate_mode_label = "Devis cible par prestation" if estimate_mode == "item_targeted" else "Pre-devis global du projet"
+
     return {
+        "pricing_basis": "catalog",
+        "estimate_mode": estimate_mode,
+        "estimate_mode_label": estimate_mode_label,
+        "pricing_context": " • ".join(part for part in pricing_context_parts if part),
         "project_type_label": PROJECT_TYPE_LABELS.get(project_key, project_key),
         "scope_label": SMART_SCOPE_LABELS.get(scope_key, scope_key),
-        "surface_m2": round(surface_value, 1),
+        "surface_m2": round(surface_value or 0.0, 1),
         "rooms": room_count or None,
-        "confidence": confidence,
         "low": low,
         "high": high,
         "low_label": _format_eur(low),
         "high_label": _format_eur(high),
         "budget_fit": budget_fit,
-        "duration_weeks": {"min": duration_min, "max": duration_max},
         "breakdown": breakdown,
+        "catalog_lines": catalog_result.get("lines", []),
         "assumptions": assumptions,
     }
 
@@ -2686,16 +3537,140 @@ def _build_precall_report(
     }
 
 
+def _parse_iso_datetime(value: object) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return _as_utc(parsed)
+
+
+def _record_quote_email_sent(
+    *,
+    handoff_id: int | None,
+    prequote_url: str,
+    project_type: str,
+    quote: dict,
+) -> None:
+    if not handoff_id:
+        return
+    db = SessionLocal()
+    try:
+        handoff = db.query(HandoffRequest).filter(HandoffRequest.id == handoff_id).first()
+        if not handoff:
+            return
+        payload = _extract_handoff_conversation_payload(handoff)
+        now = _utc_now()
+        payload["quote_email_sent_at"] = now.isoformat()
+        payload["followup_j1_due_at"] = (now + timedelta(days=1)).isoformat()
+        payload["project_type"] = payload.get("project_type") or project_type
+        payload["quote"] = payload.get("quote") or quote
+        if prequote_url:
+            payload["prequote_url"] = _to_public_link(prequote_url)
+        handoff.conversation = json.dumps(payload, ensure_ascii=False)
+        db.commit()
+    finally:
+        db.close()
+
+
+def _process_quote_followup_j1() -> int:
+    if not _env_bool("EMAIL_REMINDER_J1_ENABLED", True):
+        return 0
+    if not _smtp_ready(_smtp_settings()):
+        return 0
+
+    now = _utc_now()
+    lookback_days = max(1, _env_int("EMAIL_REMINDER_LOOKBACK_DAYS", 10))
+    min_created_at = now - timedelta(days=lookback_days)
+    sent_count = 0
+
+    db = SessionLocal()
+    try:
+        candidates = (
+            db.query(HandoffRequest)
+            .filter(HandoffRequest.source == "devis_intelligent")
+            .filter(HandoffRequest.email.isnot(None))
+            .filter(HandoffRequest.created_at >= min_created_at)
+            .order_by(HandoffRequest.created_at.asc())
+            .all()
+        )
+        for handoff in candidates:
+            recipient = (handoff.email or "").strip().lower()
+            if not _is_email_address(recipient):
+                continue
+            if str(handoff.status or "").strip().lower() not in {"", "new", "pending"}:
+                continue
+
+            payload = _extract_handoff_conversation_payload(handoff)
+            if payload.get("followup_j1_sent_at"):
+                continue
+
+            quote_sent_at = _parse_iso_datetime(payload.get("quote_email_sent_at")) or _as_utc(handoff.created_at)
+            if not quote_sent_at:
+                continue
+            due_at = _parse_iso_datetime(payload.get("followup_j1_due_at")) or (quote_sent_at + timedelta(days=1))
+            if due_at > now:
+                continue
+
+            project_type = str(payload.get("project_type") or "")
+            quote_payload = payload.get("quote")
+            quote = quote_payload if isinstance(quote_payload, dict) else {}
+            prequote_url = str(payload.get("prequote_url") or "").strip()
+
+            subject, body = _compose_client_followup_email(
+                name=str(handoff.name or ""),
+                project_type=project_type,
+                quote=quote,
+                prequote_url=prequote_url,
+            )
+            sent, error = _send_email_message(to_email=recipient, subject=subject, text_body=body)
+
+            attempts = int(payload.get("followup_j1_attempts") or 0) + 1
+            payload["followup_j1_attempts"] = attempts
+            if sent:
+                payload["followup_j1_sent_at"] = now.isoformat()
+                payload.pop("followup_j1_last_error", None)
+                sent_count += 1
+            else:
+                payload["followup_j1_last_error"] = _clean_text(error or "smtp_error", limit=220)
+            handoff.conversation = json.dumps(payload, ensure_ascii=False)
+            db.commit()
+    finally:
+        db.close()
+
+    return sent_count
+
+
+async def _quote_followup_j1_worker() -> None:
+    interval_seconds = max(60, _env_int("EMAIL_REMINDER_POLL_SECONDS", 900))
+    while True:
+        _process_quote_followup_j1()
+        await asyncio.sleep(interval_seconds)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     ARCHITECTURE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     ARCHITECTURE_RENDER_DIR.mkdir(parents=True, exist_ok=True)
     ESTIMATE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    PREQUOTE_PDF_DIR.mkdir(parents=True, exist_ok=True)
     CLIENT_DOCS_DIR.mkdir(parents=True, exist_ok=True)
     init_db()
     Base.metadata.create_all(bind=engine)
     _ensure_admin_user()
-    yield
+    reminder_task: asyncio.Task | None = None
+    if _env_bool("EMAIL_REMINDER_J1_ENABLED", True):
+        reminder_task = asyncio.create_task(_quote_followup_j1_worker())
+    try:
+        yield
+    finally:
+        if reminder_task:
+            reminder_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await reminder_task
 
 
 app = FastAPI(lifespan=lifespan)
@@ -3210,6 +4185,279 @@ def dashboard(request: Request):
     )
 
 
+def _latest_handoff_for_user(db, user: dict) -> HandoffRequest | None:
+    email = str(user.get("email") or "").strip().lower()
+    phone = str(user.get("phone") or "").strip()
+    query = db.query(HandoffRequest)
+    if email and phone:
+        query = query.filter((HandoffRequest.email == email) | (HandoffRequest.phone == phone))
+    elif email:
+        query = query.filter(HandoffRequest.email == email)
+    elif phone:
+        query = query.filter(HandoffRequest.phone == phone)
+    else:
+        return None
+    return query.order_by(HandoffRequest.created_at.desc()).first()
+
+
+def _latest_prequote_reference_for_user(db, user_id: int) -> str:
+    docs = (
+        db.query(ProjectDocument)
+        .filter(ProjectDocument.client_id == user_id)
+        .order_by(ProjectDocument.created_at.desc())
+        .limit(40)
+        .all()
+    )
+    for doc in docs:
+        if not _is_prequote_document(doc):
+            continue
+        ref = _extract_prequote_number(doc.label) or _extract_prequote_number(doc.original_name)
+        if ref:
+            return ref
+    return ""
+
+
+def _build_chantier_seed_labels(handoff: HandoffRequest | None) -> list[str]:
+    _ = handoff
+    return [
+        "Projet enregistre",
+        "Preparation du chantier",
+        "Intervention planifiee",
+        "Chantier demarre",
+        "Travaux en cours",
+        "Verification finale",
+        "Chantier termine",
+        "Reception client",
+        "Projet cloture",
+    ]
+
+
+def _parse_chantier_form_date(value: str) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    parsed_date = None
+    try:
+        parsed_date = datetime.fromisoformat(raw).date()
+    except ValueError:
+        try:
+            parsed_date = datetime.strptime(raw, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+    return datetime(parsed_date.year, parsed_date.month, parsed_date.day, 12, 0, tzinfo=UTC)
+
+
+def _format_chantier_date(value: datetime | None) -> str:
+    normalized = _as_utc(value)
+    if not normalized:
+        return ""
+    return normalized.strftime("%d/%m/%Y")
+
+
+def _format_chantier_input_date(value: datetime | None) -> str:
+    normalized = _as_utc(value)
+    if not normalized:
+        return ""
+    return normalized.strftime("%Y-%m-%d")
+
+
+def _extract_client_comment(detail_text: str) -> str:
+    marker = "Commentaire client:"
+    if marker not in (detail_text or ""):
+        return ""
+    return _clean_text(str(detail_text).split(marker, 1)[1], limit=500)
+
+
+def _step_label_from_event_title(title: str) -> str:
+    text = str(title or "")
+    if ":" not in text:
+        return ""
+    return _clean_text(text.split(":", 1)[1], limit=180)
+
+
+def _first_pending_or_blocked_step_label(steps: list[dict]) -> str:
+    for step in steps:
+        status = _normalize_chantier_step_status(str(step.get("status") or ""))
+        if status in {"pending", "blocked", "delayed"}:
+            return str(step.get("label") or "")
+    return ""
+
+
+def _compute_chantier_overview(steps: list[dict]) -> tuple[int, str, list[str], list[str]]:
+    if not steps:
+        return 0, "", [], []
+
+    completed_steps = [str(step.get("label") or "") for step in steps if step.get("status") == "validated"]
+    current_idx = -1
+    for idx, step in enumerate(steps):
+        if step.get("status") in {"in_progress", "blocked", "delayed"}:
+            current_idx = idx
+            break
+    if current_idx < 0:
+        for idx, step in enumerate(steps):
+            if step.get("status") == "pending":
+                current_idx = idx
+                break
+    current_label = str(steps[current_idx].get("label") or "") if current_idx >= 0 else str(steps[-1].get("label") or "")
+
+    total_steps = len(steps)
+    completed_count = len(completed_steps)
+    if completed_count >= total_steps:
+        return (
+            100,
+            current_label,
+            completed_steps,
+            [],
+        )
+
+    current_progress = 0
+    if current_idx >= 0:
+        current_status = str(steps[current_idx].get("status") or "")
+        if current_status not in {"pending", "validated"}:
+            current_progress = max(0, min(100, int(steps[current_idx].get("progress_percent") or 0)))
+    global_progress = int(round(((completed_count + (current_progress / 100.0)) / float(total_steps)) * 100))
+    global_progress = max(0, min(99, global_progress))
+
+    upcoming_steps: list[str] = []
+    if current_idx >= 0:
+        for step in steps[current_idx + 1:]:
+            if step.get("status") != "validated":
+                upcoming_steps.append(str(step.get("label") or ""))
+            if len(upcoming_steps) >= 3:
+                break
+
+    return global_progress, current_label, completed_steps, upcoming_steps
+
+
+def _normalize_chantier_step_status(value: str) -> str:
+    raw = str(value or "").strip().lower()
+    if raw in {"pending", "planifie", "planned"}:
+        return "pending"
+    if raw in {"in_progress", "en_cours", "en cours", "running"}:
+        return "in_progress"
+    if raw in {"blocked", "bloque", "blockage"}:
+        return "blocked"
+    if raw in {"delayed", "delay", "retard"}:
+        return "delayed"
+    if raw in {"validated", "complete", "completed", "termine", "done"}:
+        return "validated"
+    return "pending"
+
+
+def _chantier_step_status_label(status: str) -> str:
+    labels = {
+        "pending": "Planifie",
+        "in_progress": "En cours",
+        "blocked": "Bloque",
+        "delayed": "En retard",
+        "validated": "Termine",
+    }
+    return labels.get(_normalize_chantier_step_status(status), "Planifie")
+
+
+def _seed_chantier_contract_data(db, contract: ChantierContract, handoff: HandoffRequest | None) -> None:
+    now = _utc_now()
+    step_labels = _build_chantier_seed_labels(handoff)
+    for idx, label in enumerate(step_labels):
+        start = now + timedelta(days=idx * 4)
+        status = "pending"
+        progress = 0
+        next_step = "Etape planifiee."
+        if idx == 0:
+            status = "validated"
+            progress = 100
+            next_step = "Etape terminee."
+        elif idx == 1:
+            status = "in_progress"
+            progress = 20
+            next_step = "Mise en place de la preparation chantier."
+        step = ChantierLot(
+            contract_id=contract.id,
+            code=f"step_{idx + 1}",
+            label=label,
+            status=status,
+            progress_percent=progress,
+            next_step=next_step,
+            planned_start=start,
+            planned_end=(now if idx == 0 else None),
+            sort_order=idx,
+        )
+        db.add(step)
+
+    db.add(
+        ChantierEvent(
+            contract_id=contract.id,
+            event_type="signature",
+            title="Devis signe - chantier active",
+            detail="Le suivi chantier client est active sur les grandes etapes du projet.",
+            impact_timeline="Plan de suivi initialise",
+            impact_scope="client",
+        )
+    )
+    db.add(
+        ChantierEvent(
+            contract_id=contract.id,
+            event_type="planning",
+            title="Grandes etapes publiees",
+            detail="Les etapes sont mises a jour par EUROBAT depuis le CRM.",
+            impact_scope="client",
+        )
+    )
+
+
+def _sync_lot_progress_state(db, lot_id: int) -> None:
+    step = db.query(ChantierLot).filter(ChantierLot.id == lot_id).first()
+    if not step:
+        return
+    progress = max(0, min(100, int(step.progress_percent or 0)))
+    current_status = _normalize_chantier_step_status(step.status or "")
+    if progress >= 100:
+        step.status = "validated"
+        step.progress_percent = 100
+        step.next_step = "Etape terminee."
+    elif progress <= 0:
+        step.status = "pending"
+        step.progress_percent = 0
+        step.next_step = step.next_step or "Etape planifiee."
+    else:
+        if current_status in {"blocked", "delayed"}:
+            step.status = current_status
+        else:
+            step.status = "in_progress"
+        step.progress_percent = progress
+        step.next_step = step.next_step or "Execution en cours."
+    step.updated_at = _utc_now()
+
+
+def _promote_next_milestone_for_lot(db, lot_id: int) -> None:
+    _ = db
+    _ = lot_id
+
+
+def _sync_contract_status(db, contract: ChantierContract) -> None:
+    steps = db.query(ChantierLot).filter(ChantierLot.contract_id == contract.id).all()
+    if not steps:
+        contract.status = "active"
+        contract.updated_at = _utc_now()
+        return
+    completed = 0
+    blocked = False
+    for step in steps:
+        status = _normalize_chantier_step_status(step.status or "")
+        progress = int(step.progress_percent or 0)
+        if status in {"blocked", "delayed"}:
+            blocked = True
+        if status == "validated" or progress >= 100:
+            completed += 1
+    if completed == len(steps):
+        contract.status = "completed"
+    elif blocked:
+        contract.status = "blocked"
+    else:
+        contract.status = "active"
+    contract.updated_at = _utc_now()
+
+
 @app.get("/dashboard/chantier", response_class=HTMLResponse)
 @app.get("/dashboard/chantier/", response_class=HTMLResponse)
 def dashboard_chantier(request: Request):
@@ -3219,14 +4467,269 @@ def dashboard_chantier(request: Request):
     if user.get("role") == "admin":
         return RedirectResponse("/admin", status_code=303)
 
+    state = request.query_params.get("state", "").strip().lower()
+    state_messages = {
+        "signed": ("success", "Devis signe. Votre suivi chantier est actif."),
+        "already_active": ("info", "Un chantier actif existe deja sur votre espace."),
+        "terms_required": ("error", "Confirmez l'acceptation du devis avant signature."),
+        "missing_signer": ("error", "Renseignez le nom du signataire."),
+        "crm_managed": ("info", "Le suivi est mis a jour par EUROBAT depuis le CRM."),
+    }
+    flash = state_messages.get(state)
+
+    db = SessionLocal()
+    try:
+        contract = (
+            db.query(ChantierContract)
+            .filter(
+                ChantierContract.client_id == user["id"],
+                ChantierContract.status.in_(["active", "completed", "blocked"]),
+            )
+            .order_by(ChantierContract.signed_at.desc(), ChantierContract.created_at.desc())
+            .first()
+        )
+        latest_project = (
+            db.query(ClientProject)
+            .filter(ClientProject.client_id == user["id"])
+            .order_by(ClientProject.updated_at.desc(), ClientProject.created_at.desc())
+            .first()
+        )
+        prequote_reference = _latest_prequote_reference_for_user(db, int(user["id"]))
+
+        steps_view: list[dict] = []
+        events_view: list[dict] = []
+        comments_view: list[dict] = []
+        contract_summary: dict | None = None
+        last_update_label = ""
+
+        if contract:
+            contract_project = (
+                db.query(ClientProject).filter(ClientProject.id == contract.project_id).first()
+                if contract.project_id
+                else latest_project
+            )
+            steps = (
+                db.query(ChantierLot)
+                .filter(ChantierLot.contract_id == contract.id)
+                .order_by(ChantierLot.sort_order.asc(), ChantierLot.id.asc())
+                .all()
+            )
+            for step in steps:
+                progress = max(0, min(100, int(step.progress_percent or 0)))
+                status = _normalize_chantier_step_status(step.status or "")
+                if progress >= 100:
+                    status = "validated"
+                steps_view.append(
+                    {
+                        "id": step.id,
+                        "label": step.label,
+                        "status": status,
+                        "status_label": _chantier_step_status_label(status),
+                        "progress_percent": progress,
+                        "next_step": step.next_step or "Mise a jour a venir.",
+                        "planned_date_label": _format_chantier_date(step.planned_start),
+                        "actual_date_label": _format_chantier_date(step.planned_end),
+                        "client_comment": "",
+                    }
+                )
+
+            events = (
+                db.query(ChantierEvent)
+                .filter(ChantierEvent.contract_id == contract.id)
+                .order_by(ChantierEvent.created_at.desc(), ChantierEvent.id.desc())
+                .limit(30)
+                .all()
+            )
+            for event in events:
+                visibility = str(event.impact_scope or "").strip().lower()
+                if visibility == "internal":
+                    continue
+                event_type = str(event.event_type or "").strip().lower()
+                if event_type in {"signature", "planning"}:
+                    continue
+                detail_text = event.detail or ""
+                events_view.append(
+                    {
+                        "title": event.title,
+                        "detail": detail_text,
+                        "impact_timeline": event.impact_timeline or "",
+                        "impact_scope": event.impact_scope or "",
+                        "created_label": event.created_at.strftime("%d/%m/%Y %H:%M") if event.created_at else "",
+                    }
+                )
+                marker = "Commentaire client:"
+                if marker in detail_text:
+                    comment_text = _extract_client_comment(detail_text)
+                    step_label = _step_label_from_event_title(event.title or "")
+                    if comment_text:
+                        comments_view.append(
+                            {
+                                "title": event.title,
+                                "detail": comment_text,
+                                "created_label": event.created_at.strftime("%d/%m/%Y %H:%M") if event.created_at else "",
+                            }
+                        )
+                    if step_label and comment_text:
+                        for step_row in steps_view:
+                            if (
+                                _fold_lookup(step_row.get("label")) == _fold_lookup(step_label)
+                                and not str(step_row.get("client_comment") or "").strip()
+                            ):
+                                step_row["client_comment"] = comment_text
+                                break
+                elif event_type == "incident" and detail_text:
+                    comments_view.append(
+                        {
+                            "title": event.title,
+                            "detail": detail_text,
+                            "created_label": event.created_at.strftime("%d/%m/%Y %H:%M") if event.created_at else "",
+                        }
+                    )
+            if events_view:
+                last_update_label = events_view[0]["created_label"]
+            elif contract.updated_at:
+                last_update_label = contract.updated_at.strftime("%d/%m/%Y %H:%M")
+
+            global_progress, current_step_label, completed_steps, upcoming_steps = _compute_chantier_overview(steps_view)
+            next_step_label = upcoming_steps[0] if upcoming_steps else ""
+            if not next_step_label:
+                next_step_label = _first_pending_or_blocked_step_label(steps_view)
+            status_label_map = {
+                "active": "En cours",
+                "completed": "Termine",
+                "blocked": "Bloque",
+            }
+
+            contract_summary = {
+                "id": contract.id,
+                "status": contract.status or "active",
+                "status_label": status_label_map.get(str(contract.status or "").lower(), "En cours"),
+                "signed_label": contract.signed_at.strftime("%d/%m/%Y %H:%M") if contract.signed_at else "",
+                "quote_reference": contract.quote_reference or prequote_reference or "A confirmer",
+                "signer_name": contract.signer_name,
+                "last_update_label": last_update_label,
+                "global_progress": global_progress,
+                "current_step_label": current_step_label,
+                "next_step_label": next_step_label,
+                "completed_steps_count": len(completed_steps),
+                "total_steps": len(steps_view),
+                "project_name": (contract_project.title if contract_project else "Projet chantier"),
+            }
+    finally:
+        db.close()
+
     return templates.TemplateResponse(
         request,
         "dashboard_chantier.html",
         {
             "user": user,
             "hide_public_header": True,
+            "flash": flash,
+            "contract": contract_summary,
+            "steps": steps_view,
+            "events": events_view,
+            "comments": comments_view[:10],
+            "completed_steps": (completed_steps if contract_summary else []),
+            "upcoming_steps": (upcoming_steps if contract_summary else []),
+            "latest_project": latest_project,
+            "prequote_reference": prequote_reference,
         },
     )
+
+
+@app.post("/dashboard/chantier/sign-devis")
+def dashboard_chantier_sign_devis(
+    request: Request,
+    signer_name: str = Form(""),
+    accept_terms: str = Form(""),
+):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/chantier", status_code=303)
+    if user.get("role") == "admin":
+        return RedirectResponse("/admin", status_code=303)
+
+    signer = _clean_text(signer_name, limit=120) or _clean_text(user.get("name"), limit=120)
+    if not signer:
+        return RedirectResponse("/dashboard/chantier?state=missing_signer", status_code=303)
+    if str(accept_terms or "").strip().lower() not in {"1", "true", "yes", "on", "oui"}:
+        return RedirectResponse("/dashboard/chantier?state=terms_required", status_code=303)
+
+    db = SessionLocal()
+    try:
+        existing = (
+            db.query(ChantierContract)
+            .filter(
+                ChantierContract.client_id == user["id"],
+                ChantierContract.status.in_(["active", "completed", "blocked"]),
+            )
+            .order_by(ChantierContract.signed_at.desc(), ChantierContract.id.desc())
+            .first()
+        )
+        if existing:
+            return RedirectResponse("/dashboard/chantier?state=already_active", status_code=303)
+
+        latest_project = (
+            db.query(ClientProject)
+            .filter(ClientProject.client_id == user["id"])
+            .order_by(ClientProject.updated_at.desc(), ClientProject.created_at.desc())
+            .first()
+        )
+        handoff = _latest_handoff_for_user(db, user)
+        quote_reference = _latest_prequote_reference_for_user(db, int(user["id"]))
+        contract = ChantierContract(
+            client_id=user["id"],
+            project_id=(latest_project.id if latest_project else None),
+            status="active",
+            signed_at=_utc_now(),
+            signer_name=signer,
+            signer_email=str(user.get("email") or "").strip().lower(),
+            signer_ip=(request.client.host if request.client else None),
+            quote_reference=quote_reference or None,
+            terms_version="v1",
+            updated_at=_utc_now(),
+        )
+        db.add(contract)
+        db.flush()
+
+        _seed_chantier_contract_data(db, contract, handoff)
+        db.commit()
+    finally:
+        db.close()
+
+    return RedirectResponse("/dashboard/chantier?state=signed", status_code=303)
+
+
+@app.post("/dashboard/chantier/validate-milestone")
+def dashboard_chantier_validate_milestone(
+    request: Request,
+    milestone_id: int = Form(...),
+    validation_note: str = Form(""),
+):
+    _ = milestone_id
+    _ = validation_note
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/chantier", status_code=303)
+    return RedirectResponse("/dashboard/chantier?state=crm_managed", status_code=303)
+
+
+@app.post("/dashboard/chantier/add-change")
+def dashboard_chantier_add_change(
+    request: Request,
+    change_title: str = Form(""),
+    change_detail: str = Form(""),
+    change_impact_timeline: str = Form(""),
+    change_impact_scope: str = Form(""),
+):
+    _ = change_title
+    _ = change_detail
+    _ = change_impact_timeline
+    _ = change_impact_scope
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/chantier", status_code=303)
+    return RedirectResponse("/dashboard/chantier?state=crm_managed", status_code=303)
 
 
 @app.get("/dashboard/documents", response_class=HTMLResponse)
@@ -3252,6 +4755,20 @@ def dashboard_documents(request: Request):
             .order_by(ProjectDocument.created_at.desc())
             .all()
         )
+
+        upgraded_any = False
+        for doc in documents:
+            if _is_legacy_prequote_document(doc):
+                if _upgrade_legacy_prequote_document(db, doc):
+                    upgraded_any = True
+
+        if upgraded_any:
+            documents = (
+                db.query(ProjectDocument)
+                .filter(ProjectDocument.client_id == user["id"])
+                .order_by(ProjectDocument.created_at.desc())
+                .all()
+            )
     finally:
         db.close()
 
@@ -3352,6 +4869,147 @@ def dashboard_documents(request: Request):
             "hide_public_header": True,
             "current_docs": current_docs,
             "doc_buckets": buckets,
+        },
+    )
+
+
+@app.get("/dashboard/pre-devis", response_class=HTMLResponse)
+@app.get("/dashboard/pre-devis/", response_class=HTMLResponse)
+def dashboard_prequotes(request: Request):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/pre-devis", status_code=303)
+    if user.get("role") == "admin":
+        return RedirectResponse("/admin", status_code=303)
+
+    db = SessionLocal()
+    try:
+        projects = (
+            db.query(ClientProject)
+            .filter(ClientProject.client_id == user["id"])
+            .order_by(ClientProject.updated_at.desc(), ClientProject.created_at.desc())
+            .all()
+        )
+        documents = (
+            db.query(ProjectDocument)
+            .filter(ProjectDocument.client_id == user["id"])
+            .order_by(ProjectDocument.created_at.desc())
+            .all()
+        )
+    finally:
+        db.close()
+
+    project_title_by_id = {project.id: project.title for project in projects}
+    project_recaps: dict[int, dict] = {}
+    for project in projects:
+        project_recaps[project.id] = _parse_project_summary(project.summary) or {}
+
+    prequote_items: list[dict[str, str]] = []
+    for doc in documents:
+        raw_label = (doc.label or "").strip()
+        raw_label_lower = raw_label.lower()
+        original_name = (doc.original_name or "").strip()
+        original_name_lower = original_name.lower()
+        stored_name = (doc.stored_name or "").strip()
+        stored_name_lower = stored_name.lower()
+        mime_type = (doc.mime_type or "").strip().lower()
+
+        looks_like_prequote = (
+            raw_label_lower.startswith(PREQUOTE_DOC_LABEL_PREFIX)
+            or "predevis" in raw_label_lower
+            or "pre-devis" in original_name_lower
+            or "predevis" in original_name_lower
+            or "predevis" in stored_name_lower
+        )
+        is_pdf = ("pdf" in mime_type) or original_name_lower.endswith(".pdf") or stored_name_lower.endswith(".pdf")
+        if not looks_like_prequote or not is_pdf:
+            continue
+
+        recap = project_recaps.get(doc.project_id) or {}
+        estimate_range = _clean_text(recap.get("estimate_range"), limit=120)
+        project_title = project_title_by_id.get(doc.project_id) or "Projet"
+        title = original_name or Path(stored_name).name or "pre-devis.pdf"
+        created_label = doc.created_at.strftime("%d/%m/%Y %H:%M") if doc.created_at else ""
+        prequote_number = ""
+        label_head = raw_label.split("|", 1)[0]
+        label_parts = [part.strip() for part in label_head.split(":") if part.strip()]
+        if len(label_parts) >= 3 and label_parts[0] == "predevis" and label_parts[1] == "estimateur":
+            prequote_number = label_parts[2]
+        if not prequote_number:
+            match = re.search(r"(PD-\d{4}-\d{4,6})", original_name, flags=re.IGNORECASE)
+            if match:
+                prequote_number = match.group(1).upper()
+
+        prequote_items.append(
+            {
+                "id": str(doc.id),
+                "title": title,
+                "prequote_number": prequote_number,
+                "project_title": project_title,
+                "estimate_range": estimate_range,
+                "created_at": created_label,
+                "url": f"/api/project-document/{doc.id}/open",
+                "view_url": f"/dashboard/pre-devis/{doc.id}/view",
+            }
+        )
+
+    return templates.TemplateResponse(
+        request,
+        "dashboard_predevis.html",
+        {
+            "user": user,
+            "prequote_items": prequote_items,
+            "hide_public_header": True,
+        },
+    )
+
+
+@app.get("/dashboard/pre-devis/{doc_id}", response_class=HTMLResponse)
+@app.get("/dashboard/pre-devis/{doc_id}/", response_class=HTMLResponse)
+def dashboard_predevis_view_legacy(doc_id: int):
+    return RedirectResponse(f"/dashboard/pre-devis/{doc_id}/view", status_code=307)
+
+
+@app.get("/dashboard/pre-devis/{doc_id}/view", response_class=HTMLResponse)
+@app.get("/dashboard/pre-devis/{doc_id}/view/", response_class=HTMLResponse)
+def dashboard_predevis_view(request: Request, doc_id: int):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/pre-devis", status_code=303)
+
+    db = SessionLocal()
+    try:
+        doc = (
+            db.query(ProjectDocument)
+            .filter(ProjectDocument.id == doc_id, ProjectDocument.client_id == user["id"])
+            .first()
+        )
+        if not doc or not _is_prequote_document(doc):
+            return RedirectResponse("/dashboard/pre-devis?error=document_missing", status_code=303)
+
+        if _is_legacy_prequote_document(doc):
+            _upgrade_legacy_prequote_document(db, doc)
+            db.refresh(doc)
+
+        path = _resolve_document_path(doc.stored_name)
+        if not path or not path.exists():
+            return RedirectResponse("/dashboard/pre-devis?error=document_missing", status_code=303)
+
+        title = (doc.original_name or "").strip() or path.name
+        prequote_number = _extract_prequote_number(doc.label) or _extract_prequote_number(doc.original_name)
+    finally:
+        db.close()
+
+    return templates.TemplateResponse(
+        request,
+        "dashboard_predevis_viewer.html",
+        {
+            "user": user,
+            "doc_id": doc_id,
+            "doc_title": title,
+            "prequote_number": prequote_number,
+            "doc_url": f"/api/project-document/{doc_id}/open",
+            "hide_public_header": True,
         },
     )
 
@@ -3527,24 +5185,33 @@ def open_project_document(request: Request, doc_id: int):
             .filter(ProjectDocument.id == doc_id, ProjectDocument.client_id == user["id"])
             .first()
         )
+        if not doc:
+            return RedirectResponse("/dashboard/documents?error=document_missing", status_code=303)
+
+        # Migration transparente: conversion des anciens pre-devis texte vers le template premium.
+        if _is_legacy_prequote_document(doc):
+            _upgrade_legacy_prequote_document(db, doc)
+            db.refresh(doc)
+
+        path = _resolve_document_path(doc.stored_name)
+        if not path or not path.exists():
+            return RedirectResponse("/dashboard/documents?error=document_missing", status_code=303)
+
+        media_type = (doc.mime_type or "").strip()
+        if not media_type:
+            guessed, _ = mimetypes.guess_type(str(path))
+            media_type = guessed or "application/octet-stream"
     finally:
         db.close()
-
-    if not doc:
-        return RedirectResponse("/dashboard/documents?error=document_missing", status_code=303)
-
-    path = _resolve_document_path(doc.stored_name)
-    if not path or not path.exists():
-        return RedirectResponse("/dashboard/documents?error=document_missing", status_code=303)
-
-    media_type = (doc.mime_type or "").strip()
-    if not media_type:
-        guessed, _ = mimetypes.guess_type(str(path))
-        media_type = guessed or "application/octet-stream"
 
     return FileResponse(
         path=str(path),
         media_type=media_type,
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
     )
 
 
@@ -3577,6 +5244,59 @@ def delete_project_document(request: Request, doc_id: int = Form(...)):
         db.close()
 
     return RedirectResponse("/dashboard/documents?success=deleted", status_code=303)
+
+
+def _delete_prequote_document_for_user(user_id: int, doc_id: int) -> bool:
+    db = SessionLocal()
+    try:
+        doc = (
+            db.query(ProjectDocument)
+            .filter(ProjectDocument.id == doc_id, ProjectDocument.client_id == user_id)
+            .first()
+        )
+        if not doc or not _is_prequote_document(doc):
+            return False
+
+        path = _resolve_document_path(doc.stored_name)
+        db.delete(doc)
+        db.commit()
+
+        if path and path.exists():
+            try:
+                path.unlink()
+            except OSError:
+                pass
+        return True
+    finally:
+        db.close()
+
+
+@app.post("/api/pre-devis/delete")
+@app.post("/api/pre-devis/delete/")
+def delete_prequote_document(request: Request, doc_id: int = Form(...)):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/pre-devis", status_code=303)
+
+    deleted = _delete_prequote_document_for_user(user["id"], doc_id)
+    if not deleted:
+        return RedirectResponse("/dashboard/pre-devis?error=document_missing", status_code=303)
+
+    return RedirectResponse("/dashboard/pre-devis?success=deleted", status_code=303)
+
+
+@app.post("/api/pre-devis/{doc_id}/delete")
+@app.post("/api/pre-devis/{doc_id}/delete/")
+def delete_prequote_document_legacy(request: Request, doc_id: int):
+    user = _require_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/dashboard/pre-devis", status_code=303)
+
+    deleted = _delete_prequote_document_for_user(user["id"], doc_id)
+    if not deleted:
+        return RedirectResponse("/dashboard/pre-devis?error=document_missing", status_code=303)
+
+    return RedirectResponse("/dashboard/pre-devis?success=deleted", status_code=303)
 
 
 @app.post("/api/project-document/delete-selected")
@@ -3960,7 +5680,15 @@ async def devis_intelligent(
     current_user = _get_current_user(request)
     project_key = project_type if project_type in PROJECT_TYPE_LABELS else "maison"
     style_key = style if style in STYLE_MULTIPLIER else "moderne"
-    scope_key = scope if scope in SMART_SCOPE_CONFIG else "renovation_complete"
+    scope_key = _normalize_scope_key(scope, default_if_empty="")
+    if not scope_key:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "Type de travaux invalide. Selectionnez une option proposee.",
+            },
+            status_code=400,
+        )
     timeline_key = timeline if timeline in TIMELINE_COST_MULTIPLIER else "6_mois"
 
     client_email = (email or "").strip()
@@ -4001,7 +5729,10 @@ async def devis_intelligent(
         work_item_key=work_item_key,
         work_quantity=work_quantity,
         work_unit=work_unit,
+        require_work_item=True,
     )
+    if quote.get("error"):
+        return JSONResponse({"ok": False, "error": str(quote["error"])}, status_code=400)
 
     project_saved = False
     saved_project_id = None
@@ -4054,6 +5785,41 @@ async def devis_intelligent(
         finally:
             db.close()
 
+    prequote_document_ref: dict[str, str] | None = None
+    try:
+        prequote_document_ref = _create_prequote_document_ref(
+            quote=quote,
+            project_type=project_key,
+            scope=scope_key,
+            style=style_key,
+            timeline=timeline_key,
+            city=city,
+            surface=surface,
+            rooms=rooms,
+            budget=budget,
+            work_item_key=work_item_key,
+            work_quantity=work_quantity,
+            work_unit=work_unit,
+            notes=notes,
+        )
+    except OSError:
+        prequote_document_ref = None
+    prequote_public_url = (prequote_document_ref or {}).get("public_url", "")
+    prequote_attachment: dict[str, object] | None = None
+    prequote_stored_name = (prequote_document_ref or {}).get("stored_name", "")
+    prequote_original_name = (prequote_document_ref or {}).get("original_name", "")
+    if prequote_stored_name:
+        prequote_path = _resolve_document_path(prequote_stored_name)
+        if prequote_path and prequote_path.exists():
+            try:
+                prequote_attachment = {
+                    "filename": prequote_original_name or prequote_path.name,
+                    "content": prequote_path.read_bytes(),
+                    "mime_type": "application/pdf",
+                }
+            except OSError:
+                prequote_attachment = None
+
     document_refs: list[dict] = []
     photo_urls: list[str] = []
     for upload in project_photos or []:
@@ -4072,7 +5838,7 @@ async def devis_intelligent(
                     "original_name": upload.filename,
                     "stored_name": filename,
                     "mime_type": upload.content_type,
-                    "path": dst,
+                    "public_url": _public_static_url(dst),
                 }
             )
 
@@ -4093,7 +5859,7 @@ async def devis_intelligent(
                     "original_name": upload.filename,
                     "stored_name": filename,
                     "mime_type": upload.content_type,
-                    "path": dst,
+                    "public_url": _public_static_url(dst),
                 }
             )
 
@@ -4131,10 +5897,14 @@ async def devis_intelligent(
                 }
             )
 
-    if project_saved and saved_project_id and document_refs:
+    project_document_refs = [dict(doc) for doc in document_refs]
+    if prequote_document_ref:
+        project_document_refs.insert(0, dict(prequote_document_ref))
+
+    if project_saved and saved_project_id and current_user and project_document_refs:
         db = SessionLocal()
         try:
-            for doc in document_refs:
+            for doc in project_document_refs:
                 db.add(
                     ProjectDocument(
                         client_id=current_user["id"],
@@ -4206,7 +5976,7 @@ async def devis_intelligent(
                         "estimate_disclaimer": LABOR_ONLY_MENTION,
                         "source_photos": photo_urls,
                         "source_videos": video_urls,
-                        "documents": document_refs,
+                        "documents": project_document_refs,
                         "precall_report": precall_report,
                         "render_request_status": "awaiting_request",
                         "tracking": tracking_context,
@@ -4228,6 +5998,9 @@ async def devis_intelligent(
             "message": "Estimation sauvegardee (email non envoye - SMTP non configure).",
             "quote": quote,
             "handoff_id": handoff_id,
+            "prequote_url": prequote_public_url,
+            "account_required_for_final": False,
+            "account_optional": current_user is None,
             "delivery": {
                 "client_email_sent": False,
                 "internal_email_sent": False,
@@ -4241,11 +6014,14 @@ async def devis_intelligent(
         scope=scope_key,
         style=style_key,
         quote=quote,
+        prequote_url=prequote_public_url,
+        has_pdf_attachment=bool(prequote_attachment),
     )
     client_email_sent, client_error = _send_email_message(
         to_email=client_email,
         subject=client_subject,
         text_body=client_body,
+        attachments=([prequote_attachment] if prequote_attachment else None),
     )
 
     internal_subject, internal_body = _compose_internal_report_email(
@@ -4302,15 +6078,24 @@ async def devis_intelligent(
             status_code=502,
         )
 
+    _record_quote_email_sent(
+        handoff_id=handoff_id,
+        prequote_url=prequote_public_url,
+        project_type=project_key,
+        quote=quote,
+    )
+
     return {
         "ok": True,
-        "message": "Devis intelligent envoye au client. Le rendu 3D est disponible sur demande apres devis.",
+        "message": "Pre-devis PDF envoye au client. Le rendu 3D est disponible sur demande apres devis.",
         "quote": quote,
         "handoff_id": handoff_id,
         "render_request_enabled": True,
         "project_saved": project_saved,
         "project_id": saved_project_id,
-        "account_required_for_final": current_user is None,
+        "account_required_for_final": False,
+        "account_optional": current_user is None,
+        "prequote_url": prequote_public_url,
         "delivery": {
             "client_email": client_email,
             "client_email_sent": client_email_sent,
@@ -4475,9 +6260,18 @@ async def render_3d_on_demand(
         style_key = (style or handoff_payload.get("style") or "moderne").strip().lower()
         if style_key not in STYLE_MULTIPLIER:
             style_key = "moderne"
-        scope_key = (scope or handoff_payload.get("scope") or "renovation_complete").strip().lower()
-        if scope_key not in SMART_SCOPE_CONFIG:
-            scope_key = "renovation_complete"
+        raw_scope = scope if scope is not None else ""
+        if not str(raw_scope or "").strip():
+            raw_scope = handoff_payload.get("scope") or "renovation_complete"
+        scope_key = _normalize_scope_key(str(raw_scope), default_if_empty="renovation_complete")
+        if not scope_key:
+            return JSONResponse(
+                {
+                    "ok": False,
+                    "error": "Type de travaux invalide. Selectionnez une option proposee.",
+                },
+                status_code=400,
+            )
         timeline_key = (timeline or handoff_payload.get("timeline") or "6_mois").strip()
         if timeline_key not in TIMELINE_COST_MULTIPLIER:
             timeline_key = "6_mois"
@@ -4501,7 +6295,12 @@ async def render_3d_on_demand(
             )
 
         stored_quote = handoff_payload.get("quote")
-        if not isinstance(stored_quote, dict) or not stored_quote.get("low_label") or not stored_quote.get("high_label"):
+        if (
+            not isinstance(stored_quote, dict)
+            or stored_quote.get("pricing_basis") != "catalog"
+            or not stored_quote.get("low_label")
+            or not stored_quote.get("high_label")
+        ):
             stored_quote = None
         quote = stored_quote or _build_smart_quote(
             project_type=project_key,
@@ -4518,6 +6317,8 @@ async def render_3d_on_demand(
             work_quantity=str((handoff_payload or {}).get("work_quantity", "")),
             work_unit=str((handoff_payload or {}).get("work_unit", "")),
         )
+        if quote.get("error"):
+            return JSONResponse({"ok": False, "error": str(quote["error"])}, status_code=400)
 
         prompt = _compose_architecture_prompt(
             project_type=project_key,
@@ -4871,6 +6672,15 @@ async def architecture_3d(
     )
 
     wants_free_pack = _as_bool(want_free_interior)
+    scope_key = _normalize_scope_key(scope, default_if_empty="")
+    if not scope_key:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "Type de travaux invalide. Selectionnez une option proposee.",
+            },
+            status_code=400,
+        )
     has_contact = bool((phone or "").strip() or (email or "").strip())
     interior_request_status = "not_requested"
     enable_interior_offer = False
@@ -4883,7 +6693,7 @@ async def architecture_3d(
     quote = _build_smart_quote(
         project_type=project_type,
         style=style,
-        scope=scope,
+        scope=scope_key,
         timeline=timeline,
         surface=surface,
         rooms=rooms,
@@ -4894,10 +6704,12 @@ async def architecture_3d(
         work_item_key="",
         work_quantity="",
     )
+    if quote.get("error"):
+        return JSONResponse({"ok": False, "error": str(quote["error"])}, status_code=400)
     interior_offer = _build_interior_offer(
         project_type=project_type,
         style=style,
-        scope=scope,
+        scope=scope_key,
         surface_m2=quote["surface_m2"],
         room_count=quote.get("rooms"),
         notes=notes,
@@ -4910,7 +6722,7 @@ async def architecture_3d(
         city=city,
         surface=surface,
         notes=notes,
-        scope=scope,
+        scope=scope_key,
         timeline=timeline,
         want_free_interior=enable_interior_offer,
     )
@@ -4943,7 +6755,7 @@ async def architecture_3d(
 
     precall_report = _build_precall_report(
         project_type=project_type,
-        scope=scope,
+        scope=scope_key,
         style=style,
         timeline=timeline,
         city=city,
@@ -4986,7 +6798,7 @@ async def architecture_3d(
                         "notes": notes,
                         "project_type": project_type,
                         "style": style,
-                        "scope": scope,
+                        "scope": scope_key,
                         "timeline": timeline,
                         "rooms": rooms,
                         "budget": budget,
@@ -5014,7 +6826,7 @@ async def architecture_3d(
         name=name,
         city=city,
         project_type=project_type,
-        scope=scope,
+        scope=scope_key,
         style=style,
         quote=quote,
         renders=render_urls,
@@ -5031,7 +6843,7 @@ async def architecture_3d(
         email=client_email,
         city=city,
         project_type=project_type,
-        scope=scope,
+        scope=scope_key,
         style=style,
         timeline=timeline,
         surface=surface,
@@ -5391,6 +7203,364 @@ def admin_dashboard_view(request: Request):
             },
         },
     )
+
+
+@app.post("/admin/dashboard/email-test")
+def admin_dashboard_email_test(request: Request, to_email: str = Form(...)):
+    user = _require_admin(request)
+    if not user:
+        return RedirectResponse("/admin/login?next=/admin/dashboard", status_code=303)
+
+    recipient = (to_email or "").strip().lower()
+    if not _is_email_address(recipient):
+        query = urlencode(
+            {
+                "email_test": "error",
+                "email_test_to": recipient,
+                "email_test_msg": "Adresse email invalide.",
+            }
+        )
+        return RedirectResponse(f"/admin/dashboard?{query}", status_code=303)
+
+    smtp_cfg = _smtp_settings()
+    if not _smtp_ready(smtp_cfg):
+        query = urlencode(
+            {
+                "email_test": "error",
+                "email_test_to": recipient,
+                "email_test_msg": "SMTP non configure (host/user/password/from).",
+            }
+        )
+        return RedirectResponse(f"/admin/dashboard?{query}", status_code=303)
+
+    subject, body = _compose_smtp_probe_email(initiated_by_email=str(user.get("email") or "admin"))
+    sent, error = _send_email_message(to_email=recipient, subject=subject, text_body=body)
+    if not sent:
+        error_message = _clean_text(error or "", limit=200) or "Erreur SMTP inconnue."
+        query = urlencode(
+            {
+                "email_test": "error",
+                "email_test_to": recipient,
+                "email_test_msg": error_message,
+            }
+        )
+        return RedirectResponse(f"/admin/dashboard?{query}", status_code=303)
+
+    query = urlencode(
+        {
+            "email_test": "ok",
+            "email_test_to": recipient,
+        }
+    )
+    return RedirectResponse(f"/admin/dashboard?{query}", status_code=303)
+
+
+@app.get("/admin/chantiers", response_class=HTMLResponse)
+def admin_chantiers_view(request: Request):
+    user = _require_admin(request)
+    if not user:
+        return RedirectResponse("/admin/login?next=/admin/chantiers", status_code=303)
+
+    state = request.query_params.get("state", "").strip().lower()
+    state_messages = {
+        "step_updated": ("success", "Etape chantier mise a jour."),
+        "step_missing": ("error", "Etape chantier introuvable."),
+        "invalid_progress": ("error", "Progression invalide."),
+        "invalid_date": ("error", "Format de date invalide."),
+    }
+    flash = state_messages.get(state)
+
+    db = SessionLocal()
+    try:
+        contracts = (
+            db.query(ChantierContract)
+            .order_by(ChantierContract.signed_at.desc(), ChantierContract.id.desc())
+            .all()
+        )
+        contract_ids = [contract.id for contract in contracts]
+        client_ids = sorted({int(contract.client_id) for contract in contracts if contract.client_id})
+
+        users_by_id: dict[int, UserAccount] = {}
+        if client_ids:
+            users = db.query(UserAccount).filter(UserAccount.id.in_(client_ids)).all()
+            users_by_id = {int(item.id): item for item in users}
+        project_ids = sorted({int(contract.project_id) for contract in contracts if contract.project_id})
+        projects_by_id: dict[int, ClientProject] = {}
+        if project_ids:
+            projects = db.query(ClientProject).filter(ClientProject.id.in_(project_ids)).all()
+            projects_by_id = {int(item.id): item for item in projects}
+
+        steps_by_contract: dict[int, list[ChantierLot]] = {}
+        if contract_ids:
+            steps = (
+                db.query(ChantierLot)
+                .filter(ChantierLot.contract_id.in_(contract_ids))
+                .order_by(ChantierLot.contract_id.asc(), ChantierLot.sort_order.asc(), ChantierLot.id.asc())
+                .all()
+            )
+            for step in steps:
+                steps_by_contract.setdefault(int(step.contract_id), []).append(step)
+
+        events_by_contract: dict[int, list[ChantierEvent]] = {}
+        if contract_ids:
+            events = (
+                db.query(ChantierEvent)
+                .filter(ChantierEvent.contract_id.in_(contract_ids))
+                .order_by(ChantierEvent.created_at.desc(), ChantierEvent.id.desc())
+                .all()
+            )
+            for event in events:
+                bucket = events_by_contract.setdefault(int(event.contract_id), [])
+                if len(bucket) < 6:
+                    bucket.append(event)
+
+        contracts_view: list[dict] = []
+        status_label_map = {
+            "active": "En cours",
+            "completed": "Termine",
+            "blocked": "Bloque",
+        }
+        for contract in contracts:
+            client = users_by_id.get(int(contract.client_id))
+            project = projects_by_id.get(int(contract.project_id)) if contract.project_id else None
+            raw_steps = steps_by_contract.get(int(contract.id), [])
+            step_rows: list[dict] = []
+            step_comments: dict[str, str] = {}
+            completed_steps: list[str] = []
+            for step in raw_steps:
+                status = _normalize_chantier_step_status(step.status or "")
+                progress = max(0, min(100, int(step.progress_percent or 0)))
+                if progress >= 100:
+                    status = "validated"
+                if status == "validated":
+                    completed_steps.append(step.label)
+                step_rows.append(
+                    {
+                        "id": step.id,
+                        "label": step.label,
+                        "status": status,
+                        "status_label": _chantier_step_status_label(status),
+                        "progress_percent": progress,
+                        "next_step": step.next_step or "",
+                        "planned_date_value": _format_chantier_input_date(step.planned_start),
+                        "actual_date_value": _format_chantier_input_date(step.planned_end),
+                        "planned_date_label": _format_chantier_date(step.planned_start),
+                        "actual_date_label": _format_chantier_date(step.planned_end),
+                        "client_comment": "",
+                    }
+                )
+
+            event_rows: list[dict] = []
+            for event in events_by_contract.get(int(contract.id), []):
+                comment_text = _extract_client_comment(event.detail or "")
+                step_label = _step_label_from_event_title(event.title or "")
+                if comment_text and step_label:
+                    step_comments.setdefault(_fold_lookup(step_label), comment_text)
+                event_rows.append(
+                    {
+                        "title": event.title,
+                        "detail": event.detail or "",
+                        "created_label": event.created_at.strftime("%d/%m/%Y %H:%M") if event.created_at else "",
+                    }
+                )
+
+            for step_row in step_rows:
+                step_row["client_comment"] = step_comments.get(_fold_lookup(step_row.get("label")), "")
+
+            global_progress, current_step_label, _, upcoming_steps = _compute_chantier_overview(step_rows)
+            next_step_label = upcoming_steps[0] if upcoming_steps else ""
+            if not next_step_label:
+                next_step_label = _first_pending_or_blocked_step_label(step_rows)
+            last_update_label = ""
+            if event_rows:
+                last_update_label = event_rows[0]["created_label"]
+            elif contract.updated_at:
+                last_update_label = contract.updated_at.strftime("%d/%m/%Y %H:%M")
+
+            contracts_view.append(
+                {
+                    "id": contract.id,
+                    "status": str(contract.status or "active"),
+                    "status_label": status_label_map.get(str(contract.status or "").lower(), "En cours"),
+                    "signed_label": contract.signed_at.strftime("%d/%m/%Y %H:%M") if contract.signed_at else "",
+                    "quote_reference": contract.quote_reference or "A confirmer",
+                    "client_name": (client.name if client and client.name else "Client"),
+                    "client_email": (client.email if client and client.email else ""),
+                    "project_name": (project.title if project else f"Chantier #{contract.id}"),
+                    "global_progress": global_progress,
+                    "current_step_label": current_step_label,
+                    "next_step_label": next_step_label,
+                    "last_update_label": last_update_label,
+                    "completed_steps_count": len(completed_steps),
+                    "total_steps": len(step_rows),
+                    "steps": step_rows,
+                    "events": event_rows,
+                }
+            )
+    finally:
+        db.close()
+
+    return templates.TemplateResponse(
+        request,
+        "admin_chantiers.html",
+        {
+            "user": user,
+            "active_page": "chantiers",
+            "hide_public_header": True,
+            "flash": flash,
+            "contracts": contracts_view,
+        },
+    )
+
+
+@app.post("/admin/chantiers/step-update")
+def admin_chantiers_step_update(
+    request: Request,
+    step_id: int = Form(...),
+    status: str = Form("pending"),
+    progress_percent: str = Form("0"),
+    planned_date: str = Form(""),
+    actual_date: str = Form(""),
+    next_step: str = Form(""),
+    internal_comment: str = Form(""),
+    client_comment: str = Form(""),
+    issue_flag: str = Form("none"),
+    action: str = Form("save"),
+):
+    user = _require_admin(request)
+    if not user:
+        return RedirectResponse("/admin/login?next=/admin/chantiers", status_code=303)
+
+    parsed_progress = _parse_number(progress_percent)
+    if parsed_progress is None:
+        return RedirectResponse("/admin/chantiers?state=invalid_progress", status_code=303)
+
+    planned_raw = str(planned_date or "").strip()
+    actual_raw = str(actual_date or "").strip()
+    planned_dt = _parse_chantier_form_date(planned_raw) if planned_raw else None
+    actual_dt = _parse_chantier_form_date(actual_raw) if actual_raw else None
+    if planned_raw and planned_dt is None:
+        return RedirectResponse("/admin/chantiers?state=invalid_date", status_code=303)
+    if actual_raw and actual_dt is None:
+        return RedirectResponse("/admin/chantiers?state=invalid_date", status_code=303)
+
+    db = SessionLocal()
+    try:
+        step = db.query(ChantierLot).filter(ChantierLot.id == step_id).first()
+        if not step:
+            return RedirectResponse("/admin/chantiers?state=step_missing", status_code=303)
+
+        normalized_status = _normalize_chantier_step_status(status)
+        action_key = str(action or "save").strip().lower()
+        issue_key = str(issue_flag or "none").strip().lower()
+
+        if action_key == "validate":
+            normalized_status = "validated"
+        elif issue_key == "blocked":
+            normalized_status = "blocked"
+        elif issue_key == "delayed":
+            normalized_status = "delayed"
+
+        progress = max(0, min(100, int(round(parsed_progress))))
+        if normalized_status == "validated":
+            progress = 100
+        elif progress >= 100:
+            normalized_status = "validated"
+            progress = 100
+        elif progress > 0 and normalized_status == "pending":
+            normalized_status = "in_progress"
+        elif progress == 0 and normalized_status in {"in_progress", "blocked", "delayed"}:
+            progress = 10
+        elif progress == 0 and normalized_status == "pending":
+            normalized_status = "pending"
+
+        step.status = normalized_status
+        step.progress_percent = progress
+        if planned_raw:
+            step.planned_start = planned_dt
+        if actual_raw:
+            step.planned_end = actual_dt
+        elif normalized_status == "validated":
+            step.planned_end = step.planned_end or _utc_now()
+        cleaned_next_step = _clean_text(next_step, limit=240)
+        if cleaned_next_step:
+            step.next_step = cleaned_next_step
+        elif normalized_status == "validated":
+            step.next_step = "Etape terminee."
+        elif normalized_status == "blocked":
+            step.next_step = "Blocage a lever avant reprise."
+        elif normalized_status == "delayed":
+            step.next_step = "Replanification en cours."
+        elif normalized_status == "in_progress":
+            step.next_step = "Execution en cours."
+        else:
+            step.next_step = "Etape planifiee."
+        step.updated_at = _utc_now()
+
+        contract = db.query(ChantierContract).filter(ChantierContract.id == step.contract_id).first()
+        status_label = _chantier_step_status_label(normalized_status)
+        detail_lines = [f"Statut: {status_label}. Avancement: {progress}%."]
+        if step.planned_start:
+            detail_lines.append(f"Date prevue: {_format_chantier_date(step.planned_start)}.")
+        if step.planned_end and normalized_status == "validated":
+            detail_lines.append(f"Date reelle: {_format_chantier_date(step.planned_end)}.")
+        if step.next_step:
+            detail_lines.append(f"Prochaine action: {step.next_step}")
+        clean_internal_comment = _clean_text(internal_comment, limit=500)
+        clean_client_comment = _clean_text(client_comment, limit=500)
+        visible_to_client = action_key == "validate" or issue_key in {"blocked", "delayed"} or bool(clean_client_comment)
+        if clean_internal_comment and not visible_to_client:
+            detail_lines.append(f"Commentaire interne: {clean_internal_comment}")
+        if clean_client_comment:
+            detail_lines.append(f"Commentaire client: {clean_client_comment}")
+
+        event_type = "progress"
+        title = f"Mise a jour etape: {step.label}"
+        if action_key == "validate":
+            event_type = "validation"
+            title = f"Etape validee: {step.label}"
+        elif issue_key == "blocked":
+            event_type = "incident"
+            title = f"Blocage signale: {step.label}"
+        elif issue_key == "delayed":
+            event_type = "incident"
+            title = f"Retard signale: {step.label}"
+
+        db.add(
+            ChantierEvent(
+                contract_id=int(step.contract_id),
+                event_type=event_type,
+                title=title,
+                detail=" ".join(detail_lines),
+                impact_scope=("client" if visible_to_client else "internal"),
+            )
+        )
+
+        if action_key == "validate" and contract:
+            next_step = (
+                db.query(ChantierLot)
+                .filter(
+                    ChantierLot.contract_id == contract.id,
+                    ChantierLot.sort_order > step.sort_order,
+                    ChantierLot.status == "pending",
+                )
+                .order_by(ChantierLot.sort_order.asc(), ChantierLot.id.asc())
+                .first()
+            )
+            if next_step:
+                next_step.status = "in_progress"
+                next_step.progress_percent = max(10, int(next_step.progress_percent or 0))
+                if not next_step.next_step:
+                    next_step.next_step = "Execution en cours."
+                next_step.updated_at = _utc_now()
+
+        if contract:
+            _sync_contract_status(db, contract)
+        db.commit()
+    finally:
+        db.close()
+
+    return RedirectResponse("/admin/chantiers?state=step_updated", status_code=303)
 
 
 @app.get("/admin/estimations", response_class=HTMLResponse)
